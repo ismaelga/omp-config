@@ -10,7 +10,7 @@ task:
     mode: none
 modelRoles: 
   default: anthropic/claude-opus-5:high
-  plan: anthropic/claude-opus-5:xhigh
+  plan: anthropic/claude-opus-5:high
   slow: openai-codex/gpt-5.6-sol:high
   task: ollama-cloud/glm-5.2:high
   smol: ollama-cloud/minimax-m3
@@ -89,11 +89,25 @@ retry:
     ollama-cloud/qwen3-coder-next: 
       - ollama-cloud/kimi-k2.7-code
       - opencode-go/kimi-k2.7-code
+    # ollama-cloud serves ~55K input tokens/turn with NO prompt caching
+    # (measured: 4912 glm-5.2 turns, cacheRead 0). Its paid twin therefore
+    # bills full input every turn, so fall to the cheaper open-SOTA model
+    # first instead of preserving the model id.
+    ollama-cloud/glm-5.2: 
+      - opencode-go/deepseek-v4-pro
+      - opencode-go/glm-5.2
     openai-codex/gpt-5.6-sol: 
       - openai-codex/gpt-5.6-terra
       - anthropic/claude-opus-5:high
+    # Anthropic 7-day window runs hot; give it somewhere to land.
+    anthropic/*: 
+      - openai-codex/gpt-5.6-terra:high
+      - ollama-cloud/glm-5.2:high
+    # NOT ollama-cloud/kimi-k3: same $3/$15 price, but that deployment caps
+    # output at 8.2K vs 131K here, which silently truncates generated code.
     opencode-go/kimi-k3: 
-      - ollama-cloud/kimi-k3
+      - ollama-cloud/glm-5.2:high
+      - ollama-cloud/minimax-m3
     # Never lead with the primary model: the failing selector is suppressed
     # for cooldown before the chain is walked.
     default: 
@@ -131,3 +145,7 @@ lsp:
   formatOnWrite: true
 thinkingBudgets: 
   max: 65536
+tier: 
+  # Subagents are latency-tolerant; keep them off the priority queue so the
+  # Codex weekly window is reserved for main-thread turns.
+  subagent: flex
