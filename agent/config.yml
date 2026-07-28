@@ -1,8 +1,15 @@
 task: 
   agentModelOverrides: 
-    sonic: ollama-cloud/qwen3-coder-next
+    # Bundled reviewer resolves @slow (gpt-5.6-sol). It was the only agent
+    # drawing the Codex weekly window, which sits at 54% used. Terra is the
+    # balanced tier of the same family on the same subscription; sol stays
+    # reachable by switching to @slow deliberately.
+    reviewer: openai-codex/gpt-5.6-terra:high
   disabledAgents: 
-    []
+    # cavecrew-builder covers mechanical edits with a verifiable receipt and
+    # cavecrew-refactorer covers the multi-file case. sonic's pinned model
+    # also exposed no thinking levels, so its thinkingLevel was inert.
+    - sonic
   eager: preferred
   showResolvedModelBadge: true
   enableLsp: true
@@ -77,46 +84,25 @@ providers:
     maxConcurrency: 8
 retry: 
   fallbackChains: 
-    # Provider-wide swap: keeps the failing model id, changes provider.
-    # Ids absent on the target are skipped, so this covers current + future
-    # ollama-cloud models without listing them one by one.
     ollama-cloud/*: 
       - opencode-go/*
-    # Exact keys override the wildcard. Both ids below are absent from
-    # opencode-go, so they need same-provider targets.
-    "ollama-cloud/gpt-oss:20b": 
+    ollama-cloud/gpt-oss:20b: 
       - ollama-cloud/minimax-m3
-    ollama-cloud/qwen3-coder-next: 
-      - ollama-cloud/kimi-k2.7-code
-      - opencode-go/kimi-k2.7-code
-    # ollama-cloud serves ~55K input tokens/turn with NO prompt caching
-    # (measured: 4912 glm-5.2 turns, cacheRead 0). Its paid twin therefore
-    # bills full input every turn, so fall to the cheaper open-SOTA model
-    # first instead of preserving the model id.
     ollama-cloud/glm-5.2: 
       - opencode-go/deepseek-v4-pro
       - opencode-go/glm-5.2
     openai-codex/gpt-5.6-sol: 
       - openai-codex/gpt-5.6-terra
       - anthropic/claude-opus-5:high
-    # Anthropic 7-day window runs hot; give it somewhere to land.
     anthropic/*: 
       - openai-codex/gpt-5.6-terra:high
       - ollama-cloud/glm-5.2:high
-    # ollama-cloud/kimi-k3 is the ONE ollama-cloud model not covered by the
-    # subscription: a live call returns "extra usage auto reload monthly max
-    # reached" while all 43 zero-cost siblings answer fine. It is also the
-    # priciest turn in this config when reached via opencode-go ($3/Mtok with
-    # no prompt caching, ~$0.17 at our measured 55K input/turn), so it is an
-    # escalation target only, never a default.
     designer: 
       - opencode-go/kimi-k3:high
       - ollama-cloud/glm-5.2:high
     opencode-go/kimi-k3: 
       - ollama-cloud/glm-5.2:high
       - ollama-cloud/minimax-m3
-    # Never lead with the primary model: the failing selector is suppressed
-    # for cooldown before the chain is walked.
     default: 
       - openai-codex/gpt-5.6-sol:high
       - ollama-cloud/glm-5.2:high
@@ -138,7 +124,7 @@ checkpoint:
 commands: 
   enableClaudeUser: true
 defaultThinkingLevel: auto
-hideThinkingBlock: false
+hideThinkingBlock: true
 dev: 
   autoqaConsent: granted
 bash: 
@@ -153,6 +139,4 @@ lsp:
 thinkingBudgets: 
   max: 65536
 tier: 
-  # Subagents are latency-tolerant; keep them off the priority queue so the
-  # Codex weekly window is reserved for main-thread turns.
   subagent: flex

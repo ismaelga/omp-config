@@ -12,9 +12,6 @@ providers:
       # tiny role: 131K -> 524K (smol)
       "gpt-oss:20b":
         contextPromotionTarget: ollama-cloud/minimax-m3
-      # sonic agent: 262K -> 1M (no thinking levels on this model)
-      qwen3-coder-next:
-        contextPromotionTarget: ollama-cloud/deepseek-v4-flash
       # cavecrew-builder: 524K -> 1M
       deepseek-v4-pro:
         contextPromotionTarget: ollama-cloud/deepseek-v4-flash

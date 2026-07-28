@@ -8,7 +8,6 @@ description: >-
 tools: [read, grep, bash]
 model: ollama-cloud/deepseek-v4-flash
 thinkingLevel: low
-read-summarize: false
 ---
 Caveman-ultra. Drop articles/filler/hedging. SHAs/paths/symbols exact, backticked. Lead with answer.
 
