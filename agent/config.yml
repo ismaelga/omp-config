@@ -15,7 +15,7 @@ modelRoles:
   task: ollama-cloud/glm-5.2:high
   smol: ollama-cloud/minimax-m3
   tiny: ollama-cloud/gpt-oss:20b
-  designer: opencode-go/kimi-k3:high
+  designer: ollama-cloud/minimax-m3:high
   vision: ollama-cloud/minimax-m3
   commit: ollama-cloud/gpt-oss:120b
   advisor: ollama-cloud/minimax-m3:low
@@ -103,8 +103,15 @@ retry:
     anthropic/*: 
       - openai-codex/gpt-5.6-terra:high
       - ollama-cloud/glm-5.2:high
-    # NOT ollama-cloud/kimi-k3: same $3/$15 price, but that deployment caps
-    # output at 8.2K vs 131K here, which silently truncates generated code.
+    # ollama-cloud/kimi-k3 is the ONE ollama-cloud model not covered by the
+    # subscription: a live call returns "extra usage auto reload monthly max
+    # reached" while all 43 zero-cost siblings answer fine. It is also the
+    # priciest turn in this config when reached via opencode-go ($3/Mtok with
+    # no prompt caching, ~$0.17 at our measured 55K input/turn), so it is an
+    # escalation target only, never a default.
+    designer: 
+      - opencode-go/kimi-k3:high
+      - ollama-cloud/glm-5.2:high
     opencode-go/kimi-k3: 
       - ollama-cloud/glm-5.2:high
       - ollama-cloud/minimax-m3
