@@ -1,0 +1,13 @@
+# Default-deny. ~/.omp holds live credentials (agent.db -> auth_credentials),
+# session transcripts, blobs and caches. Only hand-written config is tracked;
+# anything new is ignored until explicitly whitelisted below.
+*
+
+!.gitignore
+!agent/
+!agent/config.yml
+!agent/models.yml
+!agent/mcp.json
+!agent/lsp.json
+!agent/agents/
+!agent/agents/*.md

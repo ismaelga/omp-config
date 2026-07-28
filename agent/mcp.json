@@ -1,0 +1,14 @@
+{
+  "$schema": "https://raw.githubusercontent.com/can1357/oh-my-pi/main/packages/coding-agent/src/config/mcp-schema.json",
+  "mcpServers": {
+    "worldcoin-developer-portal": {
+      "type": "http",
+      "url": "https://developer.worldcoin.org/api/mcp",
+      "headers": {
+        "Authorization": "!echo Bearer $(cat $HOME/.secrets/worldcoin-portal-token)"
+      },
+      "timeout": 60000
+    }
+  },
+  "disabledServers": ["pencil", "cavemem", "computer-use", "sentry"]
+}

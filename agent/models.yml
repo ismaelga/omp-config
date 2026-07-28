@@ -1,0 +1,31 @@
+# Override-only block: ollama-cloud is a built-in provider (43 models,
+# authenticated from OLLAMA_API_KEY). Do not redeclare baseUrl/api/models
+# here -- that replaces curated catalog metadata (context windows, output
+# caps, thinking levels) with hand-written guesses.
+#
+# Purpose of this file: give the small-context roles a real promotion target
+# so a context overflow switches models instead of compacting.
+# Requires `contextPromotion.enabled: true` in config.yml.
+providers:
+  ollama-cloud:
+    modelOverrides:
+      # tiny role: 131K -> 524K (smol)
+      "gpt-oss:20b":
+        contextPromotionTarget: ollama-cloud/minimax-m3
+      # sonic agent: 262K -> 1M (no thinking levels on this model)
+      qwen3-coder-next:
+        contextPromotionTarget: ollama-cloud/deepseek-v4-flash
+      # cavecrew-builder: 524K -> 1M
+      deepseek-v4-pro:
+        contextPromotionTarget: ollama-cloud/deepseek-v4-flash
+      # smol + vision roles: 524K -> 1M
+      minimax-m3:
+        contextPromotionTarget: ollama-cloud/deepseek-v4-flash
+      # commit role: 131K -> 1M
+      "gpt-oss:120b":
+        contextPromotionTarget: ollama-cloud/glm-5.2
+  openai-codex:
+    modelOverrides:
+      # slow role + reviewer agent: 272K -> 1M, same provider/API
+      gpt-5.6-sol:
+        contextPromotionTarget: openai-codex/gpt-5.4

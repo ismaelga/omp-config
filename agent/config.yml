@@ -1,0 +1,133 @@
+task: 
+  agentModelOverrides: 
+    sonic: ollama-cloud/qwen3-coder-next
+  disabledAgents: 
+    []
+  eager: preferred
+  showResolvedModelBadge: true
+  enableLsp: true
+  isolation: 
+    mode: none
+modelRoles: 
+  default: anthropic/claude-opus-5:high
+  plan: anthropic/claude-opus-5:xhigh
+  slow: openai-codex/gpt-5.6-sol:high
+  task: ollama-cloud/glm-5.2:high
+  smol: ollama-cloud/minimax-m3
+  tiny: ollama-cloud/gpt-oss:20b
+  designer: opencode-go/kimi-k3:high
+  vision: ollama-cloud/minimax-m3
+  commit: ollama-cloud/gpt-oss:120b
+  advisor: ollama-cloud/minimax-m3:low
+modelProviderOrder: 
+  - anthropic
+  - openai-codex
+  - ollama-cloud
+  - opencode-go
+  - cursor
+  - google-antigravity
+contextPromotion: 
+  enabled: true
+theme: 
+  dark: dark-catppuccin
+symbolPreset: nerd
+statusLine: 
+  preset: compact
+  separator: powerline-thin
+  showHookStatus: true
+  sessionAccent: true
+  transparent: false
+  compactThinkingLevel: false
+display: 
+  showTokenUsage: true
+  shimmer: kitt
+  cacheMissMarker: true
+doubleEscapeAction: tree
+memories: 
+  enabled: false
+renderMermaid: 
+  enabled: true
+github: 
+  enabled: true
+memory: 
+  backend: mnemopi
+setupVersion: 1
+terminal: 
+  showProgress: false
+tui: 
+  textSizing: false
+advisor: 
+  enabled: true
+steeringMode: one-at-a-time
+interruptMode: immediate
+stt: 
+  modelName: parakeet
+  submitTrigger: never
+  enabled: false
+share: 
+  store: blob
+magicKeywords: 
+  enabled: true
+providers: 
+  memoryModel: online
+  fireworksTier: standard
+  tinyModel: online
+  kimiApiFormat: auto
+  ollama-cloud: 
+    maxConcurrency: 8
+retry: 
+  fallbackChains: 
+    # Provider-wide swap: keeps the failing model id, changes provider.
+    # Ids absent on the target are skipped, so this covers current + future
+    # ollama-cloud models without listing them one by one.
+    ollama-cloud/*: 
+      - opencode-go/*
+    # Exact keys override the wildcard. Both ids below are absent from
+    # opencode-go, so they need same-provider targets.
+    "ollama-cloud/gpt-oss:20b": 
+      - ollama-cloud/minimax-m3
+    ollama-cloud/qwen3-coder-next: 
+      - ollama-cloud/kimi-k2.7-code
+      - opencode-go/kimi-k2.7-code
+    openai-codex/gpt-5.6-sol: 
+      - openai-codex/gpt-5.6-terra
+      - anthropic/claude-opus-5:high
+    opencode-go/kimi-k3: 
+      - ollama-cloud/kimi-k3
+    # Never lead with the primary model: the failing selector is suppressed
+    # for cooldown before the chain is walked.
+    default: 
+      - openai-codex/gpt-5.6-sol:high
+      - ollama-cloud/glm-5.2:high
+mnemopi: 
+  dbPath: ""
+  scoping: per-project
+  proactiveLinking: true
+  embeddingModel: ""
+edit: 
+  mode: hashline
+python: 
+  kernelMode: session
+ruby: 
+  interpreter: ""
+astGrep: 
+  enabled: true
+checkpoint: 
+  enabled: true
+commands: 
+  enableClaudeUser: true
+defaultThinkingLevel: auto
+hideThinkingBlock: false
+dev: 
+  autoqaConsent: granted
+bash: 
+  autoBackground: 
+    enabled: true
+features: 
+  unexpectedStopDetection: true
+compaction: 
+  idleEnabled: true
+lsp: 
+  formatOnWrite: true
+thinkingBudgets: 
+  max: 65536
