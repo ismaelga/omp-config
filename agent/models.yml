@@ -23,6 +23,32 @@ providers:
         contextPromotionTarget: ollama-cloud/glm-5.2
   openai-codex:
     modelOverrides:
-      # slow role + reviewer agent: 272K -> 1M, same provider/API
+      # slow role + codex reviewers: 272K -> 1M. Cross-provider on purpose:
+      # every openai-codex model is 272K, so a same-provider target is a no-op.
+      # Matches sol's retry chain, which already ends at anthropic/claude-opus-5.
       gpt-5.6-sol:
-        contextPromotionTarget: openai-codex/gpt-5.4
+        contextPromotionTarget: anthropic/claude-opus-5
+      # Catalog carries pre-2026-07-30 launch prices for luna and terra.
+      # The Jul 30 cut ("Luna by 80%, Terra by 20%") is not reflected yet:
+      # luna $1/$6 -> $0.20/$1.20, terra $2.50/$15 -> $2.00/$12. Sol unchanged
+      # at $5/$30, which is why only these two need correcting.
+      # Matters for display.showTokenUsage cost readouts and for any future
+      # switch from chatgpt-plan auth to an OPENAI_API_KEY.
+      gpt-5.6-luna:
+        # task role: 272K -> 1M. Cross-provider for the same reason as sol.
+        # glm-5.2 is the score-parity peer (both 51 on AA Intelligence Index
+        # v4.1), so an overflow keeps quality and lands back on the flat-rate
+        # tier. Also avoids luna's weakest axis: long-context recall (MRCR
+        # 41.3%), which makes a huge luna window the wrong place to grow into.
+        contextPromotionTarget: ollama-cloud/glm-5.2
+        cost:
+          input: 0.20
+          output: 1.20
+          cacheRead: 0.02
+          cacheWrite: 0.25
+      gpt-5.6-terra:
+        cost:
+          input: 2.00
+          output: 12.00
+          cacheRead: 0.20
+          cacheWrite: 2.50

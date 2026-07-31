@@ -1,142 +1,159 @@
-task: 
-  agentModelOverrides: 
-    # Bundled reviewer resolves @slow (gpt-5.6-sol). It was the only agent
-    # drawing the Codex weekly window, which sits at 54% used. Terra is the
-    # balanced tier of the same family on the same subscription; sol stays
-    # reachable by switching to @slow deliberately.
+task:
+  agentModelOverrides:
     reviewer: openai-codex/gpt-5.6-terra:high
-  disabledAgents: 
-    # cavecrew-builder covers mechanical edits with a verifiable receipt and
-    # cavecrew-refactorer covers the multi-file case. sonic's pinned model
-    # also exposed no thinking levels, so its thinkingLevel was inert.
+  disabledAgents:
     - sonic
   eager: preferred
   showResolvedModelBadge: true
   enableLsp: true
-  isolation: 
+  isolation:
     mode: none
-modelRoles: 
+modelRoles:
   default: anthropic/claude-opus-5:high
   plan: anthropic/claude-opus-5:high
   slow: openai-codex/gpt-5.6-sol:high
-  task: ollama-cloud/glm-5.2:high
+  # luna:max == glm-5.2:max at 51 on AA Intelligence Index v4.1, and faster.
+  # Rides the chatgpt plan instead of ollama-cloud's 8-slot concurrency cap.
+  # Costs 272K of context vs glm-5.2's 1M -- see contextPromotionTarget in
+  # models.yml, which sends an overflow back to glm-5.2 at score parity.
+  task: openai-codex/gpt-5.6-luna:max
   smol: ollama-cloud/minimax-m3
   tiny: ollama-cloud/gpt-oss:20b
   designer: ollama-cloud/minimax-m3:high
   vision: ollama-cloud/minimax-m3
   commit: ollama-cloud/gpt-oss:120b
   advisor: ollama-cloud/minimax-m3:low
-modelProviderOrder: 
+modelProviderOrder:
   - anthropic
   - openai-codex
   - ollama-cloud
   - opencode-go
   - cursor
   - google-antigravity
-contextPromotion: 
+contextPromotion:
   enabled: true
-theme: 
+theme:
   dark: dark-catppuccin
 symbolPreset: nerd
-statusLine: 
+statusLine:
   preset: compact
   separator: powerline-thin
   showHookStatus: true
   sessionAccent: true
   transparent: false
   compactThinkingLevel: false
-display: 
+display:
   showTokenUsage: true
   shimmer: kitt
   cacheMissMarker: true
 doubleEscapeAction: tree
-memories: 
-  enabled: false
-renderMermaid: 
+renderMermaid:
   enabled: true
-github: 
+github:
   enabled: true
-memory: 
+memory:
   backend: mnemopi
 setupVersion: 1
-terminal: 
+terminal:
   showProgress: false
-tui: 
+tui:
   textSizing: false
-advisor: 
+advisor:
   enabled: true
 steeringMode: one-at-a-time
 interruptMode: immediate
-stt: 
+stt:
   modelName: parakeet
   submitTrigger: never
   enabled: false
-share: 
+share:
   store: blob
-magicKeywords: 
+magicKeywords:
   enabled: true
-providers: 
+providers:
   memoryModel: online
   fireworksTier: standard
   tinyModel: online
   kimiApiFormat: auto
-  ollama-cloud: 
+  ollama-cloud:
     maxConcurrency: 8
-retry: 
-  fallbackChains: 
-    ollama-cloud/*: 
+  webSearchOrder: []
+retry:
+  fallbackChains:
+    # Terminal fallbacks land on openai-codex/gpt-5.6-luna: it rides the
+    # already-paid chatgpt plan, so failover costs no new metered spend, and
+    # every prior hop here is a third-party flat-rate provider that can fail
+    # or queue together (ollama-cloud is capped at maxConcurrency 8, which a
+    # wide subagent fan-out saturates).
+    ollama-cloud/*:
       - opencode-go/*
-    ollama-cloud/gpt-oss:20b: 
+      - openai-codex/gpt-5.6-luna:high
+    ollama-cloud/gpt-oss:20b:
       - ollama-cloud/minimax-m3
-    ollama-cloud/glm-5.2: 
+    # commit role: fires once per commit on a tiny payload, so a plan-billed
+    # terminal hop is negligible. gpt-oss:20b (tiny role) is deliberately left
+    # failing over inside the free tier -- it is the highest-frequency role and
+    # its output is disposable.
+    ollama-cloud/gpt-oss:120b:
+      - ollama-cloud/glm-5.2
+      - opencode-go/glm-5.2
+      - openai-codex/gpt-5.6-luna:high
+    ollama-cloud/glm-5.2:
       - opencode-go/deepseek-v4-pro
       - opencode-go/glm-5.2
-    openai-codex/gpt-5.6-sol: 
+    # task role primary. glm-5.2:high is the score-parity peer, so a luna
+    # outage degrades gracefully and lands back on the flat-rate tier.
+    # Deliberately NOT terminated at luna in the glm-5.2 chain above: luna
+    # points at glm-5.2 here, and the reverse edge would close a cycle.
+    openai-codex/gpt-5.6-luna:
+      - ollama-cloud/glm-5.2:high
+      - opencode-go/glm-5.2
+    openai-codex/gpt-5.6-sol:
       - openai-codex/gpt-5.6-terra
       - anthropic/claude-opus-5:high
-    anthropic/*: 
+    anthropic/*:
       - openai-codex/gpt-5.6-terra:high
       - ollama-cloud/glm-5.2:high
-    designer: 
+    designer:
       - opencode-go/kimi-k3:high
       - ollama-cloud/glm-5.2:high
-    opencode-go/kimi-k3: 
+    opencode-go/kimi-k3:
       - ollama-cloud/glm-5.2:high
       - ollama-cloud/minimax-m3
-    default: 
+    default:
       - openai-codex/gpt-5.6-sol:high
       - ollama-cloud/glm-5.2:high
-mnemopi: 
+mnemopi:
   dbPath: ""
   scoping: per-project
   proactiveLinking: true
   embeddingModel: ""
-edit: 
+edit:
   mode: hashline
-python: 
+python:
   kernelMode: session
-ruby: 
+ruby:
   interpreter: ""
-astGrep: 
+astGrep:
   enabled: true
-checkpoint: 
+checkpoint:
   enabled: true
-commands: 
+commands:
   enableClaudeUser: true
 defaultThinkingLevel: auto
 hideThinkingBlock: true
-dev: 
+dev:
   autoqaConsent: granted
-bash: 
-  autoBackground: 
+bash:
+  autoBackground:
     enabled: true
-features: 
+features:
   unexpectedStopDetection: true
-compaction: 
+compaction:
   idleEnabled: true
-lsp: 
+lsp:
   formatOnWrite: true
-thinkingBudgets: 
+thinkingBudgets:
   max: 65536
-tier: 
-  subagent: flex
+tier:
+  subagent: inherit
