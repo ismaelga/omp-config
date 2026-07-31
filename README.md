@@ -286,7 +286,8 @@ Everything else under `~/.omp` — `agent.db`, `history.db`, `models.db`, `sessi
 ## License and attribution
 
 MIT, see [`LICENSE`](LICENSE). Skills and subagents here are vendored from two
-upstream projects and stay under their own MIT terms (full notices in `LICENSE`):
+upstream projects and stay under their own MIT terms (full notices in
+[`NOTICE`](NOTICE)):
 
 | Upstream | What came from it |
 |---|---|
