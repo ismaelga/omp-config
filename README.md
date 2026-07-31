@@ -294,7 +294,9 @@ upstream projects and stay under their own MIT terms (full notices in
 | [`obra/superpowers`](https://github.com/obra/superpowers) | 14 skills: `brainstorming`, `dispatching-parallel-agents`, `executing-plans`, `finishing-a-development-branch`, `receiving-code-review`, `requesting-code-review`, `subagent-driven-development`, `systematic-debugging`, `test-driven-development`, `using-git-worktrees`, `using-superpowers`, `verification-before-completion`, `writing-plans`, `writing-skills` |
 | [`JuliusBrussee/caveman`](https://github.com/JuliusBrussee/caveman) | the `caveman*` skills, `cavecrew`, `agent/commands/*`, and the `cavecrew-builder` / `cavecrew-investigator` / `cavecrew-reviewer` subagents |
 
-The remaining 11 skills (`baseline-first`, `context-curation`, `cost-aware-coding`, `decision-log`, `eval-driven-development`, `minimum-viable-reimplementation`, `pre-mortem`, `prototyping`, `spec-driven-development`, `vibe-coding-guardrails`, `wayfinding`), the other 10 cavecrew subagents, `momus`, and all config in `agent/*.yml` / `agent/*.json` are original to this repo. Vendored files are modified, sometimes heavily — do not treat them as upstream-current.
+The remaining 11 skills (`baseline-first`, `context-curation`, `cost-aware-coding`, `decision-log`, `eval-driven-development`, `minimum-viable-reimplementation`, `pre-mortem`, `prototyping`, `spec-driven-development`, `vibe-coding-guardrails`, `wayfinding`), the other 10 cavecrew subagents, `momus`, and all config in `agent/*.yml` / `agent/*.json` are original to this repo.
+
+Provenance is file-level, not guessed: every tracked file was compared against both upstream git trees. **34** are byte-identical to an upstream blob, **40** are modified copies, **32** have no upstream counterpart. Vendored files are edited freely here — do not treat them as upstream-current. One file is original despite living in a vendored directory: `test-driven-development/testing-anti-patterns.md` (superpowers' reference-doc idiom, ~10% word overlap with its `writing-good-tests.md`, which it does not replace).
 
 ## Notes
 

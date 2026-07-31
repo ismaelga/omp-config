@@ -1,21 +1,46 @@
 NOTICE -- third-party components
 ================================
 
-omp-config is MIT licensed (see LICENSE). The files listed below are
-vendored from upstream projects and remain under their own MIT terms.
-Copies here are modified, sometimes heavily.
+omp-config is MIT licensed (see LICENSE). Parts of it are vendored from two
+upstream projects and remain under their own MIT terms, reproduced below.
+
+Provenance was established by comparing every tracked file against both
+upstream git trees: 34 files are byte-identical to an upstream blob, 40 are
+modified copies of one, and 32 have no upstream counterpart. Vendored files are
+edited freely here -- do not assume any of them is upstream-current.
 
 --------------------------------------------------------------------------------
 obra/superpowers -- https://github.com/obra/superpowers
 --------------------------------------------------------------------------------
 
-Applies to these skills under agent/skills/ (vendored, some modified):
+Applies to all files under these 14 skill directories in agent/skills/,
+including their scripts and reference documents:
 
-  brainstorming, dispatching-parallel-agents, executing-plans,
-  finishing-a-development-branch, receiving-code-review,
-  requesting-code-review, subagent-driven-development, systematic-debugging,
-  test-driven-development, using-git-worktrees, using-superpowers,
-  verification-before-completion, writing-plans, writing-skills
+  brainstorming                     (incl. scripts/server.cjs, helper.js,
+                                     start-server.sh, stop-server.sh,
+                                     frame-template.html)
+  dispatching-parallel-agents
+  executing-plans
+  finishing-a-development-branch
+  receiving-code-review
+  requesting-code-review            (incl. code-reviewer.md)
+  subagent-driven-development       (incl. scripts/sdd-workspace, task-brief,
+                                     review-package, and the prompt documents)
+  systematic-debugging              (incl. root-cause-tracing.md,
+                                     defense-in-depth.md,
+                                     condition-based-waiting*, find-polluter.sh,
+                                     CREATION-LOG.md, test-pressure-*.md)
+  test-driven-development           (SKILL.md only -- see "Original", below)
+  using-git-worktrees
+  using-superpowers                 (incl. references/pi-tools.md,
+                                     codex-tools.md, antigravity-tools.md)
+  verification-before-completion
+  writing-plans                     (incl. plan-document-reviewer-prompt.md)
+  writing-skills                    (incl. anthropic-best-practices.md,
+                                     persuasion-principles.md,
+                                     testing-skills-with-subagents.md,
+                                     graphviz-conventions.dot, render-graphs.js,
+                                     examples/)
 
 MIT License
 
@@ -43,15 +68,24 @@ SOFTWARE.
 JuliusBrussee/caveman -- https://github.com/JuliusBrussee/caveman
 --------------------------------------------------------------------------------
 
-Applies to these skills under agent/skills/ (vendored, some modified):
+Applies to all files under these skill directories in agent/skills/:
 
-  cavecrew, caveman, caveman-commit, caveman-compress, caveman-help,
+  cavecrew
+  caveman
+  caveman-commit
+  caveman-compress                  (incl. scripts/compress.py, detect.py,
+                                     cli.py, validate.py, benchmark.py,
+                                     __main__.py, __init__.py, SECURITY.md)
+  caveman-help
   caveman-review
 
-to the caveman slash commands under agent/commands/, and to these subagents
-under agent/agents/ (modified):
+to the slash commands in agent/commands/ (caveman.md, caveman-commit.md,
+caveman-review.md, caveman-help.md), vendored from that project's opencode
+plugin, and to these subagents in agent/agents/ (modified):
 
-  cavecrew-builder, cavecrew-investigator, cavecrew-reviewer
+  cavecrew-builder
+  cavecrew-investigator
+  cavecrew-reviewer
 
 MIT License
 
@@ -74,3 +108,31 @@ AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
 LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
+
+--------------------------------------------------------------------------------
+Original to this repository
+--------------------------------------------------------------------------------
+
+Covered by LICENSE, with no upstream counterpart in either project above:
+
+  agent/skills/            baseline-first, context-curation, cost-aware-coding,
+                           decision-log, eval-driven-development,
+                           minimum-viable-reimplementation, pre-mortem,
+                           prototyping, spec-driven-development,
+                           vibe-coding-guardrails, wayfinding
+  agent/agents/            cavecrew-benchwright, cavecrew-debugger,
+                           cavecrew-evalsmith, cavecrew-githistorian,
+                           cavecrew-mergescout, cavecrew-plancritic,
+                           cavecrew-refactorer, cavecrew-sentinel,
+                           cavecrew-testrunner, cavecrew-testwright, momus
+  agent/                   AGENTS.md, config.yml, models.yml, mcp.json, lsp.json
+  repo root                README.md, .gitignore
+
+One file needs calling out because it sits inside a vendored directory:
+
+  agent/skills/test-driven-development/testing-anti-patterns.md
+
+It is original content (10% word-level overlap with upstream's
+writing-good-tests.md, which it does not replace), but it deliberately reuses
+superpowers' reference-document idiom. Attribute the format upstream, the
+content here.
