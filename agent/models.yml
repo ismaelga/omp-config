@@ -1,5 +1,7 @@
-# Override-only block: ollama-cloud is a built-in provider (43 models,
-# authenticated from OLLAMA_API_KEY). Do not redeclare baseUrl/api/models
+# Override-only block: ollama-cloud is a built-in provider (44 models,
+# authenticated from a stored /login credential; env fallback is
+# OLLAMA_CLOUD_API_KEY -- OLLAMA_API_KEY belongs to the local ollama engine).
+# Do not redeclare baseUrl/api/models
 # here -- that replaces curated catalog metadata (context windows, output
 # caps, thinking levels) with hand-written guesses.
 #
