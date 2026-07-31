@@ -4,10 +4,22 @@
 *
 
 !.gitignore
+!README.md
 !agent/
+!agent/AGENTS.md
+!agent/RULES.md
 !agent/config.yml
 !agent/models.yml
 !agent/mcp.json
 !agent/lsp.json
 !agent/agents/
 !agent/agents/*.md
+!agent/commands/
+!agent/commands/*.md
+!agent/skills/
+!agent/skills/**
+
+# Skill scratch: python bytecode, editor droppings.
+agent/skills/**/__pycache__/
+agent/skills/**/*.pyc
+agent/skills/**/.DS_Store
