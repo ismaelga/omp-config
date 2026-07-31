@@ -283,6 +283,18 @@ Working agreements encoded in `agent/AGENTS.md`: plans in `.omo/plans/`, specs i
 
 Everything else under `~/.omp` — `agent.db`, `history.db`, `models.db`, `sessions/`, `blobs/`, `banks/`, `cache/`, `logs/`, `run/` — is state or secrets and stays local.
 
+## License and attribution
+
+MIT, see [`LICENSE`](LICENSE). Skills and subagents here are vendored from two
+upstream projects and stay under their own MIT terms (full notices in `LICENSE`):
+
+| Upstream | What came from it |
+|---|---|
+| [`obra/superpowers`](https://github.com/obra/superpowers) | 14 skills: `brainstorming`, `dispatching-parallel-agents`, `executing-plans`, `finishing-a-development-branch`, `receiving-code-review`, `requesting-code-review`, `subagent-driven-development`, `systematic-debugging`, `test-driven-development`, `using-git-worktrees`, `using-superpowers`, `verification-before-completion`, `writing-plans`, `writing-skills` |
+| [`JuliusBrussee/caveman`](https://github.com/JuliusBrussee/caveman) | the `caveman*` skills, `cavecrew`, `agent/commands/*`, and the `cavecrew-builder` / `cavecrew-investigator` / `cavecrew-reviewer` subagents |
+
+The remaining 11 skills (`baseline-first`, `context-curation`, `cost-aware-coding`, `decision-log`, `eval-driven-development`, `minimum-viable-reimplementation`, `pre-mortem`, `prototyping`, `spec-driven-development`, `vibe-coding-guardrails`, `wayfinding`), the other 10 cavecrew subagents, `momus`, and all config in `agent/*.yml` / `agent/*.json` are original to this repo. Vendored files are modified, sometimes heavily — do not treat them as upstream-current.
+
 ## Notes
 
 - Config changes require an omp restart.

@@ -5,6 +5,7 @@
 
 !.gitignore
 !README.md
+!LICENSE
 !agent/
 !agent/AGENTS.md
 !agent/RULES.md
