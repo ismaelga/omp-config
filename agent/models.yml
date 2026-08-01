@@ -8,6 +8,12 @@
 # Purpose of this file: give the small-context roles a real promotion target
 # so a context overflow switches models instead of compacting.
 # Requires `contextPromotion.enabled: true` in config.yml.
+#
+# Not listed here, deliberately: anthropic/claude-fable-5 (plan role) and
+# anthropic/claude-opus-5 (default role). Both are already 1M -- the largest
+# window in the catalog -- so they have nowhere to be promoted to. An
+# intra-anthropic target on either is a silent no-op, the exact trap
+# documented for openai-codex below. Do not "fix" the omission.
 providers:
   ollama-cloud:
     modelOverrides:

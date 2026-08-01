@@ -1,6 +1,11 @@
 task:
   agentModelOverrides:
     reviewer: openai-codex/gpt-5.6-terra:high
+    # Bundled security-reviewer had no override, so it inherited the `task`
+    # role (luna) -- the weakest coding model here (AA Coding Index 71.4) and
+    # the worst long-context recall in the family (MRCR 41.3%). A security
+    # audit is a long-context recall task over a diff plus its callers.
+    security-reviewer: openai-codex/gpt-5.6-sol:high
   disabledAgents:
     - sonic
   eager: preferred
@@ -10,7 +15,14 @@ task:
     mode: none
 modelRoles:
   default: anthropic/claude-opus-5:high
-  plan: anthropic/claude-opus-5:high
+  # Fable 5 leads on raw intelligence (AA Intelligence Index 59.9 vs ~51 for
+  # luna:max/glm-5.2) and SWE-bench Verified (95%); practitioners report it
+  # plans better architecture up front, for fewer implementation iterations.
+  # It LOSES to sol and terra on both coding indices, so it stays out of every
+  # implementation role -- planning is the one slot its profile fits.
+  # :high, not :max -- max burns subscription quota fastest for little gain on
+  # planning, and quota is the binding constraint on a flat-rate plan.
+  plan: anthropic/claude-fable-5:high
   slow: openai-codex/gpt-5.6-sol:high
   # luna:max == glm-5.2:max at 51 on AA Intelligence Index v4.1, and faster.
   # Rides the chatgpt plan instead of ollama-cloud's 8-slot concurrency cap.
@@ -111,6 +123,23 @@ retry:
     openai-codex/gpt-5.6-sol:
       - openai-codex/gpt-5.6-terra
       - anthropic/claude-opus-5:high
+    # plan role. Without this entry the `anthropic/*` wildcard would degrade to
+    # terra, which is tuned for everyday coding, not planning. This key wins
+    # over that wildcard by SPECIFICITY, not by document order -- resolution is
+    # exact `provider/model-id`, then `provider/*`, then role, then `default`
+    # (omp://settings.md:471), so moving it below the wildcard changes nothing.
+    # Fable's subscription limits are
+    # reportedly strict, and a limit hit blocks every anthropic model, so this
+    # chain leaves the provider for sol -- the config's designated
+    # deep-reasoning model (slow role, momus) -- before the generic terra hop.
+    # Caveat: a 429/usage-limit only triggers this fallback while the stream
+    # has not yet emitted observable output. A cap hit mid-plan, after text,
+    # thinking, or tool calls have streamed, is classed non-retryable: the
+    # turn fails and needs a manual Alt+R rather than silently landing on sol.
+    # See omp://non-compaction-retry-policy.md:41 and :47.
+    anthropic/claude-fable-5:
+      - openai-codex/gpt-5.6-sol:high
+      - openai-codex/gpt-5.6-terra:high
     anthropic/*:
       - openai-codex/gpt-5.6-terra:high
       - ollama-cloud/glm-5.2:high
