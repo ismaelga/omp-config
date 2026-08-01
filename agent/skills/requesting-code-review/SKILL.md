@@ -29,21 +29,40 @@ BASE_SHA=$(git rev-parse HEAD~1)  # or origin/main
 HEAD_SHA=$(git rev-parse HEAD)
 ```
 
-**2. Dispatch code reviewer subagent:**
+**2. Dispatch the review pair:**
 
-Dispatch a `general-purpose` subagent, filling the template at [code-reviewer.md](code-reviewer.md)
+1. **cavecrew-reviewer** (`subagent_type: "cavecrew-reviewer"`) — first pass over the SHA range.
+2. **cavecrew-challenger** (`subagent_type: "cavecrew-challenger"`) — give it the same SHA range **plus the reviewer's report**.
 
-**Placeholders:**
-- `{DESCRIPTION}` - Brief summary of what you built
-- `{PLAN_OR_REQUIREMENTS}` - What it should do
-- `{BASE_SHA}` - Starting commit
-- `{HEAD_SHA}` - Ending commit
+These run in sequence, not in parallel: the challenger's job is to dispute specific findings and
+name what the first pass walked past, which it cannot do without the report in hand. The extra
+round trip is the price of dispute semantics instead of two overlapping reports you have to diff
+yourself.
 
-**3. Act on feedback:**
-- Fix Critical issues immediately
-- Fix Important issues before proceeding
-- Note Minor issues for later
-- Push back if reviewer is wrong (with reasoning)
+The pair runs different model families on purpose — `cavecrew-reviewer` on `ollama-cloud/glm-5.2`,
+`cavecrew-challenger` on `openai-codex/gpt-5.6-terra`. One agent that generates and reviews inside
+a single family agrees with its own priors and returns a rephrased first opinion. Disagreement
+across families is the signal you are paying for.
+
+**For the final pre-merge gate** on a whole branch, use the heavyweight template at
+[code-reviewer.md](code-reviewer.md) instead of the pair. Its `model:` field is REQUIRED — fill it.
+An omitted model silently inherits the `task` role, which is the weakest coding model configured.
+
+Its four `[PLACEHOLDER]` tokens are documented in that file — square brackets, not braces.
+Do not restate them here; a second copy is how the two files drifted apart before.
+
+**3. Arbitrate the pair:**
+- Both flag the same issue → fix it, no debate.
+- Challenger disputes a finding → you adjudicate against the code. The first reviewer does not win by default.
+- Challenger reports a miss → treat it as a reviewer-tier finding at its stated severity.
+- Challenger returns `AGREE.` → the first review stands. That is a real result, not a failed run.
+- Neither flags something you suspect → your call. Neither agent has your session context.
+
+**4. Act on feedback:**
+- Fix Critical / 🔴 immediately
+- Fix Important / 🟡 before proceeding
+- Note Minor / 🔵 for later
+- Push back if a reviewer is wrong (with reasoning)
 
 ## Example
 

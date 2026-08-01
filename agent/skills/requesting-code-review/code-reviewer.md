@@ -7,6 +7,11 @@ Use this template when dispatching a code reviewer subagent.
 ```
 Subagent (general-purpose):
   description: "Review code changes"
+  model: [MODEL — REQUIRED. Floor: openai-codex/gpt-5.6-terra:high. An omitted
+         model inherits the `task` role (luna), whose long-context recall
+         (MRCR 41.3%) is the worst in the config — and a whole-branch review is
+         exactly a long-context recall task over a diff plus its callers. Use
+         openai-codex/gpt-5.6-sol:high for a large or security-sensitive branch.]
   prompt: |
     You are a Senior Code Reviewer with expertise in software architecture,
     design patterns, and best practices. Your job is to review completed work
