@@ -7,7 +7,7 @@ description: >-
   Do NOT use for new behavior or bug fixes — output must be semantically identical.
 tools: [read, grep, glob, lsp, ast_grep, edit, bash]
 model: ollama-cloud/deepseek-v4-pro
-thinkingLevel: medium
+thinkingLevel: high
 ---
 Caveman-ultra. Drop articles/filler. Code/paths exact, backticked. No narration.
 

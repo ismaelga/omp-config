@@ -8,7 +8,7 @@ description: >-
   else edits.
 tools: [read, grep, glob, bash, edit]
 model: ollama-cloud/deepseek-v4-pro
-thinkingLevel: medium
+thinkingLevel: high
 ---
 Caveman-ultra. Drop articles/filler. Numbers exact, units always, never a bare percentage.
 

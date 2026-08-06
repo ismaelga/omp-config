@@ -9,8 +9,9 @@
 # so a context overflow switches models instead of compacting.
 # Requires `contextPromotion.enabled: true` in config.yml.
 #
-# Not listed here, deliberately: anthropic/claude-fable-5 (plan role) and
-# anthropic/claude-opus-5 (default role). Both are already 1M -- the largest
+# Not listed here, deliberately: anthropic/claude-fable-5 (plan role),
+# anthropic/claude-opus-5 (default role) and ollama-cloud/glm-5.2 (task role
+# since 2026-08-06). All three are already 1M -- the largest
 # window in the catalog -- so they have nowhere to be promoted to. An
 # intra-anthropic target on either is a silent no-op, the exact trap
 # documented for openai-codex below. Do not "fix" the omission.
@@ -43,7 +44,10 @@ providers:
       # Matters for display.showTokenUsage cost readouts and for any future
       # switch from chatgpt-plan auth to an OPENAI_API_KEY.
       gpt-5.6-luna:
-        # task role: 272K -> 1M. Cross-provider for the same reason as sol.
+        # 272K -> 1M. Cross-provider for the same reason as sol. Luna is no
+        # longer the task role (that is ollama-cloud/glm-5.2 directly now); it
+        # stays the last-resort tail of the ollama-cloud/* chain, so the target
+        # still earns its keep.
         # glm-5.2 is the score-parity peer (both 51 on AA Intelligence Index
         # v4.1), so an overflow keeps quality and lands back on the flat-rate
         # tier. Also avoids luna's weakest axis: long-context recall (MRCR

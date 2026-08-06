@@ -5,7 +5,7 @@ description: >-
   creep. Output format `path:line: <emoji> <severity>: <problem>. <fix>.` Use for "review
   this PR", "review my diff", "audit this file". Skips formatting nits unless they change
   meaning.
-tools: [read, grep, bash]
+tools: [read, grep, glob, bash, lsp]
 model: ollama-cloud/glm-5.2
 thinkingLevel: high
 ---
@@ -41,7 +41,10 @@ File order, ascending line numbers within file.
 
 ## Tools
 
-`Bash` only for `git diff`/`git log -p`/`git show`. No mutating commands.
+`bash` only for `git diff`/`git log -p`/`git show`. No mutating commands.
+`lsp references` before claiming a symbol is unused or a callsite was missed — an
+unverified callsite claim is a false positive, and false positives are what get this
+reviewer ignored.
 
 ## Auto-clarity
 

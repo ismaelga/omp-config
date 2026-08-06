@@ -9,6 +9,7 @@ My [omp](https://github.com/can1357/oh-my-pi) (oh-my-pi) user config. The workin
 - [Providers](#providers)
 - [Model roles](#model-roles)
 - [Subagent fleet](#subagent-fleet-and-why-each-model)
+- [The advisor](#the-advisor)
 - [Skills](#skills)
 - [Daily use](#daily-use)
 - [What is tracked](#what-is-tracked)
@@ -21,14 +22,14 @@ Claude Code is one vendor, one model family, one price per token. This setup kee
 |---|---|---|
 | Providers | Anthropic only | 40+ providers; this config authenticates 7 (`anthropic` ×3 accounts, `openai-codex`, `ollama-cloud`, `opencode-go`, `cursor`, `google-antigravity`, `google-gemini-cli`) |
 | Model choice | pick from the Claude family | 10 named roles, each pinned to a different provider/model/thinking level |
-| Per-subagent model | subagent picks a Claude tier | every subagent pins its own `model:` + `thinkingLevel:` in frontmatter — 14 agents across 5 models |
+| Per-subagent model | subagent picks a Claude tier | every subagent pins its own `model:` + `thinkingLevel:` in frontmatter — 17 agents across 7 models |
 | Provider outage / 429 | turn fails | `retry.fallbackChains` hands the rest of the turn to the next model, restored on cooldown |
 | Context overflow | compaction (lossy) | `contextPromotion` switches to a bigger-window model instead (`gpt-5.6-luna` 272K → `glm-5.2` 1M) |
 | Cost of bulk work | metered Anthropic tokens | read-only fan-out runs on flat-rate `ollama-cloud`; the frontier models stay for synthesis |
 | Code intelligence | text tools + bash | `lsp` (14 ops: real rename through `workspace/willRenameFiles`, references, code actions) and `debug` (28 DAP ops: lldb / dlv / debugpy) |
 | Structural edits | string replace | `ast_grep` / `ast_edit` over 50+ tree-sitter grammars, staged then accepted |
 | Edit format | full-line rewrites | hashline content-anchored patches; stale anchors are rejected instead of corrupting the file |
-| Second opinion | none in-loop | `advisor` role: a different model reads every turn and can inject a concern or a hard blocker |
+| Second opinion | none in-loop | `advisor` role: a different model reads every turn and can inject a concern or a hard blocker, briefed by `agent/WATCHDOG.md` |
 | Existing config | its own conventions | reads `.claude`, `.cursor`, `.codex`, `.gemini`, `.github/copilot`, `.cline`, opencode — no migration |
 
 Concretely, in this config the volume work (locating code, running tests, reading git history) is done by `deepseek-v4-flash` on a flat-rate tier, the thinking work by `glm-5.2`, and only design critique reaches `gpt-5.6-sol` at `xhigh`. Claude Code would bill all of it at Anthropic rates against one weekly window.
@@ -92,9 +93,9 @@ What this config's `modelProviderOrder` expects, and how each is authenticated h
 
 | Provider | Auth used here | Alternative | Role in this setup |
 |---|---|---|---|
-| `anthropic` | OAuth, **3 accounts** (auto-rotated with per-credential backoff) | `ANTHROPIC_API_KEY` | `default` + `plan` roles — `claude-opus-5:high` |
-| `openai-codex` | OAuth (ChatGPT plan) | `OPENAI_CODEX_OAUTH_TOKEN` | `task` (`gpt-5.6-luna:max`), `slow` (`gpt-5.6-sol:high`), reviewer override (`gpt-5.6-terra:high`), `momus` |
-| `ollama-cloud` | stored API key via `/login ollama-cloud` | `OLLAMA_CLOUD_API_KEY` | flat-rate workhorse: `smol`, `tiny`, `vision`, `designer`, `commit`, `advisor`, and 13 of 14 subagents |
+| `anthropic` | OAuth, **3 accounts** (auto-rotated with per-credential backoff) | `ANTHROPIC_API_KEY` | `default` (`claude-opus-5:high`), `plan` + `slow` (`claude-fable-5:high`) |
+| `openai-codex` | OAuth (ChatGPT plan) | `OPENAI_CODEX_OAUTH_TOKEN` | 3 of 17 subagents where a different model family or long-context recall is the point: `cavecrew-sentinel` + `momus` (`gpt-5.6-sol`), `cavecrew-challenger` (`gpt-5.6-terra`). Also the terminal retry hop (`gpt-5.6-luna`) |
+| `ollama-cloud` | stored API key via `/login ollama-cloud` | `OLLAMA_CLOUD_API_KEY` | flat-rate workhorse: `task`, `advisor`, `smol`, `tiny`, `vision`, `designer`, `commit`, and 14 of 17 subagents |
 | `opencode-go` | stored API key via `/login` | `OPENCODE_API_KEY` | fallback tier only |
 | `cursor` | OAuth | `CURSOR_ACCESS_TOKEN` | available, not routed by default |
 | `google-antigravity` | OAuth | — | available, not routed by default |
@@ -110,27 +111,27 @@ Only genuinely machine-local secret: `~/.secrets/worldcoin-portal-token`, read b
 | Role | Model here | Why |
 |---|---|---|
 | `default` | `anthropic/claude-opus-5:high` | main turns: the one that reads your intent and owns the diff |
-| `plan` | `anthropic/claude-opus-5:high` | plan mode shares the strongest reader |
-| `task` | `openai-codex/gpt-5.6-luna:max` | subagent default. Score-parity with `glm-5.2:max` (both 51, AA Intelligence Index v4.1) but faster, and rides the already-paid ChatGPT plan instead of the 8-slot `ollama-cloud` cap |
-| `slow` | `openai-codex/gpt-5.6-sol:high` | deep reasoning on demand |
+| `plan` | `anthropic/claude-fable-5:high` | plan mode and `slow` share the strongest planner in the roster |
+| `slow` | `anthropic/claude-fable-5:high` | deep reasoning on demand |
+| `task` | `ollama-cloud/glm-5.2:high` | subagent default. Score parity with `gpt-5.6-luna` (both 51, AA Intelligence Index v4.1), 1M context, and flat-rate — a wide fan-out costs latency, not money |
 | `smol` | `ollama-cloud/minimax-m3` | cheap fan-out |
 | `tiny` | `ollama-cloud/gpt-oss:20b` | session titles, memory writes, auto-thinking classification, unexpected-stop detection — highest frequency, disposable output |
 | `vision` | `ollama-cloud/minimax-m3` | image reads |
 | `designer` | `ollama-cloud/minimax-m3:high` | UI/UX agent |
 | `commit` | `ollama-cloud/gpt-oss:120b` | one small payload per commit |
-| `advisor` | `ollama-cloud/minimax-m3:low` | watches every turn on its own context; must be cheap or it doubles the bill |
+| `advisor` | `ollama-cloud/glm-5.2:high` | reads every turn on its own 1M context and must actually catch things. Flat-rate, so "cheap" is a latency question, not a bill |
 
 Three mechanisms make the table above hold up under load:
 
-- **`retry.fallbackChains`** — per-model chains. Flat-rate hops first, then `openai-codex/gpt-5.6-luna` as the terminal fallback, because plan-billed failover costs no new metered spend. `gpt-oss:20b` deliberately fails over *inside* the free tier.
-- **`contextPromotion`** — on overflow, switch model instead of compacting. Targets are cross-provider on purpose: every `openai-codex` model is 272K, so a same-provider target would be a no-op. `gpt-5.6-luna` → `glm-5.2` (1M) at score parity; `gpt-5.6-sol` → `claude-opus-5`.
-- **`task.agentModelOverrides`** — the bundled `reviewer` is pinned to `gpt-5.6-terra:high` so it stops drawing the same Codex window as `sol`.
+- **`retry.fallbackChains`** — per-model chains. Flat-rate hops first, then `openai-codex/gpt-5.6-luna` as the terminal fallback, because plan-billed failover costs no new metered spend. `gpt-oss:20b` deliberately fails over *inside* the free tier. Chains resolve by specificity — exact `provider/model-id`, then `provider/*`, then the role, then `default` — so a role-keyed chain is dead config whenever a wildcard already matches that role's model. There are none here for that reason.
+- **`contextPromotion`** — on overflow, switch model instead of compacting. Targets are cross-provider on purpose: every `openai-codex` model is 272K, so a same-provider target would be a no-op. `gpt-5.6-luna` → `glm-5.2` (1M) at score parity; `gpt-5.6-sol` → `claude-opus-5`. The three 1M roles (`claude-opus-5`, `claude-fable-5`, `glm-5.2`) have no target because nothing is bigger.
+- **`task.disabledAgents`** — the bundled `reviewer` and `security-reviewer` are off. Their jobs belong to `cavecrew-reviewer` + `cavecrew-challenger` and `cavecrew-sentinel`, which are pinned to deliberately different model families.
 
 Model specs are `provider/model[:thinking]` where thinking ∈ `minimal|low|medium|high|xhigh|max`.
 
 ## Subagent fleet, and why each model
 
-14 agents in `agent/agents/`. The rule: **read-only + high volume → cheapest big-context model; edits → mid tier; judgement → high-thinking tier; design critique → frontier.**
+17 agents in `agent/agents/`. The rule: **read-only + high volume → cheapest big-context model; edits → mid tier; judgement → high-thinking tier; adversarial or design critique → a different model family from whatever it is checking.**
 
 | Agent | Model | Thinking | Why this pairing |
 |---|---|---|---|
@@ -138,24 +139,59 @@ Model specs are `provider/model[:thinking]` where thinking ∈ `minimal|low|medi
 | `cavecrew-githistorian` | `deepseek-v4-flash` | low | blame / `log -S` / bisect triage — raw git output is huge, the answer is one line |
 | `cavecrew-mergescout` | `deepseek-v4-flash` | low | diff and conflict inventory; volume in, table out |
 | `cavecrew-testrunner` | `deepseek-v4-flash` | low | runs a command, compresses the log. No reasoning required, and test logs are exactly what you don't want in main context |
-| `cavecrew-builder` | `deepseek-v4-pro` | medium | 1–2 file surgical edits. Needs real code ability, not frontier judgement; 524K in / 1M out |
-| `cavecrew-refactorer` | `deepseek-v4-pro` | medium | behaviour-preserving cross-file change driven by `lsp rename` + `ast_grep`, so the tools carry correctness, not the model |
-| `cavecrew-benchwright` | `deepseek-v4-pro` | medium | measures wall time, p95, tokens, $/req; refuses wins inside the noise floor. Arithmetic discipline, not insight |
-| `cavecrew-testwright` | `ollama-cloud/kimi-k2.7-code` | medium | code-specialised model for writing tests that assert observable behaviour |
+| `cavecrew-builder` | `deepseek-v4-pro` | high | 1–2 file surgical edits. Needs real code ability, not frontier judgement; 524K in / 1M out |
+| `cavecrew-refactorer` | `deepseek-v4-pro` | high | behaviour-preserving cross-file change driven by `lsp rename` + `ast_grep`, so the tools carry correctness, not the model |
+| `cavecrew-benchwright` | `deepseek-v4-pro` | high | measures wall time, p95, tokens, $/req; refuses wins inside the noise floor. Arithmetic discipline, not insight |
+| `cavecrew-testwright` | `ollama-cloud/kimi-k2.7-code` | high | code-specialised model for writing tests that assert observable behaviour |
 | `cavecrew-debugger` | `ollama-cloud/glm-5.2` | high | hypothesis → experiment → exact line. Genuinely hard reasoning, so the strongest flat-rate model at `high` |
-| `cavecrew-reviewer` | `glm-5.2` | high | severity-tagged findings; judgement, and every miss costs later |
-| `cavecrew-sentinel` | `glm-5.2` | high | security audit — must name the exploit path, not pattern-match keywords |
+| `cavecrew-fixscout` | `glm-5.2` | high | proposes a fix at one named depth (`simple` / `thorough` / `creative`). Spawned ×3, so it must be flat-rate |
+| `cavecrew-reviewer` | `glm-5.2` | high | severity-tagged findings; judgement, and every miss costs later. Has `lsp` so a "missed callsite" claim is verified, not guessed |
 | `cavecrew-evalsmith` | `glm-5.2` | high | designs scoring rubrics and runs N samples; rubric quality is the whole product |
 | `cavecrew-plancritic` | `ollama-cloud/minimax-m3` | high | mechanical plan audit, deliberately a **different model family** from the reviewers so its blind spots differ |
-| `momus` | `openai-codex/gpt-5.6-sol` | xhigh | design-level critic: right problem, hidden coupling, missing rollback, unfalsifiable acceptance criteria. Runs rarely, on plans only, where being wrong is most expensive — the one place worth frontier tokens |
+| `cavecrew-simplifier` | `minimax-m3` | high | third review lens: what deletes, what collapses, what already earns its keep. Third family, third blind spot |
+| `cavecrew-challenger` | `openai-codex/gpt-5.6-terra` | high | adversarial second pass over `cavecrew-reviewer`'s report. Pointless on the same family, so it rides the ChatGPT plan |
+| `cavecrew-sentinel` | `openai-codex/gpt-5.6-sol` | high | security audit is long-context recall over a diff *plus its callers* — `glm-5.2` was the wrong tool and this is the one axis worth plan tokens |
+| `momus` | `openai-codex/gpt-5.6-sol` | xhigh | design-level critic: right problem, hidden coupling, missing rollback, unfalsifiable acceptance criteria. Runs rarely, on plans only, where being wrong is most expensive |
 
-Plan review runs `momus` + `cavecrew-plancritic` in **parallel** on purpose: one design pass, one mechanical pass, two model families, no shared blind spot.
+Pairing is the point, not redundancy:
 
-Every agent also declares a narrowed `tools:` list — read-only agents (`investigator`, `githistorian`, `mergescout`, `reviewer`, `sentinel`, `plancritic`, `momus`) have no `edit`/`write` at all, so "read-only" is enforced by the harness rather than by the prompt.
+- **Plan review** — `momus` + `cavecrew-plancritic` in parallel: one design pass, one mechanical pass, two families.
+- **Diff review** — `cavecrew-reviewer`, then `cavecrew-challenger` on its report; or all three lenses (`reviewer` + `sentinel` + `simplifier`, three families) at once via `skill://diverge-converge`.
+- **Fix depth** — `cavecrew-fixscout` ×3 at `simple` / `thorough` / `creative`, once `cavecrew-debugger` has the cause. The converge always happens on the main thread.
+
+Every agent also declares a narrowed `tools:` list — read-only agents (`investigator`, `githistorian`, `mergescout`, `testrunner`, `reviewer`, `challenger`, `simplifier`, `sentinel`, `fixscout`, `plancritic`, `momus`) have no `edit`/`write` at all, so "read-only" is enforced by the harness rather than by the prompt.
+
+## The advisor
+
+`advisor.enabled: true` attaches a second model to every session. It reads each turn on its
+own context, investigates with `read`/`grep`/`glob`, and injects `nit` / `concern` /
+`blocker` notes back into the primary transcript. A `concern` or `blocker` steers the live
+turn; a `nit` batches in at the next step boundary.
+
+| Setting | Here | Why |
+|---|---|---|
+| `modelRoles.advisor` | `ollama-cloud/glm-5.2:high` | 1M context, flat-rate. A reviewer weaker than the thing it reviews is worse than none |
+| `advisor.syncBacklog` | `3` | the primary pauses (≤30s) only once the advisor is 3 deltas behind, so advice lands on live work instead of stale work. Default `off` lets the reviewer fall arbitrarily far behind |
+| `advisor.subagents` | default `false` | one reviewer, on the thread that owns the diff |
+
+[`agent/WATCHDOG.md`](agent/WATCHDOG.md) is the advisor's brief — appended to its system
+prompt only, never to the main agent's context. It exists because an unbriefed advisor
+writes advisories any generic reviewer could have written without reading the transcript.
+It also documents two delivery mechanics that silently destroy work when ignored:
+
+- **One `advise` call per update.** An emission guard accepts the first note per model turn
+  and drops the rest, while the tool still answers `Recorded.` — the model cannot tell. One
+  measured session made 63 calls; 25 were discarded this way.
+- **No `bash`, no `edit`.** Requesting a tool the advisor does not hold quarantines the
+  *entire* turn, advice included, before dispatch. That cost 15 whole turns before the brief
+  spelled it out.
+
+Both are worth knowing before writing your own `WATCHDOG.md`: the failure mode is silent,
+so a broken advisor looks exactly like a quiet one.
 
 ## Skills
 
-31 skills in `agent/skills/`. Vendored — edit them, they are yours. Model-invoked automatically when the description matches, or explicitly with `/skill:<name>`.
+32 skill directories in `agent/skills/`, 30 active — `executing-plans` and `caveman-help` are listed in `skills.ignoredSkills` so they never load. Vendored: edit them, they are yours. Model-invoked automatically when the description matches, or explicitly with `/skill:<name>`.
 
 **Design before code**
 
@@ -175,10 +211,11 @@ Every agent also declares a narrowed `tools:` list — read-only agents (`invest
 | Skill | For |
 |---|---|
 | `subagent-driven-development` | the execution path: fresh subagent per plan task, review between tasks |
-| `dispatching-parallel-agents` | 2+ genuinely independent tasks, no shared state |
+| `dispatching-parallel-agents` | 2+ genuinely independent tasks, no shared state — *different problems*, run at once |
+| `diverge-converge` | *one* problem, several defensible answers: N lenses on the identical question in one batch, converge on the main thread |
 | `using-git-worktrees` | isolate feature work from the current workspace |
 | `finishing-a-development-branch` | merge / PR / cleanup decision at the end |
-| `executing-plans` | deprecated, kept for reference — use subagent-driven instead |
+| `executing-plans` | superseded by subagent-driven; disabled via `skills.ignoredSkills` and kept only as a reference copy |
 
 **Quality gates**
 
@@ -204,7 +241,7 @@ Every agent also declares a narrowed `tools:` list — read-only agents (`invest
 | Skill | For |
 |---|---|
 | `using-superpowers` | how to find and use skills at all |
-| `cavecrew` | routing table for the 14 subagents, with overlap tiebreakers |
+| `cavecrew` | routing table for the 16 cavecrew presets, with overlap tiebreakers |
 | `writing-skills` | create, edit and verify skills |
 | `minimum-viable-reimplementation` | rewrite a misbehaving library slice in 50–200 lines to build a real mental model |
 
@@ -216,7 +253,7 @@ Every agent also declares a narrowed `tools:` list — read-only agents (`invest
 | `caveman-commit` | Conventional Commits, ≤50-char subject, body only when *why* is non-obvious |
 | `caveman-review` | one line per finding: `path:line: severity: problem. fix.` |
 | `caveman-compress` | compress a memory/context file in place, human-readable backup kept |
-| `caveman-help` | the reference card |
+| `caveman-help` | the reference card. Disabled via `skills.ignoredSkills` — it only costs prompt budget in a session that already knows caveman |
 
 Caveman is **on by default** — `agent/AGENTS.md` carries the caveman block, so every session starts in `full` and drops out automatically for code, commits and security warnings.
 
@@ -277,9 +314,10 @@ Working agreements encoded in `agent/AGENTS.md`: plans in `.omo/plans/`, specs i
 | `agent/models.yml` | override-only: `contextPromotionTarget` per model + corrected `gpt-5.6-luna`/`terra` prices |
 | `agent/mcp.json` | MCP servers. Secrets via `!` shell substitution, never inline |
 | `agent/lsp.json` | LSP overrides |
-| `agent/agents/*.md` | 13 cavecrew subagents + `momus` |
+| `agent/WATCHDOG.md` | advisor-only review brief: what to flag, what to stay silent about, how notes are delivered |
+| `agent/agents/*.md` | 16 cavecrew subagents + `momus` |
 | `agent/commands/*.md` | caveman slash commands |
-| `agent/skills/*/SKILL.md` | 31 vendored skills |
+| `agent/skills/*/SKILL.md` | 32 vendored skill directories, 30 active |
 
 Everything else under `~/.omp` — `agent.db`, `history.db`, `models.db`, `sessions/`, `blobs/`, `banks/`, `cache/`, `logs/`, `run/` — is state or secrets and stays local.
 
@@ -294,9 +332,9 @@ upstream projects and stay under their own MIT terms (full notices in
 | [`obra/superpowers`](https://github.com/obra/superpowers) | 14 skills: `brainstorming`, `dispatching-parallel-agents`, `executing-plans`, `finishing-a-development-branch`, `receiving-code-review`, `requesting-code-review`, `subagent-driven-development`, `systematic-debugging`, `test-driven-development`, `using-git-worktrees`, `using-superpowers`, `verification-before-completion`, `writing-plans`, `writing-skills` |
 | [`JuliusBrussee/caveman`](https://github.com/JuliusBrussee/caveman) | the `caveman*` skills, `cavecrew`, `agent/commands/*`, and the `cavecrew-builder` / `cavecrew-investigator` / `cavecrew-reviewer` subagents |
 
-The remaining 11 skills (`baseline-first`, `context-curation`, `cost-aware-coding`, `decision-log`, `eval-driven-development`, `minimum-viable-reimplementation`, `pre-mortem`, `prototyping`, `spec-driven-development`, `vibe-coding-guardrails`, `wayfinding`), the other 10 cavecrew subagents, `momus`, and all config in `agent/*.yml` / `agent/*.json` are original to this repo.
+The remaining 12 skills (`baseline-first`, `context-curation`, `cost-aware-coding`, `decision-log`, `diverge-converge`, `eval-driven-development`, `minimum-viable-reimplementation`, `pre-mortem`, `prototyping`, `spec-driven-development`, `vibe-coding-guardrails`, `wayfinding`), the other 13 cavecrew subagents, `momus`, `agent/WATCHDOG.md`, and all config in `agent/*.yml` / `agent/*.json` are original to this repo.
 
-Provenance is file-level, not guessed: every tracked file was compared against both upstream git trees. **34** are byte-identical to an upstream blob, **40** are modified copies, **32** have no upstream counterpart. Vendored files are edited freely here — do not treat them as upstream-current. One file is original despite living in a vendored directory: `test-driven-development/testing-anti-patterns.md` (superpowers' reference-doc idiom, ~10% word overlap with its `writing-good-tests.md`, which it does not replace).
+Provenance is file-level, not guessed: every tracked file was compared against both upstream git trees. **34** are byte-identical to an upstream blob, **40** are modified copies, **38** have no upstream counterpart. Vendored files are edited freely here — do not treat them as upstream-current. One file is original despite living in a vendored directory: `test-driven-development/testing-anti-patterns.md` (superpowers' reference-doc idiom, ~10% word overlap with its `writing-good-tests.md`, which it does not replace).
 
 ## Notes
 

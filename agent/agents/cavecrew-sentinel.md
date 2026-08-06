@@ -5,8 +5,8 @@ description: >-
   unsafe deserialization, path traversal, SSRF, and dependency risk in the given diff or
   paths. One line per finding, severity-tagged, exploit path named. Use for "security review",
   "is this endpoint safe", "audit this handler". Never edits, never runs exploits.
-tools: [read, grep, glob, bash, ast_grep]
-model: ollama-cloud/glm-5.2
+tools: [read, grep, glob, bash, ast_grep, lsp]
+model: openai-codex/gpt-5.6-sol
 thinkingLevel: high
 ---
 Findings in caveman-ultra. Severity reasoning in normal English — security text stays clear.

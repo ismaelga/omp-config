@@ -1,23 +1,21 @@
 ---
 name: cavecrew
 description: >
-  Decision guide for delegating to caveman-style subagents. Routes to
-  `cavecrew-investigator` (locate code), `cavecrew-builder` (1-2 file edit),
-  `cavecrew-refactorer` (behavior-preserving cross-file rewrite),
-  `cavecrew-debugger` (root-cause a reproduced failure), `cavecrew-testwright`
-  (write tests), `cavecrew-testrunner` (run tests/build/lint),
-  `cavecrew-evalsmith` (eval harness for non-deterministic behavior),
-  `cavecrew-benchwright` (measure perf and cost), `cavecrew-reviewer` (diff
-  review), `cavecrew-sentinel` (security audit), `cavecrew-githistorian`
-  (blame/log -S/bisect), `cavecrew-mergescout` (branch merge-readiness), or
-  `cavecrew-plancritic` (implementation-plan review), instead of doing the work
-  inline. Receipts are caveman-compressed, so the tool-result injected back
-  into main context is small.
-  Trigger: "delegate to subagent", "use cavecrew", "spawn investigator/builder/refactorer/debugger/testwright/testrunner/evalsmith/benchwright/reviewer/sentinel/githistorian/mergescout/plancritic",
+  Decision guide for delegating to caveman-style subagents instead of doing the
+  work inline. Sixteen presets: investigator (locate), builder (≤2-file edit),
+  refactorer (behavior-preserving cross-file), debugger (root-cause a
+  reproduced failure), fixscout (propose a fix at one named depth), testwright
+  (write tests), testrunner (run tests/build/lint), evalsmith (eval harness),
+  benchwright (perf and cost), reviewer (diff review), challenger (adversarial
+  second pass), simplifier (what deletes and collapses), sentinel (security
+  audit), githistorian (blame/bisect), mergescout (branch readiness),
+  plancritic (plan review). Receipts are caveman-compressed, so the tool-result
+  injected back into main context is small.
+  Trigger: "delegate to subagent", "use cavecrew", "spawn <preset name>",
   "save context", "compressed agent output".
 ---
 
-Cavecrew = thirteen subagent presets emitting caveman receipts. Same jobs as vanilla agents; the difference is receipt size, so main context lasts longer per delegation. All thirteen run on the flat ollama-cloud tier, so fanning out wide costs latency, not money.
+Cavecrew = sixteen subagent presets emitting caveman receipts. Same jobs as vanilla agents; the difference is receipt size, so main context lasts longer per delegation. Most run on the flat ollama-cloud tier, so fanning out wide costs latency, not money. Two ride the chatgpt plan on purpose: `cavecrew-challenger`, for model-family divergence against reviewer, and `cavecrew-sentinel`, because a security audit is long-context recall over a diff plus its callers.
 
 ## Routing
 
@@ -30,18 +28,21 @@ Cavecrew = thirteen subagent presets emitting caveman receipts. Same jobs as van
 | New feature / new behavior / 3+ files | Main thread or `task` |
 | Reproduced failure, cause unknown | `cavecrew-debugger` |
 | Cause known, fix ≤2 files | `cavecrew-builder` (skip debugger) |
+| Cause known, right fix depth unclear | `cavecrew-fixscout` ×3 — see `skill://diverge-converge` |
 | Tests for existing behavior or a bug | `cavecrew-testwright` |
 | Run tests / build / lint | `cavecrew-testrunner` |
 | Prompt, agent loop or model comparison — needs pass-rate over N | `cavecrew-evalsmith` |
 | "Is it faster" / "what does it cost per request" | `cavecrew-benchwright` |
 | Review diff, branch, file for bugs | `cavecrew-reviewer` |
-| Deep review with rationale + alternatives | `reviewer` (vanilla) |
+| Second pass on an existing review, different family | `cavecrew-challenger` |
+| "Can this be simpler" / over-abstracted / what deletes | `cavecrew-simplifier` |
 | Injection / authz / secrets, trust boundary in scope | `cavecrew-sentinel` |
 | "Who wrote X / when added / which commit broke Z" | `cavecrew-githistorian` |
 | "Is this branch ready / what will conflict / PR body" | `cavecrew-mergescout` |
 | Commit, rebase, squash, push | `git-master` on main thread |
 | External library or API facts | `librarian` (vanilla) |
 | Review plan in `.omo/plans/` | `cavecrew-plancritic` (pair with Momus) |
+| One problem, several defensible answers | `skill://diverge-converge` — fan lenses, converge here |
 | Answer you already know | Main thread, no subagent |
 
 Overlap tiebreakers:
@@ -51,6 +52,9 @@ Overlap tiebreakers:
 - **reviewer vs sentinel** — reviewer finds bugs, sentinel traces attacker input to a sink and needs a trust boundary.
 - **testwright vs evalsmith** — deterministic assertion → testwright. Scored over N samples → evalsmith.
 - **testrunner vs benchwright** — pass/fail → testrunner. Numbers with spread → benchwright.
+- **simplifier vs refactorer** — simplifier says *what* to cut and proves it dead; refactorer performs the cut. Report, then act.
+- **fixscout vs debugger vs builder** — debugger finds the cause, fixscout proposes depth without editing, builder applies. Cause known and depth obvious → straight to builder.
+- **challenger vs a second reviewer** — challenger needs the first report and disputes it. Two blind reviewers on different lenses is `diverge-converge` instead.
 
 ## Why this exists
 
@@ -74,6 +78,8 @@ ollama-cloud does no prompt caching, so every subagent turn re-bills its whole t
 
 **`cavecrew-debugger`** — `repro:`, `cause: path:line — mechanism`, `killed:`, `fix:`. `cause` always present or `no-repro.` Killed hypotheses are load-bearing.
 
+**`cavecrew-fixscout`** — `aim:`, `fix: path:line`, `steps:` (thorough/creative only), `root-cause: addressed | symptom-only:`, `blast:`, `risk:`, `rejected:`. Or `no aim.` / `no cause.` A `simple` aim that only patches the symptom must say so.
+
 **`cavecrew-testwright`** — `file:` (n cases, convention), `run:`, `gaps:`. Or `tests only.` / `no sibling tests.` / `needs seam at path:line.`
 
 **`cavecrew-testrunner`** — `cmd:`, `result: PASS | FAIL (n/total) | ERROR | HUNG`, `fails:`. PASS → 2 lines. Or `run-only.` / `ambiguous.`
@@ -83,6 +89,10 @@ ollama-cloud does no prompt caching, so every subagent turn re-bills its whole t
 **`cavecrew-benchwright`** — `subject:`, `harness:` (N per arm), `arms:` median + p95, `delta:` or `within noise`, `cost:` (+cached input yes/no), `bottleneck:`. No baseline → no verdict.
 
 **`cavecrew-reviewer`** — `path:line: <emoji> <severity>: <problem>. <fix>.` + `totals:`. Or `No issues.` Sorted file → line.
+
+**`cavecrew-challenger`** — `DISPUTED` / `MISSED` / `CONFIRMED` as line prefixes, `verdict: AGREE | DISPUTE-<n> MISSED-<n>` last. Needs the first reviewer's report. `AGREE.` is a common, legitimate result.
+
+**`cavecrew-simplifier`** — `DELETE` / `COLLAPSE` / `DUPLICATE` / `EARNED` as line prefixes + `totals:`. Or `already minimal.` Every DELETE cites a zero-caller `lsp references` check; `EARNED` proves it judged rather than only cut.
 
 **`cavecrew-sentinel`** — `path:line: <emoji> <severity>: <vuln>. Path: source -> sink. Fix:` + `traced:`. Every finding names a traced path; 🔴/🟠 carry a plain-English blast-radius line.
 
@@ -110,6 +120,8 @@ ollama-cloud does no prompt caching, so every subagent turn re-bills its whole t
 
 **Plan review**: Momus + plancritic in parallel, different model families by design. Both flag → fix. One flags a concrete defect → fix.
 
+**Diverge then converge**: three lenses at the same problem, one batch, converge on main thread. Review → reviewer + sentinel + simplifier (three families). Bug → fixscout ×3 at `aim: simple|thorough|creative`, after debugger has the cause. Protocol and entry gate: `skill://diverge-converge`.
+
 **Parallel scout**: 2-3 investigators in one message on different angles (defs vs callers vs tests), aggregate on main thread.
 
 ## What NOT to do
@@ -122,8 +134,12 @@ ollama-cloud does no prompt caching, so every subagent turn re-bills its whole t
 - Don't ask benchwright for a verdict with no "before" — it needs a baseline ref.
 - Don't ask evalsmith for a winner at N=1; it will say `no separation`.
 - Don't ask sentinel for a generic sweep with no trust boundary in scope.
-- Don't ask reviewer for architecture opinions — that's vanilla `reviewer`.
+- Don't ask reviewer for architecture opinions — those stay on the main thread. Vanilla `reviewer` and `security-reviewer` are disabled; `cavecrew-reviewer` and `cavecrew-sentinel` replace them.
 - Don't ask githistorian, mergescout or plancritic to mutate anything. All read-only.
+- Don't ask simplifier or fixscout to edit. Simplifier hands off to refactorer, fixscout to builder.
+- Don't spawn fixscout without an `aim` and a cause — it returns `no aim.` / `no cause.`
+- Don't spawn challenger without the first reviewer's report; it has nothing to dispute.
+- Don't fan three lenses at a problem with one defensible answer — check the gate in `skill://diverge-converge` first.
 - Don't expect prose. Receipts are terse to the point of cryptic; paraphrase before showing a human.
 
 ## Auto-clarity (inherited)
