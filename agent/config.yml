@@ -1,8 +1,24 @@
 task:
   disabledAgents:
+    # Minimal-guidance profile (adopted 2026-08-14, see bench/README.md).
+    # Vanilla reviewer/security-reviewer re-enabled: minimal means fewer
+    # instructions, not fewer tools. Agent definitions stay on disk, inert.
     - sonic
-    - reviewer
-    - security-reviewer
+    - momus
+    - cavecrew-benchwright
+    - cavecrew-builder
+    - cavecrew-challenger
+    - cavecrew-debugger
+    - cavecrew-fixscout
+    - cavecrew-githistorian
+    - cavecrew-investigator
+    - cavecrew-plancritic
+    - cavecrew-refactorer
+    - cavecrew-reviewer
+    - cavecrew-sentinel
+    - cavecrew-simplifier
+    - cavecrew-testrunner
+    - cavecrew-testwright
   eager: preferred
   showResolvedModelBadge: true
   enableLsp: true
@@ -11,7 +27,7 @@ task:
 modelRoles:
   plan: anthropic/claude-fable-5:high
   slow: anthropic/claude-fable-5:high
-  task: ollama-cloud/glm-5.2:high
+  task: ollama-cloud/deepseek-v4-flash:high
   smol: ollama-cloud/minimax-m3
   tiny: ollama-cloud/gpt-oss:20b
   designer: ollama-cloud/minimax-m3:high
@@ -24,10 +40,9 @@ modelProviderOrder:
   - openai-codex
   - ollama-cloud
   - opencode-go
-  - cursor
   - google-antigravity
 contextPromotion:
-  enabled: true
+  enabled: false
 theme:
   dark: dark-catppuccin
 symbolPreset: nerd
@@ -55,7 +70,7 @@ terminal:
 tui:
   textSizing: false
 advisor:
-  enabled: true
+  enabled: false
   syncBacklog: 3
 steeringMode: one-at-a-time
 interruptMode: immediate
@@ -88,8 +103,12 @@ retry:
       - opencode-go/glm-5.2
       - openai-codex/gpt-5.6-luna:high
     ollama-cloud/glm-5.2:
-      - opencode-go/deepseek-v4-pro
+      # Task role + reviewer/debugger/evalsmith/fixscout all sit on this model,
+      # so the same-model peer goes first: a transient ollama-cloud error must
+      # not silently swap model family mid-task. Tail matches ollama-cloud/*.
       - opencode-go/glm-5.2
+      - opencode-go/deepseek-v4-pro
+      - openai-codex/gpt-5.6-luna:high
     openai-codex/gpt-5.6-luna:
       - ollama-cloud/glm-5.2:high
       - opencode-go/glm-5.2
@@ -142,6 +161,16 @@ thinkingBudgets:
 tier:
   subagent: inherit
 skills:
+  # Minimal-guidance profile: skill auto-discovery off (adopted 2026-08-14,
+  # see bench/README.md). Skill files stay on disk for reference; flip back to
+  # true to restore discovery, at which point ignoredSkills below applies again.
+  enabled: false
+  # Load-bearing: all three exist under ~/.config/opencode/skills, which omp
+  # discovers through the `opencode` provider (priority 55). Deleting the
+  # vendored copy under agent/skills/ does NOT stop them loading.
+  #   executing-plans -- superseded by subagent-driven-development
+  #   caveman-help    -- duplicated by the /caveman-help slash command
+  #   caveman-stats   -- opencode plugin hook, no omp equivalent
   ignoredSkills:
     - executing-plans
     - caveman-help
