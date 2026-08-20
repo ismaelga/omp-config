@@ -1,58 +1,38 @@
-# Override-only block: ollama-cloud is a built-in provider (44 models,
-# authenticated from a stored /login credential; env fallback is
+# Override-only block: ollama-cloud and openai-codex are built-in providers
+# (authenticated from a stored /login credential; env fallback for the former is
 # OLLAMA_CLOUD_API_KEY -- OLLAMA_API_KEY belongs to the local ollama engine).
-# Do not redeclare baseUrl/api/models
-# here -- that replaces curated catalog metadata (context windows, output
-# caps, thinking levels) with hand-written guesses.
+# Do not redeclare baseUrl/api/models here -- that replaces curated catalog
+# metadata (context windows, output caps, thinking levels) with hand-written
+# guesses.
 #
-# Purpose of this file: give the small-context roles a real promotion target
-# so a context overflow switches models instead of compacting.
-# Requires `contextPromotion.enabled: true` in config.yml.
+# Purpose of this file, as of 2026-08-12: correct two stale catalog prices.
+# Nothing else.
 #
-# Not listed here, deliberately: anthropic/claude-fable-5 (plan role),
-# anthropic/claude-opus-5 (default role) and ollama-cloud/glm-5.2 (task role
-# since 2026-08-06). All three are already 1M -- the largest
-# window in the catalog -- so they have nowhere to be promoted to. An
-# intra-anthropic target on either is a silent no-op, the exact trap
-# documented for openai-codex below. Do not "fix" the omission.
+# What used to be here, and why it is gone: every model carried a
+# `contextPromotionTarget` so a context overflow switched model instead of
+# compacting. Context promotion is now disabled outright
+# (`contextPromotion.enabled: false` in config.yml), so the targets were dead
+# config. Overflow falls back to compaction, which is the documented and
+# evaluated path; model-switching-on-overflow had no published evaluation
+# behind it. Do not reintroduce a `contextPromotionTarget` here without
+# re-enabling the feature in config.yml first -- on its own it does nothing.
+#
+# Also removed in the same pass, and worth not repeating: minimax-m3 and
+# deepseek-v4-pro each carried a target to deepseek-v4-flash under a stale
+# "524K -> 1M" comment. Verified against vendor sources on 2026-08-12, M3 is
+# in fact 1M (a higher long-context billing tier starts above 512K, which is
+# probably where 524K came from), so both were 1M -> 1M no-ops.
 providers:
-  ollama-cloud:
-    modelOverrides:
-      # tiny role: 131K -> 524K (smol)
-      "gpt-oss:20b":
-        contextPromotionTarget: ollama-cloud/minimax-m3
-      # cavecrew-builder: 524K -> 1M
-      deepseek-v4-pro:
-        contextPromotionTarget: ollama-cloud/deepseek-v4-flash
-      # smol + vision roles: 524K -> 1M
-      minimax-m3:
-        contextPromotionTarget: ollama-cloud/deepseek-v4-flash
-      # commit role: 131K -> 1M
-      "gpt-oss:120b":
-        contextPromotionTarget: ollama-cloud/glm-5.2
   openai-codex:
     modelOverrides:
-      # slow role + codex reviewers: 272K -> 1M. Cross-provider on purpose:
-      # every openai-codex model is 272K, so a same-provider target is a no-op.
-      # Matches sol's retry chain, which already ends at anthropic/claude-opus-5.
-      gpt-5.6-sol:
-        contextPromotionTarget: anthropic/claude-opus-5
       # Catalog carries pre-2026-07-30 launch prices for luna and terra.
       # The Jul 30 cut ("Luna by 80%, Terra by 20%") is not reflected yet:
       # luna $1/$6 -> $0.20/$1.20, terra $2.50/$15 -> $2.00/$12. Sol unchanged
       # at $5/$30, which is why only these two need correcting.
+      # Verified 2026-08-12 against OpenAI's own announcement.
       # Matters for display.showTokenUsage cost readouts and for any future
       # switch from chatgpt-plan auth to an OPENAI_API_KEY.
       gpt-5.6-luna:
-        # 272K -> 1M. Cross-provider for the same reason as sol. Luna is no
-        # longer the task role (that is ollama-cloud/glm-5.2 directly now); it
-        # stays the last-resort tail of the ollama-cloud/* chain, so the target
-        # still earns its keep.
-        # glm-5.2 is the score-parity peer (both 51 on AA Intelligence Index
-        # v4.1), so an overflow keeps quality and lands back on the flat-rate
-        # tier. Also avoids luna's weakest axis: long-context recall (MRCR
-        # 41.3%), which makes a huge luna window the wrong place to grow into.
-        contextPromotionTarget: ollama-cloud/glm-5.2
         cost:
           input: 0.20
           output: 1.20

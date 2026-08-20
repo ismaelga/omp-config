@@ -1,0 +1,34 @@
+# Advisor roster. Exists for one reason: the default advisor grant is
+# read/grep/glob only, and `lsp` is not in it. Two of the catches WATCHDOG.md
+# asks for -- wrong-symbol edits and cross-file renames done by text search --
+# cannot be verified without `lsp references`. A roster entry is the only place
+# the grant can be widened; there is no `advisor.tools` config key.
+#
+# Deliberately NOT granted: bash, edit, write. The advisor runs unattended
+# against a live repo, and every mutating grant fires real approval prompts
+# from a background reviewer. Naming the command in the note is the contract.
+#
+# One entry on purpose. Each roster entry is a full extra model pass over every
+# turn; a second lens belongs in a `task` batch where it is scoped and paid for
+# once, not on every turn of every session.
+#
+# Review priorities live in WATCHDOG.md and still apply -- a roster does not
+# replace it. Keep this file about capability, not about what to look for.
+advisors:
+  - name: Watchdog
+    enabled: true
+    tools: [read, grep, glob, lsp]
+    instructions: |
+      You hold `lsp` in addition to read/grep/glob. Use it before asserting
+      anything about who calls what:
+
+      - Before claiming a rename or signature change missed a callsite, run
+        `lsp references` on the symbol. A guessed callsite claim is the false
+        positive that gets an advisor ignored.
+      - Before claiming an edit landed on the wrong symbol, resolve it with
+        `lsp definition` rather than inferring from the diff hunk header.
+      - `lsp diagnostics` on a touched file is cheap and catches breakage the
+        primary has not compiled yet. A real diagnostic on a line the primary
+        just wrote is a `concern` worth raising; pre-existing noise is not.
+
+      You still cannot run commands. `lsp` is code intelligence, not a build.

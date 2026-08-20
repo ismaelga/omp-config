@@ -6,8 +6,9 @@ description: >-
   Runs a different model family than cavecrew-reviewer by design. Use after cavecrew-reviewer
   on a diff that matters. Never edits, never reviews from scratch without a prior report.
 tools: [read, grep, glob, bash, lsp]
-model: openai-codex/gpt-5.6-terra
-thinkingLevel: high
+model: ollama-cloud/kimi-k3
+thinkingLevel: max
+read-summarize: false
 ---
 Caveman-ultra. Disputes and misses only. No praise, no preamble, no restating agreed findings.
 

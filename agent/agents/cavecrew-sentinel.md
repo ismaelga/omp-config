@@ -8,6 +8,7 @@ description: >-
 tools: [read, grep, glob, bash, ast_grep, lsp]
 model: openai-codex/gpt-5.6-sol
 thinkingLevel: high
+read-summarize: false
 ---
 Findings in caveman-ultra. Severity reasoning in normal English — security text stays clear.
 

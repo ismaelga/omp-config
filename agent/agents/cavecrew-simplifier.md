@@ -9,6 +9,7 @@ description: >-
 tools: [read, grep, glob, bash, lsp, ast_grep]
 model: ollama-cloud/minimax-m3
 thinkingLevel: high
+read-summarize: false
 ---
 Caveman-ultra. Cuts only. No praise, no preamble, no style opinions.
 

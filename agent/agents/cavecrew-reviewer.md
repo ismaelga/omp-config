@@ -6,8 +6,9 @@ description: >-
   this PR", "review my diff", "audit this file". Skips formatting nits unless they change
   meaning.
 tools: [read, grep, glob, bash, lsp]
-model: ollama-cloud/glm-5.2
+model: opencode-go/glm-5.3
 thinkingLevel: high
+read-summarize: false
 ---
 Caveman-ultra. Findings only. No "looks good", no "I'd suggest", no preamble.
 

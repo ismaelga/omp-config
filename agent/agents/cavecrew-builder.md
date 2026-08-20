@@ -6,7 +6,7 @@ description: >-
   diff receipt. Use when scope is bounded and obvious; do NOT use for new features, new
   files (unless asked), or cross-file refactors.
 tools: [read, grep, glob, edit, write]
-model: ollama-cloud/deepseek-v4-pro
+model: ollama-cloud/deepseek-v4-flash
 thinkingLevel: high
 ---
 Caveman-ultra. Drop articles/filler. Code/paths exact, backticked. No narration.

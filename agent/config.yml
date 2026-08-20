@@ -1,8 +1,5 @@
 task:
   disabledAgents:
-    # Minimal-guidance profile (adopted 2026-08-14, see bench/README.md).
-    # Vanilla reviewer/security-reviewer re-enabled: minimal means fewer
-    # instructions, not fewer tools. Agent definitions stay on disk, inert.
     - sonic
     - momus
     - cavecrew-benchwright
@@ -33,8 +30,8 @@ modelRoles:
   designer: ollama-cloud/minimax-m3:high
   vision: ollama-cloud/minimax-m3
   commit: ollama-cloud/gpt-oss:120b
-  advisor: ollama-cloud/glm-5.2:high
-  default: anthropic/claude-opus-5:high
+  advisor: opencode-go/glm-5.3:max
+  default: openrouter/z-ai/glm-5.3:max
 modelProviderOrder:
   - anthropic
   - openai-codex
@@ -64,7 +61,7 @@ github:
   enabled: true
 memory:
   backend: mnemopi
-setupVersion: 1
+setupVersion: 2
 terminal:
   showProgress: false
 tui:
@@ -100,18 +97,18 @@ retry:
       - ollama-cloud/minimax-m3
     ollama-cloud/gpt-oss:120b:
       - ollama-cloud/glm-5.2
-      - opencode-go/glm-5.2
+      - opencode-go/glm-5.3
       - openai-codex/gpt-5.6-luna:high
     ollama-cloud/glm-5.2:
-      # Task role + reviewer/debugger/evalsmith/fixscout all sit on this model,
-      # so the same-model peer goes first: a transient ollama-cloud error must
-      # not silently swap model family mid-task. Tail matches ollama-cloud/*.
-      - opencode-go/glm-5.2
+      - opencode-go/glm-5.3
       - opencode-go/deepseek-v4-pro
       - openai-codex/gpt-5.6-luna:high
-    openai-codex/gpt-5.6-luna:
+    openrouter/z-ai/glm-5.3:
+      - opencode-go/glm-5.3:high
       - ollama-cloud/glm-5.2:high
-      - opencode-go/glm-5.2
+    openai-codex/gpt-5.6-luna:
+      - opencode-go/glm-5.3:high
+      - ollama-cloud/glm-5.2:high
     openai-codex/gpt-5.6-sol:
       - openai-codex/gpt-5.6-terra
       - anthropic/claude-opus-5:high
@@ -161,17 +158,7 @@ thinkingBudgets:
 tier:
   subagent: inherit
 skills:
-  # Minimal-guidance profile: skill auto-discovery off (adopted 2026-08-14,
-  # see bench/README.md). Skill files stay on disk for reference; flip back to
-  # true to restore discovery, at which point ignoredSkills below applies again.
-  enabled: false
-  # Load-bearing: all three exist under ~/.config/opencode/skills, which omp
-  # discovers through the `opencode` provider (priority 55). Deleting the
-  # vendored copy under agent/skills/ does NOT stop them loading.
-  #   executing-plans -- superseded by subagent-driven-development
-  #   caveman-help    -- duplicated by the /caveman-help slash command
-  #   caveman-stats   -- opencode plugin hook, no omp equivalent
-  ignoredSkills:
-    - executing-plans
-    - caveman-help
-    - caveman-stats
+  enabled: true
+  enableSkillCommands: true
+composer:
+  shape: pi
