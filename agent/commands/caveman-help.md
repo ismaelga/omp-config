@@ -12,7 +12,11 @@ Show the caveman quick-reference card.
 | `/caveman off` | Deactivate |
 | `/caveman-commit` | Terse commit message |
 | `/caveman-review` | One-line review findings |
-| `/skill:caveman-compress <file>` | Compress a Markdown file |
+| `/caveman-compress <file>` | Compress a Markdown file |
+
+Caveman is on by default: `~/.omp/agent/AGENTS.md` carries the caveman block, so
+every session starts at `full`. Change the default by editing that file; switch
+per-session with `/caveman <level>`.
 
 Natural language also works: "turn on caveman", "stop caveman", "normal mode".
 

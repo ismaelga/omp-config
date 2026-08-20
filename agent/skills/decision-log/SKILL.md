@@ -145,7 +145,7 @@ Roughly the categories that matter:
 ## Integration with your skills
 
 - **`writing-plans`** (superpowers) → Plans should reference relevant ADRs
-- **`spec-driven-development`** → Spec's "decisions" section can reference ADRs
+- **`.omo/specs/`** → A spec's "decisions" section can reference ADRs
 - **`pre-mortem`** → Surface decisions that should be ADR'd before they're forgotten
 - **`/init-deep`** (oh-my-openagent) → Hierarchical AGENTS.md files should link to the decision log
 

@@ -9,7 +9,6 @@
 !NOTICE
 !agent/
 !agent/AGENTS.md
-!agent/RULES.md
 !agent/WATCHDOG.md
 !agent/WATCHDOG.yml
 !agent/config.yml
@@ -20,6 +19,8 @@
 !agent/agents/*.md
 !agent/commands/
 !agent/commands/*.md
+!agent/tools/
+!agent/tools/**
 !agent/skills/
 !agent/skills/**
 

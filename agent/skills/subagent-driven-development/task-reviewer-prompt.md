@@ -1,22 +1,25 @@
-# Task Reviewer Prompt Template
+# Phase-Boundary Reviewer Prompt Template
 
-Use this template when dispatching a task reviewer subagent. The reviewer
-reads the task's diff once and returns two verdicts: spec compliance and
-code quality.
+Use this template at a phase boundary (roughly every 3-4 tasks), for the one task that lands
+genuinely risky code, or for the final whole-branch pass. The reviewer reads the accumulated diff
+once and returns two verdicts: spec compliance and code quality.
 
-**Purpose:** Verify one task's implementation matches its requirements (nothing
-more, nothing less) and is well-built (clean, tested, maintainable)
+Do NOT dispatch this once per task. Per-task spec checking is the controller's own job — see
+SKILL.md "Per-Task Spec Check" for the measurement that settled it.
+
+**Purpose:** Verify the work in range matches its requirements (nothing more, nothing less) and is
+well-built (clean, tested, maintainable)
 
 ```
 Subagent (general-purpose):
-  description: "Review Task N (spec + quality)"
+  description: "Review tasks N-M (spec + quality)"
   model: [MODEL — REQUIRED: choose per SKILL.md Model Selection; an omitted
          model silently inherits the session's most expensive one]
   prompt: |
-    You are reviewing one task's implementation: first whether it matches its
-    requirements, then whether it is well-built. This is a task-scoped gate,
-    not a merge review — a broad whole-branch review happens separately after
-    all tasks are complete.
+    You are reviewing the accumulated implementation of one or more tasks: first
+    whether it matches its requirements, then whether it is well-built. This is a
+    phase-scoped gate, not a merge review — a broad whole-branch review happens
+    separately after all tasks are complete.
 
     ## What Was Requested
 

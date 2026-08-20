@@ -1,29 +1,28 @@
 NOTICE -- third-party components
 ================================
 
-omp-config is MIT licensed (see LICENSE). Parts of it are vendored from two
+omp-config is MIT licensed (see LICENSE). Parts of it are vendored from three
 upstream projects and remain under their own MIT terms, reproduced below.
 
-Provenance was established by comparing every tracked file against both
-upstream git trees: 34 files are byte-identical to an upstream blob, 40 are
-modified copies of one, and 32 have no upstream counterpart. Vendored files are
-edited freely here -- do not assume any of them is upstream-current.
+Vendored files are edited freely here -- do not assume any of them is
+upstream-current. Provenance for the pre-existing files was established by
+comparing every tracked file against the upstream git trees; the
+mattpocock/skills import (2026-08-20) is unmodified upstream.
 
 --------------------------------------------------------------------------------
 obra/superpowers -- https://github.com/obra/superpowers
 --------------------------------------------------------------------------------
 
-Applies to all files under these 14 skill directories in agent/skills/,
+Applies to all files under these 11 skill directories in agent/skills/,
 including their scripts and reference documents:
 
   brainstorming                     (incl. scripts/server.cjs, helper.js,
                                      start-server.sh, stop-server.sh,
                                      frame-template.html)
+  code-review                       (modified from requesting-code-review;
+                                     incl. code-reviewer.md)
   dispatching-parallel-agents
-  executing-plans
   finishing-a-development-branch
-  receiving-code-review
-  requesting-code-review            (incl. code-reviewer.md)
   subagent-driven-development       (incl. scripts/sdd-workspace, task-brief,
                                      review-package, and the prompt documents)
   systematic-debugging              (incl. root-cause-tracing.md,
@@ -34,7 +33,6 @@ including their scripts and reference documents:
   using-git-worktrees
   using-superpowers                 (incl. references/pi-tools.md,
                                      codex-tools.md, antigravity-tools.md)
-  verification-before-completion
   writing-plans                     (incl. plan-document-reviewer-prompt.md)
   writing-skills                    (incl. anthropic-best-practices.md,
                                      persuasion-principles.md,
@@ -65,23 +63,73 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 
 --------------------------------------------------------------------------------
+mattpocock/skills -- https://github.com/mattpocock/skills
+--------------------------------------------------------------------------------
+
+Applies to all files under these 20 skill directories in agent/skills/,
+vendored unmodified on 2026-08-20:
+
+  ask-matt                          (incl. PHASE-BOUNDARIES.md)
+  codebase-design                   (incl. DEEPENING.md, DESIGN-IT-TWICE.md)
+  domain-modeling                   (incl. ADR-FORMAT.md, CONTEXT-FORMAT.md)
+  grill-me
+  grill-with-docs
+  grilling
+  handoff
+  implement
+  improve-codebase-architecture     (incl. HTML-REPORT.md)
+  research
+  resolving-merge-conflicts
+  setup-matt-pocock-skills          (incl. issue-tracker-*.md, domain.md,
+                                     triage-labels.md)
+  teach                             (incl. GLOSSARY-FORMAT.md,
+                                     LEARNING-RECORD-FORMAT.md,
+                                     RESOURCES-FORMAT.md, MISSION-FORMAT.md)
+  to-questionnaire
+  to-spec
+  to-tickets
+  triage                            (incl. AGENT-BRIEF.md, OUT-OF-SCOPE.md)
+  wait-what
+  wizard                            (incl. template.sh)
+  writing-for-agents               (incl. SKILL-MECHANICS.md)
+
+MIT License
+
+Copyright (c) 2026 Matt Pocock
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.
+
+--------------------------------------------------------------------------------
 JuliusBrussee/caveman -- https://github.com/JuliusBrussee/caveman
 --------------------------------------------------------------------------------
 
-Applies to all files under these skill directories in agent/skills/:
+Applies to these skill directories in agent/skills/:
 
   cavecrew
-  caveman
   caveman-commit
-  caveman-compress                  (incl. scripts/compress.py, detect.py,
-                                     cli.py, validate.py, benchmark.py,
-                                     __main__.py, __init__.py, SECURITY.md)
-  caveman-help
-  caveman-review
 
 to the slash commands in agent/commands/ (caveman.md, caveman-commit.md,
-caveman-review.md, caveman-help.md), vendored from that project's opencode
-plugin, and to these subagents in agent/agents/ (modified):
+caveman-review.md, caveman-help.md, caveman-compress.md), vendored from that
+project's opencode plugin, to the tool in agent/tools/caveman-compress/
+(incl. scripts/compress.py, detect.py, cli.py, validate.py, benchmark.py,
+__main__.py, __init__.py, SECURITY.md; graduated from a skill on 2026-08-20),
+and to these subagents in agent/agents/ (modified):
 
   cavecrew-builder
   cavecrew-investigator
@@ -113,16 +161,12 @@ SOFTWARE.
 Original to this repository
 --------------------------------------------------------------------------------
 
-Covered by LICENSE, with no upstream counterpart in either project above:
+Covered by LICENSE, with no upstream counterpart in any project above:
 
-  agent/skills/            baseline-first, context-curation, cost-aware-coding,
-                           decision-log, eval-driven-development,
-                           minimum-viable-reimplementation, pre-mortem,
-                           prototyping, spec-driven-development,
-                           vibe-coding-guardrails, wayfinding
+  agent/skills/            baseline-first, context-curation, decision-log,
+                           diverge-converge, pre-mortem, prototyping, wayfinding
   agent/agents/            cavecrew-benchwright, cavecrew-debugger,
-                           cavecrew-evalsmith, cavecrew-githistorian,
-                           cavecrew-mergescout, cavecrew-plancritic,
+                           cavecrew-githistorian, cavecrew-plancritic,
                            cavecrew-refactorer, cavecrew-sentinel,
                            cavecrew-testrunner, cavecrew-testwright, momus
   agent/                   AGENTS.md, config.yml, models.yml, mcp.json, lsp.json

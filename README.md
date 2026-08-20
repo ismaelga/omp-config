@@ -20,7 +20,7 @@ Claude Code is one vendor, one model family, one price per token. This setup kee
 
 | | raw Claude Code | omp + this config |
 |---|---|---|
-| Providers | Anthropic only | 40+ providers; this config authenticates 7 (`anthropic` ×3 accounts, `openai-codex`, `ollama-cloud`, `opencode-go`, `cursor`, `google-antigravity`, `google-gemini-cli`) |
+| Providers | Anthropic only | 40+ providers; this config resolves models from 6 (`anthropic`, `openai-codex`, `ollama-cloud`, `opencode-go`, `google-antigravity`, `google-gemini-cli`) plus a local `ollama` engine |
 | Model choice | pick from the Claude family | 10 named roles, each pinned to a different provider/model/thinking level |
 | Per-subagent model | subagent picks a Claude tier | every subagent pins its own `model:` + `thinkingLevel:` in frontmatter — 17 agents across 7 models |
 | Provider outage / 429 | turn fails | `retry.fallbackChains` hands the rest of the turn to the next model, restored on cooldown |
@@ -93,12 +93,12 @@ What this config's `modelProviderOrder` expects, and how each is authenticated h
 
 | Provider | Auth used here | Alternative | Role in this setup |
 |---|---|---|---|
-| `anthropic` | OAuth, **3 accounts** (auto-rotated with per-credential backoff) | `ANTHROPIC_API_KEY` | `default` (`claude-opus-5:high`), `plan` + `slow` (`claude-fable-5:high`) |
+| `anthropic` | OAuth (auto-rotated with per-credential backoff; 2 credentials stored, 1 live) | `ANTHROPIC_API_KEY` | `default` (`claude-opus-5:high`), `plan` + `slow` (`claude-fable-5:high`) |
 | `openai-codex` | OAuth (ChatGPT plan) | `OPENAI_CODEX_OAUTH_TOKEN` | 3 of 17 subagents where a different model family or long-context recall is the point: `cavecrew-sentinel` + `momus` (`gpt-5.6-sol`), `cavecrew-challenger` (`gpt-5.6-terra`). Also the terminal retry hop (`gpt-5.6-luna`) |
 | `ollama-cloud` | stored API key via `/login ollama-cloud` | `OLLAMA_CLOUD_API_KEY` | flat-rate workhorse: `task`, `advisor`, `smol`, `tiny`, `vision`, `designer`, `commit`, and 14 of 17 subagents |
 | `opencode-go` | stored API key via `/login` | `OPENCODE_API_KEY` | fallback tier only |
-| `cursor` | OAuth | `CURSOR_ACCESS_TOKEN` | available, not routed by default |
 | `google-antigravity` | OAuth | — | available, not routed by default |
+| `google-gemini-cli` | OAuth | `GEMINI_API_KEY` | available, not routed by default |
 
 `OLLAMA_API_KEY` is the **local** `ollama` engine's variable, not `ollama-cloud`'s — cloud access here comes from the stored credential, not the environment.
 
@@ -123,9 +123,9 @@ Only genuinely machine-local secret: `~/.secrets/worldcoin-portal-token`, read b
 
 Three mechanisms make the table above hold up under load:
 
-- **`retry.fallbackChains`** — per-model chains. Flat-rate hops first, then `openai-codex/gpt-5.6-luna` as the terminal fallback, because plan-billed failover costs no new metered spend. `gpt-oss:20b` deliberately fails over *inside* the free tier. Chains resolve by specificity — exact `provider/model-id`, then `provider/*`, then the role, then `default` — so a role-keyed chain is dead config whenever a wildcard already matches that role's model. There are none here for that reason.
-- **`contextPromotion`** — on overflow, switch model instead of compacting. Targets are cross-provider on purpose: every `openai-codex` model is 272K, so a same-provider target would be a no-op. `gpt-5.6-luna` → `glm-5.2` (1M) at score parity; `gpt-5.6-sol` → `claude-opus-5`. The three 1M roles (`claude-opus-5`, `claude-fable-5`, `glm-5.2`) have no target because nothing is bigger.
-- **`task.disabledAgents`** — the bundled `reviewer` and `security-reviewer` are off. Their jobs belong to `cavecrew-reviewer` + `cavecrew-challenger` and `cavecrew-sentinel`, which are pinned to deliberately different model families.
+- **`retry.fallbackChains`** — per-model chains. Flat-rate hops first, then `openai-codex/gpt-5.6-luna` as the terminal fallback, because plan-billed failover costs no new metered spend. `gpt-oss:20b` deliberately fails over *inside* the free tier. Chains resolve by specificity — exact `provider/model-id`, then `provider/*`, then the role, then `default` — so a role-keyed chain is dead config whenever a wildcard already matches that role's model. There are none here for that reason. Within a chain the **same model on another provider goes first** (`ollama-cloud/glm-5.2` → `opencode-go/glm-5.2`): a transient 429 should cost latency, not swap model family mid-task.
+- **`contextPromotion`** — on overflow, switch model instead of compacting. Targets are cross-provider on purpose: every `openai-codex` model is 272K, so a same-provider target would be a no-op. `gpt-5.6-luna` → `glm-5.2` (1M) at score parity; `gpt-5.6-sol` → `claude-opus-5`; `gpt-5.6-terra` → `kimi-k3` (deliberately *not* Anthropic — `cavecrew-challenger` disputes a review of `claude-opus-5`'s own diff, so overflow must not land it in the primary's family); `kimi-k2.7-code` → `deepseek-v4-flash`. The three 1M roles (`claude-opus-5`, `claude-fable-5`, `glm-5.2`) have no target because nothing is bigger.
+- **`task.disabledAgents`** — the bundled `reviewer`, `security-reviewer` and `sonic` are off. The first two have jobs that belong to `cavecrew-reviewer` + `cavecrew-challenger` and `cavecrew-sentinel`, pinned to deliberately different model families; `sonic` is a speed tier this fleet does not use.
 
 Model specs are `provider/model[:thinking]` where thinking ∈ `minimal|low|medium|high|xhigh|max`.
 
@@ -159,12 +159,14 @@ Pairing is the point, not redundancy:
 - **Diff review** — `cavecrew-reviewer`, then `cavecrew-challenger` on its report; or all three lenses (`reviewer` + `sentinel` + `simplifier`, three families) at once via `skill://diverge-converge`.
 - **Fix depth** — `cavecrew-fixscout` ×3 at `simple` / `thorough` / `creative`, once `cavecrew-debugger` has the cause. The converge always happens on the main thread.
 
-Every agent also declares a narrowed `tools:` list — read-only agents (`investigator`, `githistorian`, `mergescout`, `testrunner`, `reviewer`, `challenger`, `simplifier`, `sentinel`, `fixscout`, `plancritic`, `momus`) have no `edit`/`write` at all, so "read-only" is enforced by the harness rather than by the prompt.
+Every agent also declares a narrowed `tools:` list — read-only agents (`investigator`, `githistorian`, `testrunner`, `reviewer`, `challenger`, `simplifier`, `sentinel`, `fixscout`, `plancritic`, `momus`) have no `edit`/`write` at all, so "read-only" is enforced by the harness rather than by the prompt.
+
+Six agents also set `read-summarize: false`: `cavecrew-reviewer`, `cavecrew-challenger`, `cavecrew-sentinel`, `cavecrew-simplifier`, `cavecrew-fixscout`, `cavecrew-testwright`. By default a bare `read` of a file over 100 lines returns a **structural summary** — declarations kept, bodies replaced by `…` — and recovering the elided ranges takes a second, selector-scoped read the model has to remember to issue. Measured on a 170-line fixture: `cavecrew-investigator` (default) got 110 lines elided and could not see inside any function body; `cavecrew-reviewer` got all 170 lines verbatim. A summary is the right default for a locator and the wrong one for anything that judges or writes code from what it read — a finding inside an elided body is a finding that never happens.
 
 ## The advisor
 
 `advisor.enabled: true` attaches a second model to every session. It reads each turn on its
-own context, investigates with `read`/`grep`/`glob`, and injects `nit` / `concern` /
+own context, investigates with `read`/`grep`/`glob`/`lsp`, and injects `nit` / `concern` /
 `blocker` notes back into the primary transcript. A `concern` or `blocker` steers the live
 turn; a `nit` batches in at the next step boundary.
 
@@ -174,8 +176,10 @@ turn; a `nit` batches in at the next step boundary.
 | `advisor.syncBacklog` | `3` | the primary pauses (≤30s) only once the advisor is 3 deltas behind, so advice lands on live work instead of stale work. Default `off` lets the reviewer fall arbitrarily far behind |
 | `advisor.subagents` | default `false` | one reviewer, on the thread that owns the diff |
 
-[`agent/WATCHDOG.md`](agent/WATCHDOG.md) is the advisor's brief — appended to its system
-prompt only, never to the main agent's context. It exists because an unbriefed advisor
+Two files configure it, and they answer different questions.
+
+[`agent/WATCHDOG.md`](agent/WATCHDOG.md) is **what to look for** — appended to the advisor's
+system prompt only, never to the main agent's context. It exists because an unbriefed advisor
 writes advisories any generic reviewer could have written without reading the transcript.
 It also documents two delivery mechanics that silently destroy work when ignored:
 
@@ -189,9 +193,20 @@ It also documents two delivery mechanics that silently destroy work when ignored
 Both are worth knowing before writing your own `WATCHDOG.md`: the failure mode is silent,
 so a broken advisor looks exactly like a quiet one.
 
+[`agent/WATCHDOG.yml`](agent/WATCHDOG.yml) is **what it may touch**. The default advisor grant
+is `read`/`grep`/`glob`, and there is no `advisor.tools` config key — a roster entry is the
+only place to widen it. This one adds `lsp`, because two of the catches `WATCHDOG.md` asks
+for (wrong-symbol edits, cross-file renames done by text search) cannot be verified without
+`lsp references`, and a guessed callsite claim is the false positive that gets an advisor
+ignored. `bash`, `edit` and `write` stay out: the advisor runs unattended, and every mutating
+grant fires real approval prompts from a background reviewer. One entry on purpose — each
+roster entry is a full extra model pass over *every* turn.
+
 ## Skills
 
-32 skill directories in `agent/skills/`, 30 active — `executing-plans` and `caveman-help` are listed in `skills.ignoredSkills` so they never load. Vendored: edit them, they are yours. Model-invoked automatically when the description matches, or explicitly with `/skill:<name>`.
+40 skill directories in `agent/skills/`. 27 are model-invoked — omp loads them automatically when the description matches, or explicitly with `/skill:<name>`. 13 are command-only (`disable-model-invocation: true` in frontmatter): `/skill:<name>` works but the model never auto-loads them — `ask-matt`, `grill-me`, `grill-with-docs`, `handoff`, `implement`, `improve-codebase-architecture`, `setup-matt-pocock-skills`, `teach`, `to-questionnaire`, `to-spec`, `to-tickets`, `triage`, `wait-what`.
+
+`skills.enabled: true`, `enableSkillCommands: true`, no ignore list. omp discovers skills from the `opencode` provider too (priority 55), so the sibling [`opencode-config`](https://github.com/ismaelga/opencode-config) checkout at `~/.config/opencode/skills` can inject skills this repo has retired — deleting a directory under `agent/skills/` does *not* stop a same-named skill loading from there. The sibling's copies of the 14 retired skills were removed 2026-08-20 to match.
 
 **Design before code**
 
@@ -199,9 +214,14 @@ so a broken advisor looks exactly like a quiet one.
 |---|---|
 | `wayfinding` | effort too foggy for one design session: map of open questions on disk, one resolved per session |
 | `brainstorming` | required before creative work: explore intent and requirements, produce a design doc |
+| `grilling` | relentless interview to stress-test a plan: numbered question rounds over a design tree |
 | `prototyping` | a design question that resists discussion — throwaway code answering ONE named question, then deleted |
 | `baseline-first` | build the dumbest solution first; if it works you are done, and the gap defines the smart version |
-| `spec-driven-development` | chains brainstorm → spec → tests → implementation as one pipeline |
+| `codebase-design` | deep-module vocabulary: where seams go, what deserves an interface, testability |
+| `domain-modeling` | sharpen the project's ubiquitous language into `CONTEXT.md` and ADRs |
+| `to-questionnaire` | interrogate an idea into a structured questionnaire — on-ramp to `to-spec` |
+| `to-spec` | turn a questionnaire or brainstorm into a spec |
+| `research` | delegate primary-source reading to a background agent; findings land as a cited Markdown file |
 | `writing-plans` | turn a spec into a multi-step plan in `.omo/plans/` |
 | `pre-mortem` | assume the work already failed, work backwards, mitigate while it is cheap |
 | `decision-log` | 5-line ADRs in `.omo/decisions/` so future-you knows *why* |
@@ -213,9 +233,14 @@ so a broken advisor looks exactly like a quiet one.
 | `subagent-driven-development` | the execution path: fresh subagent per plan task, review between tasks |
 | `dispatching-parallel-agents` | 2+ genuinely independent tasks, no shared state — *different problems*, run at once |
 | `diverge-converge` | *one* problem, several defensible answers: N lenses on the identical question in one batch, converge on the main thread |
+| `implement` | execute a spec or ticket set: TDD at pre-agreed seams, typecheck/test cadence |
+| `to-tickets` | split a spec into ticket-sized tasks |
+| `triage` | groom a backlog with agent briefs and scope boundaries |
 | `using-git-worktrees` | isolate feature work from the current workspace |
+| `resolving-merge-conflicts` | resolve an in-progress merge or rebase conflict |
 | `finishing-a-development-branch` | merge / PR / cleanup decision at the end |
-| `executing-plans` | superseded by subagent-driven; disabled via `skills.ignoredSkills` and kept only as a reference copy |
+| `wizard` | generate an interactive bash wizard for steps only a human can perform |
+| `handoff` | compact the conversation into a document the next agent picks up |
 
 **Quality gates**
 
@@ -223,37 +248,30 @@ so a broken advisor looks exactly like a quiet one.
 |---|---|
 | `test-driven-development` | tests before implementation |
 | `systematic-debugging` | any bug or unexpected behaviour, *before* proposing a fix |
-| `verification-before-completion` | evidence before claiming done — run the command, read the output |
-| `requesting-code-review` | package a change for review properly |
-| `receiving-code-review` | verify feedback technically instead of agreeing performatively |
-| `eval-driven-development` | non-deterministic behaviour (prompts, agent loops) needs pass-rates, not unit tests |
-| `vibe-coding-guardrails` | autonomous long runs: the line between vibe coding and slop is whether you read the diff |
+| `code-review` | dispatch a review or act on one: review shape per diff, reviewer pairs, no performative agreement |
+| `wait-what` | stop and re-pitch when a message did not land |
 
-**Cost and context**
+**Context and meta**
 
 | Skill | For |
 |---|---|
-| `cost-aware-coding` | treat $/request as a first-class metric while building LLM features |
 | `context-curation` | the context window is the bottleneck; manage it deliberately past ~30k |
-
-**Meta**
-
-| Skill | For |
-|---|---|
 | `using-superpowers` | how to find and use skills at all |
-| `cavecrew` | routing table for the 16 cavecrew presets, with overlap tiebreakers |
+| `cavecrew` | routing table for the 14 cavecrew presets, with overlap tiebreakers |
 | `writing-skills` | create, edit and verify skills |
-| `minimum-viable-reimplementation` | rewrite a misbehaving library slice in 50–200 lines to build a real mental model |
+| `writing-for-agents` | write documents meant for agents: skills, `AGENTS.md`, `CLAUDE.md` |
+| `ask-matt` | router: which skill or flow fits the situation |
+| `teach` | agent-taught glossaries and learning records for an unfamiliar domain |
+| `improve-codebase-architecture` | deepening audit across a codebase, report included |
+| `setup-matt-pocock-skills` | per-project setup: issue tracker, triage labels, domain docs — run once per project |
 
 **Caveman (output compression)**
 
 | Skill | For |
 |---|---|
-| `caveman` | terse mode: `lite` / `full` / `ultra` / `wenyan*`. Cuts ~75% of output tokens, keeps technical substance |
 | `caveman-commit` | Conventional Commits, ≤50-char subject, body only when *why* is non-obvious |
-| `caveman-review` | one line per finding: `path:line: severity: problem. fix.` |
-| `caveman-compress` | compress a memory/context file in place, human-readable backup kept |
-| `caveman-help` | the reference card. Disabled via `skills.ignoredSkills` — it only costs prompt budget in a session that already knows caveman |
+
+`caveman` (mode), `caveman-review` and `caveman-help` live as slash commands in `agent/commands/`, and `caveman-compress` as a tool in `agent/tools/caveman-compress/` — none of them are skills anymore.
 
 Caveman is **on by default** — `agent/AGENTS.md` carries the caveman block, so every session starts in `full` and drops out automatically for code, commits and security warnings.
 
@@ -315,30 +333,32 @@ Working agreements encoded in `agent/AGENTS.md`: plans in `.omo/plans/`, specs i
 | `agent/mcp.json` | MCP servers. Secrets via `!` shell substitution, never inline |
 | `agent/lsp.json` | LSP overrides |
 | `agent/WATCHDOG.md` | advisor-only review brief: what to flag, what to stay silent about, how notes are delivered |
-| `agent/agents/*.md` | 16 cavecrew subagents + `momus` |
-| `agent/commands/*.md` | caveman slash commands |
-| `agent/skills/*/SKILL.md` | 32 vendored skill directories, 30 active |
+| `agent/WATCHDOG.yml` | advisor roster: one entry, widening the advisor's tool grant to include `lsp` |
+| `agent/agents/*.md` | 14 cavecrew subagents + `momus` |
+| `agent/commands/*.md` | caveman slash commands + `/diverge` |
+| `agent/tools/caveman-compress/` | the compress tool (scripts + docs), graduated from a skill |
+| `agent/skills/*/SKILL.md` | 40 skill directories: 27 model-invoked, 13 command-only |
 
 Everything else under `~/.omp` — `agent.db`, `history.db`, `models.db`, `sessions/`, `blobs/`, `banks/`, `cache/`, `logs/`, `run/` — is state or secrets and stays local.
 
 ## License and attribution
 
-MIT, see [`LICENSE`](LICENSE). Skills and subagents here are vendored from two
+MIT, see [`LICENSE`](LICENSE). Skills and subagents here are vendored from three
 upstream projects and stay under their own MIT terms (full notices in
 [`NOTICE`](NOTICE)):
 
 | Upstream | What came from it |
 |---|---|
-| [`obra/superpowers`](https://github.com/obra/superpowers) | 14 skills: `brainstorming`, `dispatching-parallel-agents`, `executing-plans`, `finishing-a-development-branch`, `receiving-code-review`, `requesting-code-review`, `subagent-driven-development`, `systematic-debugging`, `test-driven-development`, `using-git-worktrees`, `using-superpowers`, `verification-before-completion`, `writing-plans`, `writing-skills` |
-| [`JuliusBrussee/caveman`](https://github.com/JuliusBrussee/caveman) | the `caveman*` skills, `cavecrew`, `agent/commands/*`, and the `cavecrew-builder` / `cavecrew-investigator` / `cavecrew-reviewer` subagents |
+| [`obra/superpowers`](https://github.com/obra/superpowers) | 11 skills: `brainstorming`, `code-review` (modified from `requesting-code-review`), `dispatching-parallel-agents`, `finishing-a-development-branch`, `subagent-driven-development`, `systematic-debugging`, `test-driven-development`, `using-git-worktrees`, `using-superpowers`, `writing-plans`, `writing-skills` |
+| [`mattpocock/skills`](https://github.com/mattpocock/skills) | 20 skills, unmodified: `ask-matt`, `codebase-design`, `domain-modeling`, `grill-me`, `grill-with-docs`, `grilling`, `handoff`, `implement`, `improve-codebase-architecture`, `research`, `resolving-merge-conflicts`, `setup-matt-pocock-skills`, `teach`, `to-questionnaire`, `to-spec`, `to-tickets`, `triage`, `wait-what`, `wizard`, `writing-for-agents` |
+| [`JuliusBrussee/caveman`](https://github.com/JuliusBrussee/caveman) | the `caveman*` skills and commands, `cavecrew`, and the `cavecrew-builder` / `cavecrew-investigator` / `cavecrew-reviewer` subagents |
 
-The remaining 12 skills (`baseline-first`, `context-curation`, `cost-aware-coding`, `decision-log`, `diverge-converge`, `eval-driven-development`, `minimum-viable-reimplementation`, `pre-mortem`, `prototyping`, `spec-driven-development`, `vibe-coding-guardrails`, `wayfinding`), the other 13 cavecrew subagents, `momus`, `agent/WATCHDOG.md`, and all config in `agent/*.yml` / `agent/*.json` are original to this repo.
+The remaining 7 skills (`baseline-first`, `context-curation`, `decision-log`, `diverge-converge`, `pre-mortem`, `prototyping`, `wayfinding`), the other 11 cavecrew subagents, `momus`, `agent/WATCHDOG.md`, `agent/WATCHDOG.yml`, and all config in `agent/*.yml` / `agent/*.json` are original to this repo.
 
-Provenance is file-level, not guessed: every tracked file was compared against both upstream git trees. **34** are byte-identical to an upstream blob, **40** are modified copies, **38** have no upstream counterpart. Vendored files are edited freely here — do not treat them as upstream-current. One file is original despite living in a vendored directory: `test-driven-development/testing-anti-patterns.md` (superpowers' reference-doc idiom, ~10% word overlap with its `writing-good-tests.md`, which it does not replace).
+Provenance is file-level, not guessed: every pre-existing tracked file was compared against the upstream git trees; the mattpocock import (2026-08-20) is unmodified upstream. Vendored files are edited freely here — do not treat them as upstream-current. One file is original despite living in a vendored directory: `test-driven-development/testing-anti-patterns.md` (superpowers' reference-doc idiom, ~10% word overlap with its `writing-good-tests.md`, which it does not replace).
 
 ## Notes
 
 - Config changes require an omp restart.
-- Sibling repo: [`opencode-config`](https://github.com/ismaelga/opencode-config), the same stack for opencode. Skills under `agent/skills/` are **copies**, not shared — editing one does not propagate.
-- `caveman-stats` is not vendored here: it is delivered by an opencode plugin hook with no omp equivalent.
+- Sibling repo: [`opencode-config`](https://github.com/ismaelga/opencode-config), the same stack for opencode. Skills under `agent/skills/` are **copies**, not shared — editing one does not propagate. They are not invisible to each other either: omp's `opencode` skill provider reads `~/.config/opencode/skills`, so a skill deleted here can still load from the sibling checkout. The sibling's copies of the 14 skills retired here (the `caveman` family minus `caveman-commit`, plus `cost-aware-coding`, `eval-driven-development`, `executing-plans`, `minimum-viable-reimplementation`, `receiving-code-review`, `requesting-code-review`, `spec-driven-development`, `verification-before-completion`, `vibe-coding-guardrails`) were removed 2026-08-20 to match — keep the two checkouts in sync when retiring skills.
 - `~/.codex/skills` holds 6 further skills (elixir-architect, figma, figma-implement-design, frontend-design, linear, security-best-practices) that omp loads through the `codex` discovery provider. They live in no repo yet.

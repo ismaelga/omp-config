@@ -1,6 +1,6 @@
 ---
 name: prototyping
-description: "Use when a design question cannot be settled on paper — does this state model feel right, does this interaction work, which of these two shapes is less awkward. Builds throwaway code that answers ONE named question, gets a verdict, then dies. Not for understanding someone else's library (that is minimum-viable-reimplementation) and not for building the real thing."
+description: "Use when a design question cannot be settled on paper — does this state model feel right, does this interaction work, which of these two shapes is less awkward. Builds throwaway code that answers ONE named question, gets a verdict, then dies. Not for building the real thing."
 ---
 
 # Prototyping
@@ -60,9 +60,8 @@ code — a module → logic; a screen → UI — and state the assumption at the
 
 ## Not this skill
 
-- **Understanding a dependency's behaviour** → `minimum-viable-reimplementation` (reimplement the
-  library's core to find where it diverges).
+- **Understanding a dependency's behaviour** → read its source (`librarian`), or reimplement its core
+  in 50-200 lines to find where it diverges from your mental model.
 - **Measuring whether something is fast enough / cheap enough** → `cavecrew-benchwright`.
-- **Checking whether an LLM-shaped behaviour works at all** → `eval-driven-development`.
 - **The question is "what should we build"** → `brainstorming`. Prototype only once a specific
   design question resists discussion.

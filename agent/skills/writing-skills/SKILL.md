@@ -95,12 +95,16 @@ skills/
 **Frontmatter (YAML):**
 - Two required fields: `name` and `description` (see [agentskills.io/specification](https://agentskills.io/specification) for all supported fields)
 - Max 1024 characters total
-- `name`: Use letters, numbers, and hyphens only (no parentheses, special chars)
-- `description`: Third-person, describes ONLY when to use (NOT what it does)
-  - Start with "Use when..." to focus on triggering conditions
+- `name`: lowercase letters, numbers and hyphens only; max 64 chars; must not start or end with a
+  hyphen; no consecutive hyphens; MUST match the parent directory name exactly
+- `description`: Third-person. Official guidance is that it states both what the skill does AND
+  when to use it ([docs.claude.com best-practices](https://docs.claude.com/en/docs/agents-and-tools/agent-skills/best-practices))
+  - Lead with the triggering conditions — that is what gets matched. "Use when..." is a good opener
   - Include specific symptoms, situations, and contexts
-  - **NEVER summarize the skill's process or workflow** (see SDO section for why)
-  - Keep under 500 characters if possible
+  - **NEVER summarize the skill's process or workflow** (see SDO section for why). This is a local
+    convention, not an official rule: naming *what* the skill does is fine and expected, but listing
+    its steps makes agents act on the description instead of loading the body
+  - Spec allows 1024 chars; keep under 500 where you can
 
 ```markdown
 ---
@@ -398,7 +402,7 @@ Different skill types need different test approaches:
 
 ### Discipline-Enforcing Skills (rules/requirements)
 
-**Examples:** TDD, verification-before-completion, designing-before-coding
+**Examples:** test-driven-development, code-review, systematic-debugging
 
 **Test with:**
 - Academic questions: Do they understand the rules?

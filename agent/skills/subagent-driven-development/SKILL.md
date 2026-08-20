@@ -5,11 +5,11 @@ description: Use when executing implementation plans with independent tasks in t
 
 # Subagent-Driven Development
 
-Execute plan by dispatching a fresh implementer subagent per task, a task review (spec compliance + code quality) after each, and a broad whole-branch review at the end.
+Execute plan by dispatching a fresh implementer subagent per task, a controller-side spec check against the task brief after each, an agent review of the accumulated diff at each phase boundary, and a broad whole-branch review at the end.
 
 **Why subagents:** You delegate tasks to specialized agents with isolated context. By precisely crafting their instructions and context, you ensure they stay focused and succeed at their task. They should never inherit your session's context or history — you construct exactly what they need. This also preserves your own context for coordination work.
 
-**Core principle:** Fresh subagent per task + task review (spec + quality) + broad final review = high quality, fast iteration
+**Core principle:** Fresh subagent per task + controller spec check per task + agent review per phase boundary + broad final review = high quality, fast iteration
 
 **Narration:** between tool calls, narrate at most one short line — the
 ledger and the tool results carry the record.
@@ -35,7 +35,7 @@ digraph when_to_use {
 **Why not a new session:**
 - Same session (no context switch)
 - Fresh subagent per task (no context pollution)
-- Review after each task (spec compliance + code quality), broad review at the end
+- Controller checks each task against its brief; agent review batches at phase boundaries and once at the end
 - Faster iteration (no human-in-loop between tasks)
 
 ## The Process
@@ -50,15 +50,17 @@ digraph process {
         "Implementer subagent asks questions?" [shape=diamond];
         "Answer questions, provide context" [shape=box];
         "Implementer subagent implements, tests, commits, self-reviews" [shape=box];
-        "Write diff file, dispatch task reviewer subagent (./task-reviewer-prompt.md)" [shape=box];
-        "Task reviewer reports spec ✅ and quality approved?" [shape=diamond];
-        "Dispatch fix subagent for Critical/Important findings" [shape=box];
+        "Controller reads the diff against the task brief" [shape=box];
+        "Spec gap or defect the controller can name?" [shape=diamond];
+        "Dispatch fix subagent with the complete findings list" [shape=box];
         "Mark task complete in todo list and progress ledger" [shape=box];
     }
 
     "Read plan, note context and global constraints, create todos" [shape=box];
+    "Phase boundary (~3-4 tasks) or risky task?" [shape=diamond];
+    "Dispatch reviewer over the accumulated diff" [shape=box];
     "More tasks remain?" [shape=diamond];
-    "Dispatch final code reviewer subagent (../requesting-code-review/code-reviewer.md)" [shape=box];
+    "Dispatch final code reviewer subagent (../code-review/code-reviewer.md)" [shape=box];
     "Use superpowers:finishing-a-development-branch" [shape=box style=filled fillcolor=lightgreen];
 
     "Read plan, note context and global constraints, create todos" -> "Dispatch implementer subagent (./implementer-prompt.md)";
@@ -66,15 +68,18 @@ digraph process {
     "Implementer subagent asks questions?" -> "Answer questions, provide context" [label="yes"];
     "Answer questions, provide context" -> "Dispatch implementer subagent (./implementer-prompt.md)";
     "Implementer subagent asks questions?" -> "Implementer subagent implements, tests, commits, self-reviews" [label="no"];
-    "Implementer subagent implements, tests, commits, self-reviews" -> "Write diff file, dispatch task reviewer subagent (./task-reviewer-prompt.md)";
-    "Write diff file, dispatch task reviewer subagent (./task-reviewer-prompt.md)" -> "Task reviewer reports spec ✅ and quality approved?";
-    "Task reviewer reports spec ✅ and quality approved?" -> "Dispatch fix subagent for Critical/Important findings" [label="no"];
-    "Dispatch fix subagent for Critical/Important findings" -> "Write diff file, dispatch task reviewer subagent (./task-reviewer-prompt.md)" [label="re-review"];
-    "Task reviewer reports spec ✅ and quality approved?" -> "Mark task complete in todo list and progress ledger" [label="yes"];
-    "Mark task complete in todo list and progress ledger" -> "More tasks remain?";
+    "Implementer subagent implements, tests, commits, self-reviews" -> "Controller reads the diff against the task brief";
+    "Controller reads the diff against the task brief" -> "Spec gap or defect the controller can name?";
+    "Spec gap or defect the controller can name?" -> "Dispatch fix subagent with the complete findings list" [label="yes"];
+    "Dispatch fix subagent with the complete findings list" -> "Controller reads the diff against the task brief" [label="re-check"];
+    "Spec gap or defect the controller can name?" -> "Mark task complete in todo list and progress ledger" [label="no"];
+    "Mark task complete in todo list and progress ledger" -> "Phase boundary (~3-4 tasks) or risky task?";
+    "Phase boundary (~3-4 tasks) or risky task?" -> "Dispatch reviewer over the accumulated diff" [label="yes"];
+    "Dispatch reviewer over the accumulated diff" -> "More tasks remain?";
+    "Phase boundary (~3-4 tasks) or risky task?" -> "More tasks remain?" [label="no"];
     "More tasks remain?" -> "Dispatch implementer subagent (./implementer-prompt.md)" [label="yes"];
-    "More tasks remain?" -> "Dispatch final code reviewer subagent (../requesting-code-review/code-reviewer.md)" [label="no"];
-    "Dispatch final code reviewer subagent (../requesting-code-review/code-reviewer.md)" -> "Use superpowers:finishing-a-development-branch";
+    "More tasks remain?" -> "Dispatch final code reviewer subagent (../code-review/code-reviewer.md)" [label="no"];
+    "Dispatch final code reviewer subagent (../code-review/code-reviewer.md)" -> "Use superpowers:finishing-a-development-branch";
 }
 ```
 
@@ -129,9 +134,9 @@ that implementer. Single-file mechanical fixes also take the cheapest tier.
 
 Implementer subagents report one of four statuses. Handle each appropriately:
 
-**DONE:** Generate the review package (`scripts/review-package BASE HEAD`, from this skill's directory — it prints the unique file path it wrote; BASE is the commit you recorded before dispatching the implementer — never `HEAD~1`, which silently drops all but the last commit of a multi-commit task), then dispatch the task reviewer with the printed path.
+**DONE:** Generate the review package (`scripts/review-package BASE HEAD`, from this skill's directory — it prints the unique file path it wrote; BASE is the commit you recorded before dispatching the implementer — never `HEAD~1`, which silently drops all but the last commit of a multi-commit task), then read it yourself against the task brief. See "Per-Task Spec Check" below. Hold the path — the phase-boundary reviewer gets the accumulated range, not this one.
 
-**DONE_WITH_CONCERNS:** The implementer completed the work but flagged doubts. Read the concerns before proceeding. If the concerns are about correctness or scope, address them before review. If they're observations (e.g., "this file is getting large"), note them and proceed to review.
+**DONE_WITH_CONCERNS:** The implementer completed the work but flagged doubts. Read the concerns before proceeding. If the concerns are about correctness or scope, address them before the spec check. If they're observations (e.g., "this file is getting large"), note them and carry them to the phase-boundary review.
 
 **NEEDS_CONTEXT:** The implementer needs information that wasn't provided. Provide the missing context and re-dispatch.
 
@@ -143,18 +148,48 @@ Implementer subagents report one of four statuses. Handle each appropriately:
 
 **Never** ignore an escalation or force the same model to retry without changes. If the implementer said it's stuck, something needs to change.
 
-## Handling Reviewer ⚠️ Items
+## Per-Task Spec Check
 
-The task reviewer may report "⚠️ Cannot verify from diff" items — requirements
-that live in unchanged code or span tasks. These do not block the rest of the
-review, but you must resolve each one yourself before marking the task
-complete: you hold the plan and cross-task context the reviewer
-lacks. If you confirm an item is a real gap, treat it as a failed spec
-review — send it back to the implementer and re-review.
+After each task you read the review package against that task's brief yourself. No reviewer
+subagent per task: measured over 36 real per-task review receipts, 58% came back with nothing and
+the mean was ≤1.2 findings, against 19.2 for plan review. It was the lowest-yield critic pass in
+the system and the one that ran most often — one per task is exactly how a session ends up with a
+critic pass for every build pass.
+
+You are also the only one who *can* do the whole job. A task-scoped reviewer cannot verify
+requirements that live in unchanged code or span tasks; it can only flag them as "cannot verify
+from diff" and hand them back. You hold the plan and the cross-task context, so those were always
+yours to resolve.
+
+What you are checking, in order:
+
+1. **Spec compliance** — every requirement in the brief is met, and nothing extra was built.
+   Missing or extra both fail.
+2. **Global constraints** — the binding values, formats, and stated relationships from the plan's
+   Global Constraints section hold.
+3. **Cross-task coupling** — interfaces this task exposes match what later tasks expect. This is
+   the failure that compounds, and it is the reason the check is per task rather than deferred.
+4. **Obvious defects** — anything the code-slop bans name. Deep quality review is the phase
+   boundary's job, not yours; do not go hunting.
+
+Found a real gap → dispatch ONE fix subagent with the complete findings list, then re-read the
+updated package. Clean → mark the task complete and move on.
+
+Do not delegate this check back out to an agent to avoid reading a diff. Reading the diff is the
+job.
+
+## Phase-Boundary Review
+
+Every ~3-4 tasks, and once at the end, dispatch a reviewer over the *accumulated* diff rather than
+one task's. Use `scripts/review-package BASE HEAD` with BASE = the commit the phase started from.
+One reviewer, not a pair — add `cavecrew-challenger` only when you doubt the report.
+
+Dispatch a task-scoped review off-cycle for a single task only when that task lands genuinely
+risky code: money movement, auth, a migration, key custody, or anything irreversible.
 
 ## Constructing Reviewer Prompts
 
-Per-task reviews are task-scoped gates. The broad review happens once, at the
+Phase-boundary reviews cover the accumulated diff. The broad review happens once, at the
 final whole-branch review. When you fill a reviewer template:
 
 - Do not add open-ended directives like "check all uses" or "run race tests
@@ -233,11 +268,11 @@ and is re-read on every later turn. Hand artifacts over as files:
   (brief `…/task-N-brief.md` → report `…/task-N-report.md`) and put it in
   the dispatch prompt. The implementer writes the full report there and
   returns only status, commits, a one-line test summary, and concerns.
-- **Reviewer inputs:** the task reviewer gets three paths — the same brief
-  file, the report file, and the review package — plus the global
-  constraints that bind the task.
+- **Reviewer inputs:** a phase-boundary or risky-task reviewer gets three paths — the brief
+  files for the tasks in range, the report file, and the review package — plus the global
+  constraints that bind them.
 - Fix dispatches append their fix report (with test results) to the same
-  report file and return a short summary; re-reviews read the updated file.
+  report file and return a short summary; your re-check reads the updated file.
 
 ## Durable Progress
 
@@ -262,8 +297,8 @@ a ledger file, not only in todos.
 ## Prompt Templates
 
 - [implementer-prompt.md](implementer-prompt.md) - Dispatch implementer subagent
-- [task-reviewer-prompt.md](task-reviewer-prompt.md) - Dispatch task reviewer subagent (spec compliance + code quality)
-- Final whole-branch review: use superpowers:requesting-code-review's [code-reviewer.md](../requesting-code-review/code-reviewer.md)
+- [task-reviewer-prompt.md](task-reviewer-prompt.md) - Phase-boundary review, and off-cycle review of a single risky task
+- Final whole-branch review: use `code-review`'s [code-reviewer.md](../code-review/code-reviewer.md)
 
 ## Example Workflow
 
@@ -288,9 +323,8 @@ Implementer: "Got it. Implementing now..."
   - Self-review: Found I missed --force flag, added it
   - Committed
 
-[Run review-package, dispatch task reviewer with the printed path]
-Task reviewer: Spec ✅ - all requirements met, nothing extra.
-  Strengths: Good test coverage, clean. Issues: None. Task quality: Approved.
+[Run review-package, read it against the Task 1 brief]
+Spec ✅ - all requirements met, nothing extra. Interfaces match what Task 3 expects.
 
 [Mark Task 1 complete]
 
@@ -305,17 +339,16 @@ Implementer:
   - Self-review: All good
   - Committed
 
-[Run review-package, dispatch task reviewer with the printed path]
-Task reviewer: Spec ❌:
+[Run review-package, read it against the Task 2 brief]
+Spec ❌:
   - Missing: Progress reporting (spec says "report every 100 items")
   - Extra: Added --json flag (not requested)
-  Issues (Important): Magic number (100)
 
-[Dispatch fix subagent with all findings]
-Fixer: Removed --json flag, added progress reporting, extracted PROGRESS_INTERVAL constant
+[Dispatch ONE fix subagent with both findings]
+Fix subagent: added progress reporting, removed --json, 8/8 tests pass
 
-[Task reviewer reviews again]
-Task reviewer: Spec ✅. Task quality: Approved.
+[Re-read the updated package]
+Spec ✅.
 
 [Mark Task 2 complete]
 
@@ -349,38 +382,42 @@ Done!
 
 **Quality gates:**
 - Self-review catches issues before handoff
-- Task review carries two verdicts: spec compliance and code quality
-- Review loops ensure fixes actually work
+- Controller spec check per task catches divergence that compounds across tasks
+- Phase-boundary review carries the quality verdict over an accumulated diff
 - Spec compliance prevents over/under-building
-- Code quality ensures implementation is well-built
+- Cross-task interface drift is caught at the task that introduced it
 
 **Cost:**
-- More subagent invocations (implementer + reviewer per task)
-- Controller does more prep work (extracting all tasks upfront)
-- Review loops add iterations
+- Subagent invocations: one implementer per task, one reviewer per phase boundary
+- Controller does more prep work (extracting all tasks upfront) and reads every task diff
+- Fix loops add iterations
 - But catches issues early (cheaper than debugging later)
 
 ## Red Flags
 
 **Never:**
 - Start implementation on main/master branch without explicit user consent
-- Skip task review, or accept a report missing either verdict (spec compliance AND task quality are both required)
+- Skip the per-task spec check, or mark a task complete without reading its diff
 - Proceed with unfixed issues
 - Dispatch multiple implementation subagents in parallel (conflicts)
 - Make a subagent read the whole plan file (hand it its task brief —
   `scripts/task-brief` — instead)
 - Skip scene-setting context (subagent needs to understand where task fits)
 - Ignore subagent questions (answer before letting them proceed)
-- Accept "close enough" on spec compliance (reviewer found spec issues = not done)
-- Skip review loops (reviewer found issues = implementer fixes = review again)
-- Let implementer self-review replace actual review (both are needed)
+- Accept "close enough" on spec compliance (spec gap = not done)
+- Skip the re-check after a fix (fix dispatched = re-read the diff before completing)
+- Let implementer self-review replace your spec check (both are needed)
+- Reinstate a reviewer subagent per task to avoid reading diffs yourself — that is the
+  1.2-findings-per-receipt pass this skill deliberately removed
 - Tell a reviewer what not to flag, or pre-rate a finding's severity in the
   dispatch prompt ("treat it as Minor at most") — the plan's example code is
   a starting point, not evidence that its weaknesses were chosen
-- Dispatch a task reviewer without a diff file — generate it first
+- Dispatch a phase-boundary reviewer without a diff file — generate it first
   (`scripts/review-package BASE HEAD`) and name the printed path in the
   prompt
-- Move to next task while the review has open Critical/Important issues
+- Skip reading a task's diff yourself because the tests passed — green checks do not
+  show you that the wrong thing was built
+- Move to next task with an open spec gap or an unfixed Critical/Important finding
 - Re-dispatch a task the progress ledger already marks complete — check
   the ledger (and `git log`) after any compaction or resume
 
@@ -389,11 +426,11 @@ Done!
 - Provide additional context if needed
 - Don't rush them into implementation
 
-**If reviewer finds issues:**
-- Implementer (same subagent) fixes them
-- Reviewer reviews again
-- Repeat until approved
-- Don't skip the re-review
+**If the spec check or a review finds issues:**
+- Dispatch ONE fix subagent with the complete findings list
+- Re-read the updated review package
+- Repeat until the gap is closed
+- Don't skip re-reading the diff after the fix
 
 **If subagent fails task:**
 - Dispatch fix subagent with specific instructions
@@ -404,7 +441,7 @@ Done!
 **Required workflow skills:**
 - **superpowers:using-git-worktrees** - Ensures isolated workspace (creates one or verifies existing)
 - **superpowers:writing-plans** - Creates the plan this skill executes
-- **superpowers:requesting-code-review** - Code review template for the final whole-branch review
+- **`code-review`** - Review depth gating, the whole-branch template, and how to act on findings
 - **superpowers:finishing-a-development-branch** - Complete development after all tasks
 
 **Subagents should use:**
