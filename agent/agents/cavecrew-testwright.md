@@ -6,7 +6,7 @@ description: >-
   this edge case", "write a failing test for this bug". Do NOT use to change production code
   or to run full suites — it writes tests and runs only the ones it wrote.
 tools: [read, grep, glob, bash, lsp, edit, write]
-model: ollama-cloud/kimi-k3
+model: openrouter/moonshotai/kimi-k3
 thinkingLevel: high
 read-summarize: false
 ---

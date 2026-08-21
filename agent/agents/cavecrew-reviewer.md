@@ -6,7 +6,7 @@ description: >-
   this PR", "review my diff", "audit this file". Skips formatting nits unless they change
   meaning.
 tools: [read, grep, glob, bash, lsp]
-model: opencode-go/glm-5.3
+model: openrouter/z-ai/glm-5.3
 thinkingLevel: high
 read-summarize: false
 ---

@@ -30,8 +30,8 @@ modelRoles:
   designer: ollama-cloud/minimax-m3:high
   vision: ollama-cloud/minimax-m3
   commit: ollama-cloud/gpt-oss:120b
-  advisor: opencode-go/glm-5.3:max
-  default: openrouter/z-ai/glm-5.3:max
+  advisor: openrouter/z-ai/glm-5.3:max
+  default: anthropic/claude-opus-5:max
 modelProviderOrder:
   - anthropic
   - openai-codex
@@ -93,33 +93,51 @@ retry:
     ollama-cloud/*:
       - opencode-go/*
       - openai-codex/gpt-5.6-luna:high
+      - openrouter/deepseek/deepseek-v4-flash:high
     ollama-cloud/gpt-oss:20b:
       - ollama-cloud/minimax-m3
+      - openrouter/minimax/minimax-m3:high
     ollama-cloud/gpt-oss:120b:
       - ollama-cloud/glm-5.2
-      - opencode-go/glm-5.3
+      - openrouter/z-ai/glm-5.3:high
       - openai-codex/gpt-5.6-luna:high
+      - openrouter/z-ai/glm-5.2:high
     ollama-cloud/glm-5.2:
-      - opencode-go/glm-5.3
+      - openrouter/z-ai/glm-5.3:high
       - opencode-go/deepseek-v4-pro
       - openai-codex/gpt-5.6-luna:high
+      - openrouter/z-ai/glm-5.2:high
+    ollama-cloud/kimi-k3:
+      - openrouter/moonshotai/kimi-k3:high
+      - opencode-go/kimi-k3:high
     openrouter/z-ai/glm-5.3:
       - opencode-go/glm-5.3:high
       - ollama-cloud/glm-5.2:high
+    openrouter/moonshotai/kimi-k3:
+      - opencode-go/kimi-k3:high
+      - openrouter/z-ai/glm-5.3:high
+    openrouter/*:
+      - openrouter/z-ai/glm-5.3:high
+      - openai-codex/gpt-5.6-luna:high
     openai-codex/gpt-5.6-luna:
-      - opencode-go/glm-5.3:high
+      - openrouter/z-ai/glm-5.3:high
       - ollama-cloud/glm-5.2:high
+      - opencode-go/glm-5.3:high
     openai-codex/gpt-5.6-sol:
       - openai-codex/gpt-5.6-terra
       - anthropic/claude-opus-5:high
+      - openrouter/deepseek/deepseek-v4-pro-0813:high
     anthropic/claude-fable-5:
       - openai-codex/gpt-5.6-sol:high
       - openai-codex/gpt-5.6-terra:high
+      - openrouter/deepseek/deepseek-v4-pro-0813:high
     anthropic/*:
       - anthropic/claude-sonnet-5
       - openai-codex/gpt-5.6-terra:high
+      - openrouter/z-ai/glm-5.3:high
     default:
       - openai-codex/gpt-5.6-sol:high
+      - openrouter/z-ai/glm-5.3:high
 mnemopi:
   dbPath: ""
   scoping: per-project
