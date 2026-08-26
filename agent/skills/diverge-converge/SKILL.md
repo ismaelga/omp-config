@@ -30,19 +30,17 @@ problem, and ollama-cloud does no prompt caching, so every lens re-bills its who
 | **Generate** options (fixes, designs) | aim | one agent file, spawned N× with different briefs |
 | **Catch misses** (review, audit) | model family | distinct agent files pinned to distinct families |
 
-Same-family critics share blind spots — that is why `cavecrew-challenger` is pinned off
-`cavecrew-reviewer`'s family. For generation, aim alone separates the outputs; paying for
-family diversity there buys little.
-
-`task` has no per-item model field, so cross-family divergence means distinct agent files.
-Aim divergence needs only distinct briefs.
+Same-family critics share blind spots — that is why a `reviewer` + `security-reviewer` pair
+runs different families (`reviewer` on `openai-codex/gpt-5.6-terra`, `security-reviewer` on
+`ollama-cloud/glm-5.2`). For generation, aim alone separates the outputs; paying for family
+diversity there buys little.
 
 ## Blind-parallel vs anchored
 
 - **Blind parallel** (this skill) — lenses never see each other. No anchoring, real
   independence, some redundant findings.
-- **Anchored** — the second agent reads the first's report (`cavecrew-challenger`; `momus`
-  after a plan). Sharper on misses, inherits framing.
+- **Anchored** — the second agent reads the first's report (a second `reviewer` after a
+  first review, or after a plan). Sharper on misses, inherits framing.
 
 Multi-axis judgment → blind parallel. Verifying one existing report → anchored. On work that
 really matters: diverge blind, converge, then challenge the converged output.
@@ -53,13 +51,13 @@ really matters: diverge blind, converge, then challenge the converged output.
 
 | Lens | Agent |
 |---|---|
-| correctness | `cavecrew-reviewer` |
-| security | `cavecrew-sentinel` |
-| simplicity | `cavecrew-simplifier` |
+| correctness | `reviewer` |
+| security | `security-reviewer` |
+| simplicity | `task` |
 | design fidelity (UI diffs only) | `designer` — compare the result against what was asked |
 
-**Bug fix** — `cavecrew-fixscout` 3×, `aim: simple` / `thorough` / `creative`. Establish the
-repro and cause first with `cavecrew-debugger`; fixscout proposes depth, it does not hunt.
+**Bug fix** — three `task` agents with distinct briefs: simple / thorough / creative. Establish
+the repro and cause first with a `scout`; the `task` agents propose depth, they do not hunt.
 
 **Design variants** — `designer` 3×: minimal (essentials only) / bold (opinionated) /
 unexpected (rethinks the approach). Each writes standalone HTML to

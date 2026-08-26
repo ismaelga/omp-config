@@ -182,7 +182,7 @@ job.
 
 Every ~3-4 tasks, and once at the end, dispatch a reviewer over the *accumulated* diff rather than
 one task's. Use `scripts/review-package BASE HEAD` with BASE = the commit the phase started from.
-One reviewer, not a pair — add `cavecrew-challenger` only when you doubt the report.
+One reviewer, not a pair — dispatch a second `reviewer` (fed the first report) only when you doubt it.
 
 Dispatch a task-scoped review off-cycle for a single task only when that task lands genuinely
 risky code: money movement, auth, a migration, key custody, or anything irreversible.
@@ -448,4 +448,4 @@ Done!
 - **superpowers:test-driven-development** - Subagents follow TDD for each task
 
 **Execution alternative:**
-- None. Plans should execute via subagents, not a new session and not `executing-plans`.
+- None. Plans execute via subagents, not a new session.

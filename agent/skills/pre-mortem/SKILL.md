@@ -109,8 +109,7 @@ Karpathy's repeated emphasis: "the failure modes of LLM systems are non-obvious 
 
 - **`brainstorming`** → Brainstorming opens the design space. Pre-mortem stress-tests the chosen point.
 - **`writing-plans`** → Pre-mortem output goes into the plan as mitigations.
-- **`hyperplan`** (oh-my-openagent) → The 5 hostile critics are doing pre-mortem in parallel.
-- **`cavecrew-benchwright`** → Failure modes about speed or cost need a measured baseline, not a guess.
+- **`baseline-first`** → Failure modes about speed or cost need a measured baseline, not a guess.
 
 ## Single-question test
 

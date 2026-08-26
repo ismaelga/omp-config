@@ -162,26 +162,24 @@ If you find issues, fix them inline. No need to re-review — just fix and move 
 
 ## External Review Gate (MANDATORY)
 
-After self-review passes and the plan is saved, dispatch TWO reviewers IN PARALLEL (single message, two Task calls, `run_in_background: true`):
+After self-review passes and the plan is saved, dispatch a **reviewer** subagent with the plan file path (and spec path if one exists) for a plan critique:
 
-1. **Momus** (`subagent_type: "momus"`) — design-level critique: wrong problem, work already in the repo, hidden coupling, unhandled failure modes, cost multipliers, acceptance criteria that cannot fail. Give it the plan file path (and spec path if one exists).
-2. **cavecrew-plancritic** (`subagent_type: "cavecrew-plancritic"`) — independent caveman-style pass on a different model: placeholders, path/type inconsistencies, ordering bugs, spec gaps. Give it the plan file path (and spec path if one exists).
-
-The two reviewers run different models by design — disagreement is signal.
+- Wrong problem, work already in the repo, hidden coupling, unhandled failure modes, cost multipliers, acceptance criteria that cannot fail
+- Placeholders, path/type inconsistencies, ordering bugs, spec gaps
 
 **Processing findings:**
-- Both flag same issue → fix, no debate.
-- One flags, finding is concrete (wrong path, missing type, placeholder) → fix.
-- One flags, finding is judgment-call → decide yourself; note the rejection in one line.
+- Concrete finding (wrong path, missing type, placeholder) → fix.
+- Judgment-call finding → decide yourself; note the rejection in one line.
 - Re-dispatch only if fixes were structural (task added/removed/reordered). Cosmetic fixes need no re-review.
 
-Do NOT proceed to Execution Handoff until both reviews came back and findings are processed.
+Do NOT proceed to Execution Handoff until the review came back and findings are processed.
+
 ## Execution Handoff
 
 After saving the plan, offer only subagent-driven execution:
 
-**"Plan complete, reviewed by Momus + plancritic, saved to `.omo/plans/<filename>.md`. Recommended execution: subagent-driven. I dispatch a fresh subagent per task and review between tasks. Say `start work` when ready."**
+**"Plan complete, reviewed, saved to `.omo/plans/<filename>.md`. Recommended execution: subagent-driven. I dispatch a fresh subagent per task and review between tasks. Say `start work` when ready."**
 
 - **REQUIRED SUB-SKILL:** Use superpowers:subagent-driven-development
-- Fresh subagent per task + two-stage review
-- Never suggest starting a new session or using `executing-plans` as an execution alternative.
+- Fresh subagent per task + review between tasks
+- Never suggest starting a new session as an execution alternative.

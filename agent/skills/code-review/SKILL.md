@@ -21,11 +21,11 @@ Every critic pass is a barrier the main thread blocks on. Match the pass to the 
 | Diff | Review |
 |---|---|
 | Low risk: mechanical, local, covered by green checks | None. Read the diff yourself. Checks are the evidence. |
-| A plan, before execution | `cavecrew-plancritic` + Momus in parallel. Highest-yield pass measured; never skip it. |
-| Normal feature or bugfix | One `cavecrew-reviewer` at the phase boundary, over the accumulated diff |
-| Money, auth, migrations, key custody, anything irreversible | Three lenses via `diverge-converge`: reviewer + sentinel + simplifier, one batch |
+| A plan, before execution | `reviewer` given the plan path. Highest-yield pass measured; never skip it. |
+| Normal feature or bugfix | One `reviewer` at the phase boundary, over the accumulated diff |
+| Money, auth, migrations, key custody, anything irreversible | Three lenses via `diverge-converge`: reviewer + security-reviewer + task, one batch |
 | Whole branch, pre-merge, high stakes | [code-reviewer.md](code-reviewer.md) heavyweight template |
-| A review whose conclusion you doubt | Add `cavecrew-challenger`, fed the first report |
+| A review whose conclusion you doubt | Add a second `reviewer`, fed the first report |
 
 **No reviewer per task.** Accumulate to a phase boundary — roughly every 3-4 tasks — and review
 once. Measured over 36 per-task review receipts in real sessions: 58% came back with nothing at
@@ -53,13 +53,13 @@ HEAD_SHA=$(git rev-parse HEAD)
 Hand the reviewer the SHA range, a one-line description of intent, and the plan or requirement it
 should be judged against.
 
-`cavecrew-challenger` runs *after* `cavecrew-reviewer`, never in parallel: its job is to dispute
-specific findings and name what the first pass walked past, which needs the report in hand. The
-pair runs different model families on purpose — reviewer on `ollama-cloud/glm-5.2`, challenger on
-`openai-codex/gpt-5.6-terra`. One family reviewing its own output agrees with its own priors and
+A second `reviewer` runs *after* the first, never in parallel: its job is to dispute specific
+findings and name what the first pass walked past, which needs the report in hand. Same-family
+critics share blind spots — one family reviewing its own output agrees with its own priors and
 returns a rephrased first opinion; self-preference bias in LLM evaluators is measured and
 systematic, not random (NeurIPS 2024, "LLM Evaluators Recognize and Favor Their Own Generations").
-Cross-family disagreement is the signal you are paying for.
+Cross-family disagreement is the signal you are paying for, and a `reviewer` + `security-reviewer`
+pair gives it: `reviewer` on `openai-codex/gpt-5.6-terra`, `security-reviewer` on `ollama-cloud/glm-5.2`.
 
 **The benefit is asymmetric, and this matters here.** On 116 LiveCodeBench tasks, cross-family
 review raised pass rate 71.6% → 89.7% when the reviewer was the *stronger* model, but *dropped* it

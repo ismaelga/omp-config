@@ -46,7 +46,7 @@ The baseline is the dumbest thing that could possibly work for the demo case.
 
 ### Step 2: Measure on your eval
 
-Run the baseline against your real measurement — a test suite, a scored sample set, or `cavecrew-benchwright` for perf and cost. Record:
+Run the baseline against your real measurement — a test suite, a scored sample set, or a perf/cost benchmark. Record:
 - Accuracy / correctness
 - Latency
 - Cost
@@ -107,7 +107,6 @@ Nobody judges you for shipping the baseline that works.
 
 ## Integration with other skills
 
-- **`cavecrew-benchwright`** → Measures whether the baseline is already fast and cheap enough
 - **`brainstorming`** → Should explicitly include "what's the dumbest version?"
 - **`writing-plans`** → Plan should start with baseline step before "smart" steps
 - **`code-review`** → Slop is often a skipped baseline plus over-engineering; the review catches it
