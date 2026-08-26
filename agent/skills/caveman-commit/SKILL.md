@@ -1,10 +1,6 @@
 ---
 name: caveman-commit
-description: >
-  Ultra-compressed commit message generator. Cuts noise from commit messages while preserving
-  intent and reasoning. Conventional Commits format. Subject ≤50 chars, body only when "why"
-  isn't obvious. Use when user says "write a commit", "commit message", "generate commit",
-  "/commit", or invokes /caveman-commit. Auto-triggers when staging changes.
+description: "Ultra-compressed Conventional Commits message. Use when the user asks for a commit or commit message, invokes /caveman-commit, or stages changes."
 ---
 
 Write commit messages terse and exact. Conventional Commits format. No fluff. Why over what.

@@ -1,6 +1,6 @@
 ---
 name: decision-log
-description: Use during any project work that involves architectural decisions, technology choices, model selection, or non-obvious tradeoffs - logs the decision, the alternatives considered, and the reasoning, in 5-line lightweight ADR format. Future-you (and future-AI) will need to know why, not just what.
+description: "Use when work involves an architectural decision, technology or model choice, or a non-obvious tradeoff. Logs decision, alternatives, reasoning as a 5-line ADR."
 ---
 
 # Decision Log

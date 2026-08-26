@@ -1,6 +1,6 @@
 ---
 name: wayfinding
-description: "Use when an effort is too big and too foggy for one design session — the destination is not visible yet and decisions depend on decisions. Charts the effort as a map file of open questions on disk, resolves ONE per session, and hands off to spec/plan once the fog clears. Not for work a single brainstorming session can settle."
+description: "Use when an effort is too big and foggy for one design session - destination not visible, decisions depend on decisions. Not for what one brainstorming session settles."
 ---
 
 # Wayfinding

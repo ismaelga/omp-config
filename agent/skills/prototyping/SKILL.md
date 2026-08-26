@@ -1,6 +1,6 @@
 ---
 name: prototyping
-description: "Use when a design question cannot be settled on paper — does this state model feel right, does this interaction work, which of these two shapes is less awkward. Builds throwaway code that answers ONE named question, gets a verdict, then dies. Not for building the real thing."
+description: "Use when a design question cannot be settled on paper. Builds throwaway code answering ONE named question, then deletes it. Not for building the real thing."
 ---
 
 # Prototyping

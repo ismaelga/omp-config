@@ -1,6 +1,6 @@
 ---
 name: context-curation
-description: Use during long-running sessions, multi-step agent loops, or any task where the conversation history is growing beyond ~30k tokens - actively manages the context window as a finite resource rather than letting it accumulate. The context window is the bottleneck, not the model.
+description: "Use in long-running sessions or multi-step agent loops, or when conversation history grows past ~30k tokens."
 ---
 
 # Context Curation

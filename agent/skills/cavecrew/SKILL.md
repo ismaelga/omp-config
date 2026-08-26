@@ -1,17 +1,11 @@
 ---
 name: cavecrew
+disable-model-invocation: true
 description: >
-  Decision guide for delegating to caveman-style subagents instead of doing the
-  work inline. Fourteen presets: investigator (locate), builder (≤2-file edit),
-  refactorer (behavior-preserving cross-file), debugger (root-cause a
-  reproduced failure), fixscout (propose a fix at one named depth), testwright
-  (write tests), testrunner (run tests/build/lint), benchwright (perf and
-  cost), reviewer (diff review), challenger (adversarial second pass),
-  simplifier (what deletes and collapses), sentinel (security audit),
-  githistorian (blame/bisect), plancritic (plan review). Receipts are
-  compressed, so the tool-result injected back into main context is small.
-  Trigger: "delegate to subagent", "use cavecrew", "spawn <preset name>",
-  "save context", "compressed agent output".
+  Routing guide for the caveman subagent fleet. INERT: all 14 cavecrew-* agents
+  and momus are listed in task.disabledAgents, so none can spawn. Kept for
+  reference and for the day the fleet is re-enabled; use omp's bundled agents
+  (task, scout, reviewer, security-reviewer, designer, librarian) instead.
 ---
 
 Cavecrew = fourteen subagent presets emitting caveman receipts. Same jobs as vanilla agents; the difference is receipt size, so main context lasts longer per delegation. Most run on the flat ollama-cloud tier, so fanning out wide costs latency, not money. Two ride the chatgpt plan on purpose: `cavecrew-challenger`, for model-family divergence against reviewer, and `cavecrew-sentinel`, because a security audit is long-context recall over a diff plus its callers.

@@ -1,6 +1,6 @@
 ---
 name: baseline-first
-description: Use before building any non-trivial feature, optimization, or "smart" system - establishes the dumbest possible solution as the baseline before adding complexity. If the baseline already solves the problem, you're done. If it doesn't, the gap defines exactly what your "smart" solution needs to do.
+description: "Use before building any non-trivial feature, optimization, or smart system: establish the dumbest solution as the baseline first."
 ---
 
 # Baseline-First

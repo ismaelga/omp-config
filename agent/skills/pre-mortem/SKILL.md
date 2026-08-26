@@ -1,6 +1,6 @@
 ---
 name: pre-mortem
-description: Use before kicking off any non-trivial feature, migration, refactor, or deployment - imagine the work has already failed catastrophically and work backwards to figure out why, surfacing risks while they're cheap to mitigate. Inverts the usual planning lens from "how will this succeed" to "how will this fail".
+description: "Use before kicking off a non-trivial feature, migration, refactor, or deployment: assume it already failed and work backwards to surface risks."
 ---
 
 # Pre-Mortem

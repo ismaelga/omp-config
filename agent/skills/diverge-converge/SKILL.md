@@ -1,10 +1,6 @@
 ---
 name: diverge-converge
-description: >-
-  Use when one problem has several defensible answers and the first plausible one would
-  otherwise win by default — a review that matters, a bug whose right fix depth is unclear,
-  a design with no obvious shape. Not for independent tasks that merely run at the same
-  time (that is dispatching-parallel-agents).
+description: "Use when one problem has several defensible answers and the first plausible one would win by default. Not for independent tasks that merely run concurrently (that is dispatching-parallel-agents)."
 ---
 
 # Diverge Then Converge

@@ -1,6 +1,6 @@
 ---
 name: code-review
-description: Use when dispatching a code review, or when acting on review feedback you have received. Covers which review shape a diff earns, how to arbitrate a reviewer pair, and how to evaluate feedback without performative agreement or blind implementation.
+description: "Use when dispatching a code review, or when acting on review feedback received."
 ---
 
 # Code Review
