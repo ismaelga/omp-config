@@ -158,6 +158,36 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 
 --------------------------------------------------------------------------------
+Relocated from ~/.codex/skills (2026-08-26)
+--------------------------------------------------------------------------------
+
+Six skill directories moved here so they are tracked somewhere. omp used to load
+them through the `codex` discovery provider; that directory is now gone and they
+are reachable only as slash commands (`disable-model-invocation: true`).
+
+Apache License 2.0, with LICENSE.txt vendored alongside each. No copyright
+holder is named upstream -- the license files carry the unfilled template
+notice, so none is asserted here:
+
+  figma
+  figma-implement-design
+  security-best-practices           (incl. references/, ~400K of per-language
+                                     security guides)
+
+Provenance NOT established. These arrived with no license file and no
+attribution of any kind. They are not covered by this repository's LICENSE and
+no ownership over them is claimed here:
+
+  elixir-architect
+  linear
+  frontend-design                   (its SKILL.md declares `license: Complete
+                                     terms in LICENSE.txt`, but no such file was
+                                     ever shipped with it)
+
+If the upstream for those three is identified, record it here and move them into
+the appropriate section.
+
+--------------------------------------------------------------------------------
 Original to this repository
 --------------------------------------------------------------------------------
 
