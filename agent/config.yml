@@ -1,5 +1,5 @@
-task:
-  disabledAgents:
+task: 
+  disabledAgents: 
     - sonic
     - momus
     - cavecrew-benchwright
@@ -19,12 +19,17 @@ task:
   eager: preferred
   showResolvedModelBadge: true
   enableLsp: true
-  isolation:
+  isolation: 
     mode: none
-modelRoles:
+  agentModelOverrides: 
+    scout: "@scout"
+    librarian: "@librarian"
+    reviewer: "@critic"
+    security-reviewer: "@sentinel"
+modelRoles: 
   plan: anthropic/claude-fable-5:high
   slow: anthropic/claude-fable-5:high
-  task: ollama-cloud/deepseek-v4-flash:high
+  task: ollama-cloud/glm-5.2
   smol: ollama-cloud/minimax-m3
   tiny: ollama-cloud/gpt-oss:20b
   designer: ollama-cloud/minimax-m3:high
@@ -32,113 +37,124 @@ modelRoles:
   commit: ollama-cloud/gpt-oss:120b
   advisor: openrouter/z-ai/glm-5.3:max
   default: anthropic/claude-opus-5:max
-modelProviderOrder:
+  scout: ollama-cloud/kimi-k2.7-code
+  librarian: ollama-cloud/minimax-m3
+  critic: openai-codex/gpt-5.6-terra
+  sentinel: ollama-cloud/glm-5.2
+modelProviderOrder: 
   - anthropic
   - openai-codex
   - ollama-cloud
+  - openrouter
   - opencode-go
   - google-antigravity
-contextPromotion:
+contextPromotion: 
   enabled: false
-theme:
+theme: 
   dark: dark-catppuccin
 symbolPreset: nerd
-statusLine:
+statusLine: 
   preset: compact
   separator: powerline-thin
   showHookStatus: true
   sessionAccent: true
   transparent: false
   compactThinkingLevel: false
-display:
+display: 
   showTokenUsage: true
   shimmer: kitt
   cacheMissMarker: true
 doubleEscapeAction: tree
-renderMermaid:
+renderMermaid: 
   enabled: true
-github:
+github: 
   enabled: true
-memory:
+memory: 
   backend: mnemopi
 setupVersion: 2
-terminal:
+terminal: 
   showProgress: false
-tui:
+tui: 
   textSizing: false
-advisor:
+advisor: 
   enabled: false
   syncBacklog: 3
 steeringMode: one-at-a-time
 interruptMode: immediate
-stt:
+stt: 
   modelName: parakeet
   submitTrigger: never
   enabled: false
-share:
+share: 
   store: blob
-magicKeywords:
+magicKeywords: 
   enabled: true
-providers:
+providers: 
   memoryModel: online
   fireworksTier: standard
   tinyModel: online
   kimiApiFormat: auto
   autoThinkingMaxEffort: max
-  ollama-cloud:
+  ollama-cloud: 
     maxConcurrency: 8
-  webSearchOrder: []
-retry:
-  fallbackChains:
-    ollama-cloud/*:
-      - opencode-go/*
+  webSearchOrder: 
+    []
+retry: 
+  fallbackChains: 
+    ollama-cloud/*: 
       - openai-codex/gpt-5.6-luna:high
       - openrouter/deepseek/deepseek-v4-flash:high
-    ollama-cloud/gpt-oss:20b:
+      - opencode-go/*
+    ollama-cloud/gpt-oss:20b: 
       - ollama-cloud/minimax-m3
       - openrouter/minimax/minimax-m3:high
-    ollama-cloud/gpt-oss:120b:
+    ollama-cloud/gpt-oss:120b: 
       - ollama-cloud/glm-5.2
       - openrouter/z-ai/glm-5.3:high
       - openai-codex/gpt-5.6-luna:high
       - openrouter/z-ai/glm-5.2:high
-    ollama-cloud/glm-5.2:
+    ollama-cloud/glm-5.2: 
       - openrouter/z-ai/glm-5.3:high
-      - opencode-go/deepseek-v4-pro
       - openai-codex/gpt-5.6-luna:high
       - openrouter/z-ai/glm-5.2:high
-    ollama-cloud/kimi-k3:
+      - opencode-go/deepseek-v4-pro
+    ollama-cloud/kimi-k3: 
       - openrouter/moonshotai/kimi-k3:high
       - opencode-go/kimi-k3:high
-    openrouter/z-ai/glm-5.3:
-      - opencode-go/glm-5.3:high
-      - ollama-cloud/glm-5.2:high
-    openrouter/moonshotai/kimi-k3:
-      - opencode-go/kimi-k3:high
+    openai-codex/gpt-5.6-terra: 
+      - openai-codex/gpt-5.6-luna:high
+      - ollama-cloud/minimax-m3:high
       - openrouter/z-ai/glm-5.3:high
-    openrouter/*:
+    openrouter/z-ai/glm-5.3: 
+      - openai-codex/gpt-5.6-terra:high
+      - ollama-cloud/glm-5.2:high
+      - opencode-go/glm-5.3:high
+    openrouter/moonshotai/kimi-k3: 
+      - openrouter/z-ai/glm-5.3:high
+      - opencode-go/kimi-k3:high
+    openrouter/*: 
       - openrouter/z-ai/glm-5.3:high
       - openai-codex/gpt-5.6-luna:high
-    openai-codex/gpt-5.6-luna:
+    openai-codex/gpt-5.6-luna: 
       - openrouter/z-ai/glm-5.3:high
       - ollama-cloud/glm-5.2:high
       - opencode-go/glm-5.3:high
-    openai-codex/gpt-5.6-sol:
+    openai-codex/gpt-5.6-sol: 
       - openai-codex/gpt-5.6-terra
       - anthropic/claude-opus-5:high
       - openrouter/deepseek/deepseek-v4-pro-0813:high
-    anthropic/claude-fable-5:
+    anthropic/claude-fable-5: 
       - openai-codex/gpt-5.6-sol:high
       - openai-codex/gpt-5.6-terra:high
       - openrouter/deepseek/deepseek-v4-pro-0813:high
-    anthropic/*:
+    anthropic/*: 
       - anthropic/claude-sonnet-5
       - openai-codex/gpt-5.6-terra:high
       - openrouter/z-ai/glm-5.3:high
-    default:
+    default: 
       - openai-codex/gpt-5.6-sol:high
       - openrouter/z-ai/glm-5.3:high
-mnemopi:
+mnemopi: 
   dbPath: ""
   scoping: per-project
   proactiveLinking: true
@@ -146,37 +162,39 @@ mnemopi:
   injectionTokenLimit: 1500
   recallLimit: 3
   embeddingModel: ""
-edit:
+edit: 
   mode: hashline
-python:
+python: 
   kernelMode: session
-ruby:
+ruby: 
   interpreter: ""
-astGrep:
+astGrep: 
   enabled: true
-checkpoint:
+checkpoint: 
   enabled: true
-commands:
+commands: 
   enableClaudeUser: true
 defaultThinkingLevel: auto
 hideThinkingBlock: true
-dev:
+dev: 
   autoqaConsent: granted
-bash:
-  autoBackground:
+bash: 
+  autoBackground: 
     enabled: true
-features:
-  unexpectedStopDetection: true
-compaction:
+features: 
+  unexpectedStopDetection: smart
+compaction: 
   idleEnabled: true
-lsp:
+lsp: 
   formatOnWrite: true
-thinkingBudgets:
+thinkingBudgets: 
   max: 65536
-tier:
+tier: 
   subagent: inherit
-skills:
+skills: 
   enabled: true
   enableSkillCommands: true
-composer:
+composer: 
   shape: pi
+codexResets: 
+  autoRedeem: "no"
