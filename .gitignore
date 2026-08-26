@@ -24,10 +24,11 @@
 !agent/skills/
 !agent/skills/**
 
-# Skill scratch: python bytecode, editor droppings.
-agent/skills/**/__pycache__/
-agent/skills/**/*.pyc
-agent/skills/**/.DS_Store
+# Build droppings anywhere under agent/, not just skills/ — agent/tools/ grows
+# __pycache__ too, and bytecode is regenerable from the tracked .py sources.
+**/__pycache__/
+**/*.pyc
+**/.DS_Store
 
 # Third-party binaries dropped into the tool dir. Provisioned per machine, not
 # vendored: 37 MB Mach-O each, self-updating via `-U`, so every update would be
