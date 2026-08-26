@@ -341,6 +341,22 @@ Working agreements encoded in `agent/AGENTS.md`: plans in `.omo/plans/`, specs i
 
 Everything else under `~/.omp` — `agent.db`, `history.db`, `models.db`, `sessions/`, `blobs/`, `banks/`, `cache/`, `logs/`, `run/` — is state or secrets and stays local.
 
+One binary lives in the tool dir but is deliberately **not** tracked:
+`agent/tools/yt-dlp` (37 MB Mach-O universal, currently `2026.08.19`). Vendoring it
+would put a full-size blob in history on every `-U`, so `.gitignore` excludes it and
+a fresh machine provisions it:
+
+```sh
+curl -fsSL -o ~/.omp/agent/tools/yt-dlp \
+  https://github.com/yt-dlp/yt-dlp/releases/latest/download/yt-dlp_macos
+chmod +x ~/.omp/agent/tools/yt-dlp        # brew install yt-dlp works too
+```
+
+It is not an omp integration. `agent/tools/` is a *custom-tool* discovery path and the
+loader only accepts JS/TS modules exporting a factory, so a bare binary there is never
+registered as a callable tool — invoke it by path (`~/.omp/agent/tools/yt-dlp`) or put it
+on `PATH`.
+
 ## License and attribution
 
 MIT, see [`LICENSE`](LICENSE). Skills and subagents here are vendored from three

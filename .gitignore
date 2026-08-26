@@ -28,3 +28,8 @@
 agent/skills/**/__pycache__/
 agent/skills/**/*.pyc
 agent/skills/**/.DS_Store
+
+# Third-party binaries dropped into the tool dir. Provisioned per machine, not
+# vendored: 37 MB Mach-O each, self-updating via `-U`, so every update would be
+# a fresh full-size blob in history. See README "What is tracked".
+agent/tools/yt-dlp
