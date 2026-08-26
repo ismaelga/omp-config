@@ -166,7 +166,9 @@ Re-enabling the fleet means flipping `task.disabledAgents` **and** re-reading `a
 
 ## Skills
 
-40 skill directories in `agent/skills/`, all with a `SKILL.md`. 27 are model-invoked — omp loads them automatically when the description matches, or explicitly with `/skill:<name>`. 13 are command-only (`disable-model-invocation: true`): `/skill:<name>` works but the model never auto-loads them — `ask-matt`, `grill-me`, `grill-with-docs`, `handoff`, `implement`, `improve-codebase-architecture`, `setup-matt-pocock-skills`, `teach`, `to-questionnaire`, `to-spec`, `to-tickets`, `triage`, `wait-what`.
+46 skill directories in `agent/skills/`, all with a `SKILL.md`. 26 are model-invoked — omp loads them automatically when the description matches, or explicitly with `/skill:<name>`. 20 are command-only (`disable-model-invocation: true`): `/skill:<name>` works but the model never auto-loads them — `ask-matt`, `grill-me`, `grill-with-docs`, `handoff`, `implement`, `improve-codebase-architecture`, `setup-matt-pocock-skills`, `teach`, `to-questionnaire`, `to-spec`, `to-tickets`, `triage`, `wait-what`, plus `cavecrew` and the six relocated from `~/.codex/skills` (`elixir-architect`, `figma`, `figma-implement-design`, `frontend-design`, `linear`, `security-best-practices`).
+
+Only the 26 model-invoked descriptions are always-loaded context. Each command-only skill costs nothing per turn, which is why retiring a skill here means flipping that flag rather than deleting the directory. `cavecrew` was flipped 2026-08-26: it routes to 14 subagents that `task.disabledAgents` turns off, so its 191-token description was instructing the model to spawn agents that cannot spawn.
 
 `skills.enabled: true`, `enableSkillCommands: true`, no ignore list.
 
@@ -291,7 +293,10 @@ Working agreements encoded in `agent/AGENTS.md`: plans in `.omo/plans/`, specs i
 
 | Path | What |
 |---|---|
-| `agent/AGENTS.md` | user context: caveman block + stack map. Native provider, so it shadows `~/.config/opencode/AGENTS.md`, `~/.claude/CLAUDE.md`, `~/.codex/AGENTS.md` |
+| `agent/AGENTS.md` | user context: the stack map. Native provider, so it shadows `~/.config/opencode/AGENTS.md`, `~/.claude/CLAUDE.md`, `~/.codex/AGENTS.md` |
+| `agent/APPEND_SYSTEM.md` | the caveman block. Rendered at the very end of the system prompt — the position Anthropic recommends for a length/tone reminder |
+| `agent/PERSONALITY.md` | replaces omp's `default` personality preset. Engineering judgement and escalation only; tone is owned by the caveman block and not restated |
+| `agent/RULES.md` | always-apply rules. Three lines; the fourth duplicated the harness contract verbatim and was cut |
 | `agent/config.yml` | model roles, provider order, fallback chains, TUI, memory, tool settings |
 | `agent/models.yml` | override-only, and only two entries: corrected `gpt-5.6-luna` / `gpt-5.6-terra` prices after the 2026-07-30 cut |
 | `agent/mcp.json` | empty server map plus a `disabledServers` list. Kept so discovery stays explicit |
@@ -301,7 +306,7 @@ Working agreements encoded in `agent/AGENTS.md`: plans in `.omo/plans/`, specs i
 | `agent/agents/*.md` | 14 cavecrew subagents + `momus`, all in `disabledAgents`. Kept for re-measurement |
 | `agent/commands/*.md` | 5 caveman slash commands + `/diverge` |
 | `agent/tools/caveman-compress/` | the compress tool (scripts + docs), graduated from a skill |
-| `agent/skills/*/SKILL.md` | 40 skill directories: 27 model-invoked, 13 command-only |
+| `agent/skills/*/SKILL.md` | 46 skill directories: 26 model-invoked, 20 command-only |
 
 Everything else under `~/.omp` — `agent.db`, `history.db`, `models.db`, `sessions/`, `blobs/`, `banks/`, `cache/`, `logs/`, `run/` — is state or secrets and stays local.
 
@@ -324,14 +329,15 @@ on `PATH`.
 ## License and attribution
 
 MIT, see [`LICENSE`](LICENSE). Skills and subagents here are vendored from three
-upstream projects and stay under their own MIT terms (full notices in
-[`NOTICE`](NOTICE)):
+upstream MIT projects, plus six relocated skills under Apache-2.0 or unknown
+terms (full notices in [`NOTICE`](NOTICE)):
 
 | Upstream | What came from it |
 |---|---|
 | [`obra/superpowers`](https://github.com/obra/superpowers) | 11 skills: `brainstorming`, `code-review` (modified from `requesting-code-review`), `dispatching-parallel-agents`, `finishing-a-development-branch`, `subagent-driven-development`, `systematic-debugging`, `test-driven-development`, `using-git-worktrees`, `using-superpowers`, `writing-plans`, `writing-skills` |
 | [`mattpocock/skills`](https://github.com/mattpocock/skills) | 20 skills, unmodified: `ask-matt`, `codebase-design`, `domain-modeling`, `grill-me`, `grill-with-docs`, `grilling`, `handoff`, `implement`, `improve-codebase-architecture`, `research`, `resolving-merge-conflicts`, `setup-matt-pocock-skills`, `teach`, `to-questionnaire`, `to-spec`, `to-tickets`, `triage`, `wait-what`, `wizard`, `writing-for-agents` |
 | [`JuliusBrussee/caveman`](https://github.com/JuliusBrussee/caveman) | the `caveman*` skills and commands, `cavecrew`, and the `cavecrew-builder` / `cavecrew-investigator` / `cavecrew-reviewer` subagents |
+| relocated from `~/.codex/skills` (2026-08-26) | 6 command-only skills. `figma`, `figma-implement-design`, `security-best-practices` ship a stock Apache-2.0 `LICENSE.txt` with no holder named; `elixir-architect`, `linear`, `frontend-design` arrived with no license or attribution and no ownership is claimed over them |
 
 The remaining 7 skills (`baseline-first`, `context-curation`, `decision-log`, `diverge-converge`, `pre-mortem`, `prototyping`, `wayfinding`), the other 11 cavecrew subagents, `momus`, `agent/WATCHDOG.md`, `agent/WATCHDOG.yml`, and all config in `agent/*.yml` / `agent/*.json` are original to this repo.
 
@@ -341,4 +347,4 @@ Provenance is file-level, not guessed: every pre-existing tracked file was compa
 
 - Config changes require an omp restart.
 - Sibling repo: [`opencode-config`](https://github.com/ismaelga/opencode-config), the same stack for opencode. Skills under `agent/skills/` are **copies**, not shared — editing one does not propagate, and omp's `opencode` skill provider reads `~/.config/opencode/skills`, so a skill deleted here can still load from the sibling checkout. The sibling's copies of the 14 skills retired here (the `caveman` family minus `caveman-commit`, plus `cost-aware-coding`, `eval-driven-development`, `executing-plans`, `minimum-viable-reimplementation`, `receiving-code-review`, `requesting-code-review`, `spec-driven-development`, `verification-before-completion`, `vibe-coding-guardrails`) were removed 2026-08-20 to match — keep the two checkouts in sync when retiring skills.
-- `~/.codex/skills` holds 6 further skills (elixir-architect, figma, figma-implement-design, frontend-design, linear, security-best-practices) that omp loads through the `codex` discovery provider. They live in no repo yet.
+- `~/.codex/skills` is gone. Its 6 skills (`elixir-architect`, `figma`, `figma-implement-design`, `frontend-design`, `linear`, `security-best-practices`) were moved into `agent/skills/` on 2026-08-26 and flipped to command-only, so they are tracked and cost nothing per turn. Three carry a stock Apache-2.0 `LICENSE.txt` with no copyright holder filled in; the other three arrived with no license or attribution at all — see NOTICE. `~/.codex` itself stays: it holds the Codex OAuth credential that the `openai-codex` provider uses.
