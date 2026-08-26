@@ -14,9 +14,10 @@ Show the caveman quick-reference card.
 | `/caveman-review` | One-line review findings |
 | `/caveman-compress <file>` | Compress a Markdown file |
 
-Caveman is on by default: `~/.omp/agent/AGENTS.md` carries the caveman block, so
-every session starts at `full`. Change the default by editing that file; switch
-per-session with `/caveman <level>`.
+Caveman is on by default: `~/.omp/agent/APPEND_SYSTEM.md` carries the caveman
+block, rendered at the very end of the system prompt, so every session starts at
+`full`. Change the default by editing that file; switch per-session with
+`/caveman <level>`.
 
 Natural language also works: "turn on caveman", "stop caveman", "normal mode".
 

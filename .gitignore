@@ -8,7 +8,10 @@
 !LICENSE
 !NOTICE
 !agent/
+!agent/APPEND_SYSTEM.md
 !agent/AGENTS.md
+!agent/RULES.md
+!agent/PERSONALITY.md
 !agent/WATCHDOG.md
 !agent/WATCHDOG.yml
 !agent/config.yml
