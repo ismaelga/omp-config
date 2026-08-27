@@ -162,8 +162,10 @@ Relocated from ~/.codex/skills (2026-08-26)
 --------------------------------------------------------------------------------
 
 Six skill directories moved here so they are tracked somewhere. omp used to load
-them through the `codex` discovery provider; that directory is now gone and they
-are reachable only as slash commands (`disable-model-invocation: true`).
+them through the `codex` discovery provider; that directory is now gone and the
+five still listed below are reachable only as slash commands
+(`disable-model-invocation: true`). The sixth, `frontend-design`, was traced
+upstream on 2026-08-27 and un-gated; it has its own section below.
 
 Apache License 2.0, with LICENSE.txt vendored alongside each. No copyright
 holder is named upstream -- the license files carry the unfilled template
@@ -180,12 +182,144 @@ no ownership over them is claimed here:
 
   elixir-architect
   linear
-  frontend-design                   (its SKILL.md declares `license: Complete
-                                     terms in LICENSE.txt`, but no such file was
-                                     ever shipped with it)
 
-If the upstream for those three is identified, record it here and move them into
-the appropriate section.
+If the upstream for those two is identified, record it here and move them into
+the appropriate section. `frontend-design` was identified on 2026-08-27 as
+anthropics/skills and moved to its own section below.
+
+--------------------------------------------------------------------------------
+anthropics/skills -- https://github.com/anthropics/skills
+--------------------------------------------------------------------------------
+
+Applies to this skill directory in agent/skills/:
+
+  frontend-design                   (incl. LICENSE.txt)
+
+Imported 2026-08-26 from ~/.codex/skills with no license file and no attribution,
+so it sat under "Provenance NOT established" above. Resolved 2026-08-27: the
+`name` and the dangling `license: Complete terms in LICENSE.txt` frontmatter both
+match upstream, and the local body was an earlier revision of the same skill.
+Replaced with the current upstream SKILL.md and the LICENSE.txt it always
+referenced, and un-gated -- upstream sets no `disable-model-invocation`, and the
+2026-08-26 sweep had flipped it only as a side effect of relocating the directory.
+
+Apache License 2.0, vendored as LICENSE.txt. No copyright holder is named
+upstream -- the license file carries the unfilled template notice, so none is
+asserted here.
+
+--------------------------------------------------------------------------------
+emilkowalski/skills -- https://github.com/emilkowalski/skills
+--------------------------------------------------------------------------------
+
+Applies to these skill directories in agent/skills/, vendored unmodified on
+2026-08-27:
+
+  animate                           (incl. RECIPES.md)
+  emil-design-eng                   (incl. LICENSE)
+  review-animations                 (incl. STANDARDS.md; ships
+                                     `disable-model-invocation: true` upstream)
+
+MIT License
+
+Copyright (c) 2026 Emil Kowalski
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.
+
+--------------------------------------------------------------------------------
+uizze/uizze -- https://github.com/uizze/uizze
+--------------------------------------------------------------------------------
+
+Applies to this skill directory in agent/skills/, vendored 2026-08-27:
+
+  anti-ui-slop                      (incl. LICENSE, reference/ playbooks
+                                     new-work, operate, polish, distill, audit,
+                                     ios, and references/uizze-reference-policy)
+
+Modified: the remote banner image on SKILL.md line 18 was removed. It fetched
+uizze.com/landing/anti-ui-slop-skill-banner.png on every read and carried no
+instruction for the agent.
+
+The skill needs no account, token or MCP; the paid UIZZE MCP layer it can
+optionally call is not configured here.
+
+MIT License
+
+Copyright (c) 2026 UIZZE
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.
+
+--------------------------------------------------------------------------------
+vercel-labs/web-interface-guidelines
+  -- https://github.com/vercel-labs/web-interface-guidelines
+--------------------------------------------------------------------------------
+
+Applies to one file in agent/skills/web-interface-guidelines/:
+
+  GUIDELINES.md                     (upstream command.md, vendored 2026-08-27;
+                                     its slash-command frontmatter and
+                                     $ARGUMENTS preamble were replaced with a
+                                     provenance header)
+  LICENSE
+
+SKILL.md in that directory is original to this repository. Vercel ships its own
+wrapper skill in vercel-labs/agent-skills, but that repo carries no license file,
+and the wrapper's only mechanism is to re-fetch command.md from GitHub on every
+run. The rules repo is MIT, so the rules are vendored and the wrapper rewritten
+to read them from disk -- reproducible, and works offline.
+
+MIT License
+
+Copyright (c) 2025 Vercel Labs
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.
 
 --------------------------------------------------------------------------------
 Original to this repository
