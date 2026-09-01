@@ -93,12 +93,13 @@ Verify a provider resolves models: `omp models ollama-cloud`.
 |---|---|---|---|
 | `anthropic` | OAuth | `ANTHROPIC_API_KEY` | `default` (`claude-opus-5:max`), `plan` + `slow` (`claude-fable-5:high`) |
 | `openai-codex` | OAuth (ChatGPT plan) | `OPENAI_CODEX_OAUTH_TOKEN` | `critic` (`gpt-5.6-terra`) — the one metered role, because a reviewer in the same family as the diff's author is worth little. Also the `gpt-5.6-luna` retry hop |
-| `ollama-cloud` | stored API key | `OLLAMA_CLOUD_API_KEY` | flat-rate workhorse: `task`, `scout`, `librarian`, `sentinel`, `smol`, `tiny`, `vision`, `designer`, `commit` |
-| `openrouter` | stored API key | `OPENROUTER_API_KEY` | the breadth tier: reaches `glm-5.3`, `kimi-k3`, `deepseek` variants that the flat-rate provider does not serve, and carries most fallback chains |
+| `ollama-cloud` | stored API key | `OLLAMA_CLOUD_API_KEY` | flat-rate workhorse: `scout`, `librarian`, `smol`, `tiny`, `commit` |
+| `openrouter` | stored API key | `OPENROUTER_API_KEY` | the breadth tier: reaches `glm-5.3`, `kimi-k3`, `deepseek` variants that the flat-rate provider does not serve, serves `task` + `vision`, and carries most fallback chains |
 | `opencode-go` | stored API key | `OPENCODE_API_KEY` | last hop in every chain it appears in |
-| `google-antigravity` | OAuth (credential present but **disabled**) | — | in the order, not currently resolvable |
 
 `google-gemini-cli` is also authenticated but deliberately absent from `modelProviderOrder` — no role routes to it.
+
+`google-antigravity` was removed from `modelProviderOrder` on 2026-09-01. The credential still resolves 18 models, so this is a deliberate refusal, not a broken hop: [Antigravity's Additional Terms §6](https://antigravity.google/terms) make "using third party software, tools, or services to access the Service (e.g. using OpenClaw with Antigravity OAuth)" a breach "grounds for suspension or termination of your account". Reaching that OAuth from omp is exactly the named pattern, and the stake is the Google account rather than a quota. §3 and §5 are the secondary reason: consumer Antigravity records prompts, code and responses for Google to "evaluate, develop, and improve" its models, and the no-collection carve-out covers only Workspace, GCP and Gemini Enterprise — paying for AI Pro or Ultra does not buy it.
 
 `OLLAMA_API_KEY` is the **local** `ollama` engine's variable, not `ollama-cloud`'s — cloud access here comes from the stored credential, not the environment.
 
@@ -111,14 +112,14 @@ Verify a provider resolves models: `omp models ollama-cloud`.
 | `default` | `anthropic/claude-opus-5:max` | main turns: the one that reads your intent and owns the diff |
 | `plan` | `anthropic/claude-fable-5:high` | plan mode and `slow` share the strongest planner in the roster |
 | `slow` | `anthropic/claude-fable-5:high` | deep reasoning on demand |
-| `task` | `ollama-cloud/glm-5.2` | subagent default: 1M context, flat-rate, so a wide fan-out costs latency rather than money |
+| `task` | `openrouter/google/gemini-3.7-flash` | subagent default: 1M context and top of the TypeScript coding index for its price class. Metered, so a wide fan-out costs money — the flat-rate alternative is `ollama-cloud/gemini-3-flash-preview`, one generation back |
 | `scout` | `ollama-cloud/kimi-k2.7-code` | code-specialised locator. Output is a `file:line` table, so the win is reading a lot of code accurately, not reasoning about it |
 | `librarian` | `ollama-cloud/minimax-m3` | reads library source to answer API questions — high volume in, a few verified lines out |
 | `critic` | `openai-codex/gpt-5.6-terra` | code review is judgement, and every miss costs later. Deliberately a different family from `claude-opus-5`, whose diff it reads |
 | `sentinel` | `ollama-cloud/glm-5.2` | security review is long-context recall over a diff *plus its callers* |
 | `smol` | `ollama-cloud/minimax-m3` | cheap fan-out |
 | `tiny` | `ollama-cloud/gpt-oss:20b` | session titles, memory writes, auto-thinking classification, unexpected-stop detection — highest frequency, disposable output |
-| `vision` | `ollama-cloud/minimax-m3` | image reads |
+| `vision` | `openrouter/google/gemini-3.7-flash` | image reads |
 | `designer` | `ollama-cloud/minimax-m3:high` | UI/UX agent |
 | `commit` | `ollama-cloud/gpt-oss:120b` | one small payload per commit |
 | `advisor` | `openrouter/z-ai/glm-5.3:max` | configured but inert — see [what is turned off](#what-is-turned-off-and-why) |
@@ -142,7 +143,7 @@ Six bundled agents are live. `task.agentModelOverrides` pins four of them to a n
 | `librarian` | `@librarian` | `ollama-cloud/minimax-m3` |
 | `reviewer` | `@critic` | `openai-codex/gpt-5.6-terra` |
 | `security-reviewer` | `@sentinel` | `ollama-cloud/glm-5.2` |
-| `task` | — | `modelRoles.task` (`ollama-cloud/glm-5.2`) |
+| `task` | — | `modelRoles.task` (`openrouter/google/gemini-3.7-flash`) |
 | `designer` | — | `modelRoles.designer` (`ollama-cloud/minimax-m3:high`) |
 
 The rule behind the pairings: **read-only and high volume → cheapest capable model; judgement → a different family from whatever it is checking.** `scout` and `librarian` are read-only volume work on flat-rate. `reviewer` is the only agent worth metered tokens, because it reads `claude-opus-5`'s own diff and a same-family reviewer shares its blind spots.
