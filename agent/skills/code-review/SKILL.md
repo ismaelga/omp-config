@@ -59,7 +59,8 @@ critics share blind spots — one family reviewing its own output agrees with it
 returns a rephrased first opinion; self-preference bias in LLM evaluators is measured and
 systematic, not random (NeurIPS 2024, "LLM Evaluators Recognize and Favor Their Own Generations").
 Cross-family disagreement is the signal you are paying for, and a `reviewer` + `security-reviewer`
-pair gives it: `reviewer` on `openai-codex/gpt-5.6-terra`, `security-reviewer` on `ollama-cloud/glm-5.2`.
+pair gives it: `reviewer` on `openai-codex/gpt-5.6-terra` (`@critic`), `security-reviewer` on
+`zai/glm-5.3` (`@sentinel`).
 
 **The benefit is asymmetric, and this matters here.** On 116 LiveCodeBench tasks, cross-family
 review raised pass rate 71.6% → 89.7% when the reviewer was the *stronger* model, but *dropped* it

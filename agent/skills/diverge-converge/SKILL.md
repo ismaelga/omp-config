@@ -32,7 +32,7 @@ problem, and ollama-cloud does no prompt caching, so every lens re-bills its who
 
 Same-family critics share blind spots — that is why a `reviewer` + `security-reviewer` pair
 runs different families (`reviewer` on `openai-codex/gpt-5.6-terra`, `security-reviewer` on
-`ollama-cloud/glm-5.2`). For generation, aim alone separates the outputs; paying for family
+`zai/glm-5.3`). For generation, aim alone separates the outputs; paying for family
 diversity there buys little.
 
 ## Blind-parallel vs anchored
