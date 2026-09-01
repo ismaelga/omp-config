@@ -91,7 +91,7 @@ Providers in use, how each is authenticated, and what it serves. `modelProviderO
 
 | Provider | Auth used here | Alternative | Role in this setup |
 |---|---|---|---|
-| `anthropic` | OAuth | `ANTHROPIC_API_KEY` | `default` (`claude-opus-5:max`), `plan` + `slow` (`claude-fable-5:high`) |
+| `anthropic` | OAuth | `ANTHROPIC_API_KEY` | `default` (`claude-opus-5:xhigh`), `plan` + `slow` (`claude-fable-5:high`) |
 | `openai-codex` | OAuth (ChatGPT plan) | `OPENAI_CODEX_OAUTH_TOKEN` | `critic` (`gpt-5.6-terra`) — the one metered role, because a reviewer in the same family as the diff's author is worth little. Also the `gpt-5.6-luna` retry hop |
 | `zai` | stored API key | `ZAI_API_KEY` | GLM direct: `designer` + `advisor` (`glm-5.3-flash`), `sentinel` (`glm-5.3:high`). `zai/glm-5.3:high` is also the most-used fallback link in the file — 11 of 22 chains |
 | `ollama-cloud` | stored API key | `OLLAMA_CLOUD_API_KEY` | flat-rate workhorse: `scout`, `librarian`, `smol`, `tiny`, `commit` |
@@ -116,7 +116,7 @@ Providers in use, how each is authenticated, and what it serves. `modelProviderO
 | `task` | `openrouter/google/gemini-3.7-flash` | subagent default, picked 2026-09-01 by *executing* output against hidden validators rather than by index rank: 3/4 on a unified-diff generator plus a glob matcher, against `glm-5.3:high`'s 2/2 and `deepseek-v4-flash`'s 0/4. Metered, and worth it: `omp bench --profile chat` puts it at TTFT p50 3.5 s for $0.0010 a turn, against `ollama-cloud/glm-5.3:high` at 931 ms TTFT and $0 but 700–1500 tokens per reply, so 13.5–20.5 s to a finished answer. There is no flat-rate gemini to fall back to — `ollama-cloud/gemini-3-flash-preview` was retired 2026-07-15 and answers HTTP 410 |
 | `scout` | `ollama-cloud/deepseek-v4-flash:high` | read-only locator on flat rate, 1M context. Output is a `file:line` table, so the win is reading a lot of code accurately, not reasoning about it. Caveat measured the same day: this model in reasoning mode spirals on hard *generation* prompts — three attempts hit the 65 536-token ceiling and returned no code at all. Scout never generates code, which is why the pin survives here and lost `task` |
 | `librarian` | `ollama-cloud/deepseek-v4-flash` | reads library source to answer API questions — high volume in, a few verified lines out |
-| `critic` | `openai-codex/gpt-5.6-terra` | code review is judgement, and every miss costs later. Deliberately a different family from `claude-opus-5`, whose diff it reads |
+| `critic` | `openai-codex/gpt-5.6-terra:high` | code review is judgement, and every miss costs later. Deliberately a different family from `claude-opus-5`, whose diff it reads. `:high` is pinned, not left to `auto`: Artificial Analysis measures 141.99 s TTFT at `max` against 2.84 s at `high`, for the same review |
 | `sentinel` | `zai/glm-5.3:high` | security review is long-context recall over a diff *plus its callers* — 1M context |
 | `smol` | `ollama-cloud/glm-5.3-flash` | cheap fan-out |
 | `tiny` | `ollama-cloud/gpt-oss:120b` | session titles, memory writes, auto-thinking classification, unexpected-stop detection — highest frequency, disposable output. The 120b is *faster* than the 20b here (258.2 tok/s / 706 ms TTFT vs 77.7 / 1308 ms) and both are flat-rate, so the bigger one is free speed |
@@ -142,7 +142,7 @@ Six bundled agents are live. `task.agentModelOverrides` pins four of them to a n
 |---|---|---|
 | `scout` | `@scout` | `ollama-cloud/deepseek-v4-flash:high` |
 | `librarian` | `@librarian` | `ollama-cloud/deepseek-v4-flash` |
-| `reviewer` | `@critic` | `openai-codex/gpt-5.6-terra` |
+| `reviewer` | `@critic` | `openai-codex/gpt-5.6-terra:high` |
 | `security-reviewer` | `@sentinel` | `zai/glm-5.3:high` |
 | `task` | — | `modelRoles.task` (`openrouter/google/gemini-3.7-flash`) |
 | `designer` | — | `modelRoles.designer` (`zai/glm-5.3-flash`) |
