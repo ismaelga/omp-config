@@ -48,10 +48,13 @@ modelRoles:
   #   openrouter/google/gemini-3.7-flash  TTFT p50 3.5 s  p95 4.6 s  44 tok/s  $0.0010/run
   #   ollama-cloud/glm-5.3:high           TTFT p50 931 ms p95 1.3 s  70 tok/s  $0
   #   ollama-cloud/gpt-oss:120b (floor)   TTFT p50 345 ms p95 362 ms 190 tok/s $0
-  # There is no "fixed 10 s OpenRouter transport floor" -- that number came from
-  # timing `omp -p`, which pays ~8 s of CLI startup before any request (gpt-oss:120b
-  # measures 345 ms TTFT there and still took 8.48 s wall). Do not re-derive route
-  # latency from the CLI; use `omp bench`.
+  # There is no "fixed 10 s OpenRouter transport floor". Two independent checks:
+  # raw curl straight to openrouter.ai, no omp in the path, answered in 1.97-3.49 s
+  # (4 samples, provider "Google", effort=low returning 0 reasoning tokens), and
+  # `omp bench` agrees at 3.5 s TTFT. The 10 s came from timing `omp -p`, which
+  # pays ~8 s of CLI startup before any request leaves the process -- gpt-oss:120b
+  # measures 345 ms TTFT and still took 8.48 s that way. Never re-derive route
+  # latency from the CLI; use `omp bench` or curl.
   # What glm-5.3 costs instead is verbosity: on the same chat prompt it emitted
   # 700-1500 tokens against gemini's capped 252, so a complete turn ran 13.5-20.5 s
   # against gemini's 4.9-7.2 s. Better TTFT, slower answer.
