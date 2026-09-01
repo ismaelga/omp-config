@@ -87,19 +87,20 @@ Verify a provider resolves models: `omp models ollama-cloud`.
 
 ## Providers
 
-`modelProviderOrder` here, in order, and how each is authenticated:
+Providers in use, how each is authenticated, and what it serves. `modelProviderOrder` is `anthropic → zai → ollama-cloud → openrouter → opencode-go`; `openai-codex` sits outside that order and is reached only by explicit pins.
 
 | Provider | Auth used here | Alternative | Role in this setup |
 |---|---|---|---|
 | `anthropic` | OAuth | `ANTHROPIC_API_KEY` | `default` (`claude-opus-5:max`), `plan` + `slow` (`claude-fable-5:high`) |
 | `openai-codex` | OAuth (ChatGPT plan) | `OPENAI_CODEX_OAUTH_TOKEN` | `critic` (`gpt-5.6-terra`) — the one metered role, because a reviewer in the same family as the diff's author is worth little. Also the `gpt-5.6-luna` retry hop |
+| `zai` | stored API key | `ZAI_API_KEY` | GLM direct: `designer` + `advisor` (`glm-5.3-flash`), `sentinel` (`glm-5.3:high`). `zai/glm-5.3:high` is also the most-used fallback link in the file — 11 of 22 chains |
 | `ollama-cloud` | stored API key | `OLLAMA_CLOUD_API_KEY` | flat-rate workhorse: `scout`, `librarian`, `smol`, `tiny`, `commit` |
-| `openrouter` | stored API key | `OPENROUTER_API_KEY` | the breadth tier: reaches `glm-5.3`, `kimi-k3`, `deepseek` variants that the flat-rate provider does not serve, serves `task` + `vision`, and carries most fallback chains |
-| `opencode-go` | stored API key | `OPENCODE_API_KEY` | last hop in every chain it appears in |
+| `openrouter` | stored API key | `OPENROUTER_API_KEY` | the one model no flat-rate provider here serves: `gemini-3.7-flash`, for `task` + `vision`. Breadth stopped being the reason on 2026-08-30, when ollama-cloud gained `glm-5.3`, `glm-5.3-flash`, `kimi-k3` and `deepseek-v4-flash` itself |
+| `opencode-go` | stored API key | `OPENCODE_API_KEY` | same-weight sibling hop, tried *before* `openrouter` wherever both carry a model, because openrouter is the metered path and this is not |
 
-`google-gemini-cli` is also authenticated but deliberately absent from `modelProviderOrder` — no role routes to it.
+`google-gemini-cli` is authenticated and deliberately absent from `modelProviderOrder` — and also dead, measured 2026-09-01: `loadCodeAssist` returns 200 with no `currentTier` and an explicit `UNSUPPORTED_CLIENT` ("no longer supported for Gemini Code Assist for individuals"), and every `generateContent` returns 403. Its only `allowedTier` is `standard-tier`, which needs a paid GCP Code Assist license the account does not hold.
 
-`google-antigravity` was removed from `modelProviderOrder` on 2026-09-01. The credential still resolves 18 models, so this is a deliberate refusal, not a broken hop: [Antigravity's Additional Terms §6](https://antigravity.google/terms) make "using third party software, tools, or services to access the Service (e.g. using OpenClaw with Antigravity OAuth)" a breach "grounds for suspension or termination of your account". Reaching that OAuth from omp is exactly the named pattern, and the stake is the Google account rather than a quota. §3 and §5 are the secondary reason: consumer Antigravity records prompts, code and responses for Google to "evaluate, develop, and improve" its models, and the no-collection carve-out covers only Workspace, GCP and Gemini Enterprise — paying for AI Pro or Ultra does not buy it.
+`google-antigravity` was removed from `modelProviderOrder` on 2026-09-01. It no longer resolves in `omp models` at all, but the removal was a refusal rather than a dead hop, and the reason outlives the credential: [Antigravity's Additional Terms §6](https://antigravity.google/terms) make "using third party software, tools, or services to access the Service (e.g. using OpenClaw with Antigravity OAuth)" a breach and "grounds for suspension or termination of your account". Reaching that OAuth from omp is exactly the named pattern, and the stake is the Google account rather than a quota. §3 and §5 are the secondary reason: consumer Antigravity records prompts, code and responses for Google to "evaluate, develop, and improve" its models, and the no-collection carve-out covers only Workspace, GCP and Gemini Enterprise — paying for AI Pro or Ultra does not buy it. It scored 4/4 on the `task` bakeoff below, which is why the refusal is written down rather than assumed.
 
 `OLLAMA_API_KEY` is the **local** `ollama` engine's variable, not `ollama-cloud`'s — cloud access here comes from the stored credential, not the environment.
 
@@ -109,20 +110,20 @@ Verify a provider resolves models: `omp models ollama-cloud`.
 
 | Role | Model here | Why |
 |---|---|---|
-| `default` | `anthropic/claude-opus-5:max` | main turns: the one that reads your intent and owns the diff |
+| `default` | `anthropic/claude-opus-5:xhigh` | main turns: the one that reads your intent and owns the diff. `:xhigh` rather than `:max` — Artificial Analysis measures both at intelligence 63, while `max` costs 42.91 s TTFT against xhigh's 20.04 s. `ultrathink` still reaches `max` on demand |
 | `plan` | `anthropic/claude-fable-5:high` | plan mode and `slow` share the strongest planner in the roster |
 | `slow` | `anthropic/claude-fable-5:high` | deep reasoning on demand |
-| `task` | `openrouter/google/gemini-3.7-flash` | subagent default: 1M context and top of the TypeScript coding index for its price class. Metered, so a wide fan-out costs money — the flat-rate alternative is `ollama-cloud/gemini-3-flash-preview`, one generation back |
-| `scout` | `ollama-cloud/kimi-k2.7-code` | code-specialised locator. Output is a `file:line` table, so the win is reading a lot of code accurately, not reasoning about it |
-| `librarian` | `ollama-cloud/minimax-m3` | reads library source to answer API questions — high volume in, a few verified lines out |
+| `task` | `openrouter/google/gemini-3.7-flash` | subagent default, picked 2026-09-01 by *executing* output against hidden validators rather than by index rank: 3/4 on a unified-diff generator plus a glob matcher, against `glm-5.3:high`'s 2/2 and `deepseek-v4-flash`'s 0/4. Metered, and worth it: `omp bench --profile chat` puts it at TTFT p50 3.5 s for $0.0010 a turn, against `ollama-cloud/glm-5.3:high` at 931 ms TTFT and $0 but 700–1500 tokens per reply, so 13.5–20.5 s to a finished answer. There is no flat-rate gemini to fall back to — `ollama-cloud/gemini-3-flash-preview` was retired 2026-07-15 and answers HTTP 410 |
+| `scout` | `ollama-cloud/deepseek-v4-flash:high` | read-only locator on flat rate, 1M context. Output is a `file:line` table, so the win is reading a lot of code accurately, not reasoning about it. Caveat measured the same day: this model in reasoning mode spirals on hard *generation* prompts — three attempts hit the 65 536-token ceiling and returned no code at all. Scout never generates code, which is why the pin survives here and lost `task` |
+| `librarian` | `ollama-cloud/deepseek-v4-flash` | reads library source to answer API questions — high volume in, a few verified lines out |
 | `critic` | `openai-codex/gpt-5.6-terra` | code review is judgement, and every miss costs later. Deliberately a different family from `claude-opus-5`, whose diff it reads |
-| `sentinel` | `ollama-cloud/glm-5.2` | security review is long-context recall over a diff *plus its callers* |
-| `smol` | `ollama-cloud/minimax-m3` | cheap fan-out |
-| `tiny` | `ollama-cloud/gpt-oss:20b` | session titles, memory writes, auto-thinking classification, unexpected-stop detection — highest frequency, disposable output |
-| `vision` | `openrouter/google/gemini-3.7-flash` | image reads |
-| `designer` | `ollama-cloud/minimax-m3:high` | UI/UX agent |
+| `sentinel` | `zai/glm-5.3:high` | security review is long-context recall over a diff *plus its callers* — 1M context |
+| `smol` | `ollama-cloud/glm-5.3-flash` | cheap fan-out |
+| `tiny` | `ollama-cloud/gpt-oss:120b` | session titles, memory writes, auto-thinking classification, unexpected-stop detection — highest frequency, disposable output. The 120b is *faster* than the 20b here (258.2 tok/s / 706 ms TTFT vs 77.7 / 1308 ms) and both are flat-rate, so the bigger one is free speed |
+| `vision` | `openrouter/google/gemini-3.7-flash` | image reads: the only candidate taking text + image + video + audio + pdf, where `glm-5.3-flash` is image-only |
+| `designer` | `zai/glm-5.3-flash` | UI/UX agent: native multimodal, and vendor-documented screenshot → UI coding |
 | `commit` | `ollama-cloud/gpt-oss:120b` | one small payload per commit |
-| `advisor` | `openrouter/z-ai/glm-5.3:max` | configured but inert — see [what is turned off](#what-is-turned-off-and-why) |
+| `advisor` | `zai/glm-5.3-flash` | live, not inert — see [what is turned off](#what-is-turned-off-and-why). Advisor cost is uncached *input*, so lowest measured TTFT (1279 ms) on a flat plan decides it, not reasoning rank |
 
 Model specs are `provider/model[:thinking]` where thinking ∈ `minimal|low|medium|high|xhigh|max`.
 
@@ -130,8 +131,8 @@ Model specs are `provider/model[:thinking]` where thinking ∈ `minimal|low|medi
 
 Two ordering rules, both deliberate:
 
-- **First hop is a peer, usually on another provider.** `openrouter/z-ai/glm-5.3:high` is the single most-used hop, and `z-ai/glm-5.3` is where `ollama-cloud/glm-5.2`, `gpt-5.6-luna` and every unmatched `openrouter/*` model land. Only one chain keeps the identical model — `ollama-cloud/kimi-k3` → `openrouter/moonshotai/kimi-k3:high`; elsewhere capability parity wins over family loyalty.
-- **`opencode-go` goes last**, wherever it appears. It is the metered tier of last resort, so a flat-rate or plan-billed hop is always tried first. `gpt-oss:20b` never reaches it at all — it fails over inside the free tier.
+- **Same weights on another provider come first.** `zai/glm-5.3:high` is the single most-used link — 11 of 22 chains — and `zai/glm-5.3`, `ollama-cloud/glm-5.3` and `opencode-go/glm-5.3` all fall to each other before anything reaches a different model. Capability-parity substitutes appear only where a sibling does not exist.
+- **`opencode-go` outranks `openrouter`**, not "goes last": openrouter is the metered path and opencode-go is not, so 8 of the 22 chains reach opencode-go before their final link. `gpt-oss:20b` reaches neither — it fails over inside the free tier. `opencode-go`'s `deepseek-v4-flash` and `deepseek-v4-pro` are *not* usable hops: both answer HTTP 403, "only available hosted in China and requires explicit opt in" (measured 2026-09-01), so the `opencode-go/*` wildcard dead-ends for any deepseek head.
 
 ## Subagents
 
@@ -139,12 +140,12 @@ Six bundled agents are live. `task.agentModelOverrides` pins four of them to a n
 
 | Agent | Override | Resolves to |
 |---|---|---|
-| `scout` | `@scout` | `ollama-cloud/kimi-k2.7-code` |
-| `librarian` | `@librarian` | `ollama-cloud/minimax-m3` |
+| `scout` | `@scout` | `ollama-cloud/deepseek-v4-flash:high` |
+| `librarian` | `@librarian` | `ollama-cloud/deepseek-v4-flash` |
 | `reviewer` | `@critic` | `openai-codex/gpt-5.6-terra` |
-| `security-reviewer` | `@sentinel` | `ollama-cloud/glm-5.2` |
+| `security-reviewer` | `@sentinel` | `zai/glm-5.3:high` |
 | `task` | — | `modelRoles.task` (`openrouter/google/gemini-3.7-flash`) |
-| `designer` | — | `modelRoles.designer` (`ollama-cloud/minimax-m3:high`) |
+| `designer` | — | `modelRoles.designer` (`zai/glm-5.3-flash`) |
 
 The rule behind the pairings: **read-only and high volume → cheapest capable model; judgement → a different family from whatever it is checking.** `scout` and `librarian` are read-only volume work on flat-rate. `reviewer` is the only agent worth metered tokens, because it reads `claude-opus-5`'s own diff and a same-family reviewer shares its blind spots.
 
@@ -152,18 +153,20 @@ Also set: `task.eager: preferred` (subagents start without waiting for a full pl
 
 ## What is turned off, and why
 
-Four features are configured, present on disk, and deliberately inert. They are documented because "why is this file here" is the question a future reader actually has.
+Two features are configured, present on disk, and deliberately inert. A third was re-enabled after the benchmark that appeared to condemn it turned out not to. They are documented because "why is this file here" is the question a future reader actually has.
 
 | Turned off | Where | Why |
 |---|---|---|
 | The 14 cavecrew agents + `momus` | `task.disabledAgents` | An A/B benchmark (`~/.omp/bench/`, 2026-08-13) found minimal guidance matched or beat the full config on all 6 tasks at roughly a third of the turns and tokens — and the fleet never activated on its own. The agent definitions stay in `agent/agents/` so the experiment can be re-run under a future model regime. `sonic` is disabled too, making 16 entries |
-| `advisor` | `advisor.enabled: false` | A second model reading every turn is a full extra model pass per turn. The same review, scoped to a diff and paid for once, is a `task` batch |
 | `contextPromotion` | `contextPromotion.enabled: false` | Switching model on overflow instead of compacting had no published evaluation behind it. Overflow now falls back to compaction, which is the documented path. The per-model `contextPromotionTarget` entries were deleted from `models.yml` in the same pass — on their own they do nothing |
-| MCP servers | `mcp.json` → `mcpServers: {}` | None currently needed. `disabledServers` keeps `pencil`, `cavemem`, `computer-use` and `sentry` from being picked up by discovery |
+
+`advisor.enabled` is **`true`** since 2026-08-28. The 2026-08-13 A/B did not condemn it: `spawns=0` counts task-tool calls and the advisor is not a spawn, and the notes it produced were real bugs — a `lots.pop()` that needed `shift()`, two dangling refs that would have thrown, a `saleCostUsd` used where `applySale` was required. It never moved a score because the minimal config already scored 1.00 everywhere the advisor spoke; a safety net cannot be measured on tasks nobody falls off. `advisor.syncBacklog: "off"` is the tax control — with a numeric value the advisor blocks the primary turn up to 30 s whenever it falls behind.
+
+MCP is no longer empty either: `mcp.json` runs `sentry` over HTTP, and `disabledServers` keeps `cavemem`, `computer-use` and `pencil` out of discovery.
 
 Re-enabling the fleet means flipping `task.disabledAgents` **and** re-reading `agent/agents/*.md` — those frontmatter models drifted while the fleet was inert and are not covered by `agentModelOverrides`.
 
-`agent/WATCHDOG.md` (review brief) and `agent/WATCHDOG.yml` (roster granting the advisor `lsp`, withholding `bash`/`edit`/`write`) are likewise inert while `advisor.enabled` is `false`. They stay tracked because they encode two silent failure modes worth not rediscovering: only the **first** `advise` call per model turn is kept and the rest are dropped while the tool still answers `Recorded.`, and requesting a tool the advisor does not hold quarantines the **entire** turn, advice included.
+`agent/WATCHDOG.md` (review brief) and `agent/WATCHDOG.yml` (roster granting the advisor `lsp`, withholding `bash`/`edit`/`write`) are live along with the advisor. They stay tracked because they encode two silent failure modes worth not rediscovering: only the **first** `advise` call per model turn is kept and the rest are dropped while the tool still answers `Recorded.`, and requesting a tool the advisor does not hold quarantines the **entire** turn, advice included.
 
 ## Skills
 
