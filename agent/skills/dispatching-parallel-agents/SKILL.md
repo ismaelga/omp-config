@@ -65,21 +65,36 @@ Each agent gets:
 
 ### 3. Dispatch in Parallel
 
-Issue all three subagent dispatches in the same response — they run in parallel:
+One batched `task` call: `tasks[]` with one item per failing test file, plus
+a shared `context` string carrying what every item needs (the failure
+summary, constraints, expected output). One call, structurally parallel —
+there is nothing to remember about issuing dispatches together.
 
-```text
-Subagent (general-purpose): "Fix agent-tool-abort.test.ts failures"
-Subagent (general-purpose): "Fix batch-completion-behavior.test.ts failures"
-Subagent (general-purpose): "Fix tool-approval-race-conditions.test.ts failures"
-# All three run concurrently.
+```
+task(context: "6 test failures after refactor. Fix root causes, not
+      timeouts. Do not touch other files. Return root cause + fix per test.",
+     tasks: [
+       {name: "FixAbort",        task: "Fix agent-tool-abort.test.ts failures"},
+       {name: "FixBatch",        task: "Fix batch-completion-behavior.test.ts failures"},
+       {name: "FixApprovalRace", task: "Fix tool-approval-race-conditions.test.ts failures"}
+     ])
 ```
 
-Multiple dispatch calls in one response = parallel execution. One per response = sequential.
+Items with no shared state can also run `isolated: true` — each works in a
+dedicated git worktree and successful changes auto-apply to the parent
+checkout.
 
 ### 4. Review and Integrate
 
-When agents return:
-- Read each summary
+Results auto-deliver into the conversation as each item settles — no
+polling. What the delivered summary truncated lives on: the full output at
+`agent://<id>` (one field via `agent://<id>?q=.field`), the transcript at
+`history://<id>`. A settled `hub jobs` snapshot counts as the delivery, so
+`hub jobs` first if you need the picture at once. Never re-derive a result
+the summary truncated — read `agent://<id>`.
+
+Then:
+- Read each summary (and `agent://` for any that raises doubt)
 - Verify fixes don't conflict
 - Run full test suite
 - Integrate all changes
@@ -144,11 +159,11 @@ Return: Summary of what you found and what you fixed.
 
 **Decision:** Independent domains - abort logic separate from batch completion separate from race conditions
 
-**Dispatch:**
+**Dispatch:** one `task` call, three items (see The Pattern step 3):
 ```
-Agent 1 → Fix agent-tool-abort.test.ts
-Agent 2 → Fix batch-completion-behavior.test.ts
-Agent 3 → Fix tool-approval-race-conditions.test.ts
+FixAbort        → agent-tool-abort.test.ts
+FixBatch        → batch-completion-behavior.test.ts
+FixApprovalRace → tool-approval-race-conditions.test.ts
 ```
 
 **Results:**
@@ -170,7 +185,8 @@ Agent 3 → Fix tool-approval-race-conditions.test.ts
 ## Verification
 
 After agents return:
-1. **Review each summary** - Understand what changed
+1. **Review each summary** (auto-delivered; full output at `agent://<id>` if a
+   summary raises doubt) - Understand what changed
 2. **Check for conflicts** - Did agents edit same code?
 3. **Run full suite** - Verify all fixes work together
 4. **Spot check** - Agents can make systematic errors

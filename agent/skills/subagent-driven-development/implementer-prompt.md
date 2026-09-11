@@ -3,10 +3,10 @@
 Use this template when dispatching an implementer subagent.
 
 ```
-Subagent (general-purpose):
+`task` item (agent: `task` — see SKILL.md "Agent Selection" for choosing the
+  type; there is no per-spawn model parameter — model resolves from the agent
+  type and `task.agentModelOverrides` in config.yml):
   description: "Implement Task N: [task name]"
-  model: [MODEL — REQUIRED: choose per SKILL.md Model Selection; an omitted
-         model silently inherits the session's most expensive one]
   prompt: |
     You are implementing Task N: [task name]
 
@@ -74,8 +74,8 @@ Subagent (general-purpose):
 
     **How to escalate:** Report back with status BLOCKED or NEEDS_CONTEXT. Describe
     specifically what you're stuck on, what you've tried, and what kind of help you need.
-    The controller can provide more context, re-dispatch with a more capable model,
-    or break the task into smaller pieces.
+    The controller can provide more context, re-dispatch with a different agent
+    type, or break the task into smaller pieces.
 
     ## Before Reporting Back: Self-Review
 
@@ -122,18 +122,21 @@ Subagent (general-purpose):
     - Self-review findings (if any)
     - Any issues or concerns
 
-    Then report back with ONLY (under 15 lines — the detail lives in the
-    report file):
-    - **Status:** DONE | DONE_WITH_CONCERNS | BLOCKED | NEEDS_CONTEXT
-    - Commits created (short SHA + subject)
-    - One-line test summary (e.g. "14/14 passing, output pristine")
-    - Your concerns, if any
-    - The report file path
+    If BLOCKED or NEEDS_CONTEXT, put the specifics in your final result — the
+    controller acts on it directly. Use DONE_WITH_CONCERNS if you completed
+    the work but have doubts about correctness. Use BLOCKED if you cannot
+    complete the task. Use NEEDS_CONTEXT if you need information that wasn't
+    provided. Never silently produce work you're unsure about.
 
-    If BLOCKED or NEEDS_CONTEXT, put the specifics in the final message
-    itself — the controller acts on it directly.
+    Your FINAL MESSAGE must be only this JSON object (keep it under 15 lines;
+    the detail lives in the report file):
+    {"status": "DONE|DONE_WITH_CONCERNS|BLOCKED|NEEDS_CONTEXT",
+     "commits": "<short SHA + subject, one per commit>",
+     "tests": "one-line test summary, e.g. 14/14 passing, output pristine",
+     "concerns": "your concerns, or empty string",
+     "reportFile": "<the report file path>"}
 
-    Use DONE_WITH_CONCERNS if you completed the work but have doubts about correctness.
-    Use BLOCKED if you cannot complete the task. Use NEEDS_CONTEXT if you need
-    information that wasn't provided. Never silently produce work you're unsure about.
+    The controller dispatches you with an `outputSchema` matching this shape;
+    match the field names exactly.
+
 ```

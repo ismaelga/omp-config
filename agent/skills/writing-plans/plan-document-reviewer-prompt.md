@@ -6,14 +6,18 @@ Use this template when dispatching a plan document reviewer subagent.
 
 **Dispatch after:** The complete plan is written.
 
-```
-Subagent (general-purpose):
+`task` item (agent: `reviewer`):
   description: "Review plan document"
+  outputSchema: {"status": "Approved|Issues Found",
+                 "issues": [{"task": "Task N, Step M (or 'plan-level')",
+                             "issue": "specific issue",
+                             "why": "why it matters for implementation"}],
+                 "recommendations": ["advisory, non-blocking"]}
   prompt: |
     You are a plan document reviewer. Verify this plan is complete and ready for implementation.
 
-    **Plan to review:** [PLAN_FILE_PATH]
-    **Spec for reference:** [SPEC_FILE_PATH]
+    **Plan to review:** [PLAN_URI] — a `local://` URI from your dispatch
+    **Spec for reference:** [SPEC_URI] — also a `local://` URI, or "none"
 
     ## What to Check
 
@@ -35,15 +39,13 @@ Subagent (general-purpose):
 
     ## Output Format
 
-    ## Plan Review
+    Your final message must be only the JSON object matching the dispatch's
+    `outputSchema`: `status` (Approved | Issues Found), `issues` (each with
+    the task/step it applies to, the specific issue, and why it matters for
+    implementation), and `recommendations` (advisory, do not block
+    approval).
 
-    **Status:** Approved | Issues Found
+**Reviewer returns:** the validated `outputSchema` object — `status`,
+`issues[]`, `recommendations[]` — auto-delivered; the full result also
+stays reachable at `agent://<id>`.
 
-    **Issues (if any):**
-    - [Task X, Step Y]: [specific issue] - [why it matters for implementation]
-
-    **Recommendations (advisory, do not block approval):**
-    - [suggestions for improvement]
-```
-
-**Reviewer returns:** Status, Issues (if any), Recommendations

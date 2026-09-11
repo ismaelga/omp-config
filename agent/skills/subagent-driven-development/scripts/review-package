@@ -4,8 +4,12 @@
 # call. Using the recorded per-task BASE (not HEAD~1) keeps multi-commit
 # tasks intact.
 #
+# Writes to the session's local:// payload directory when resolvable
+# (subagents read the parent's local:// root by path), else to the given
+# OUTFILE.
+#
 # Usage: review-package BASE HEAD [OUTFILE]
-# Default OUTFILE: <repo-root>/.superpowers/sdd/review-<base7>..<head7>.diff
+# Default OUTFILE: local://sdd-review-<base7>..<head7>.diff
 # (named per range, so a re-review after fixes gets a distinct fresh file).
 set -euo pipefail
 
@@ -23,8 +27,19 @@ git rev-parse --verify --quiet "$head" >/dev/null || { echo "bad HEAD: $head" >&
 if [ $# -eq 3 ]; then
   out=$3
 else
-  dir=$("$(cd "$(dirname "$0")" && pwd)/sdd-workspace")
-  out="$dir/review-$(git rev-parse --short "$base")..$(git rev-parse --short "$head").diff"
+  # omp exposes the session's local:// root to subprocesses via
+  # PI_EVAL_LOCAL_ROOTS (JSON: {"local": "<path>"}). Fall back to a
+  # working-tree scratch dir when running outside the harness.
+  dir=""
+  if [ -n "${PI_EVAL_LOCAL_ROOTS:-}" ] && command -v python3 >/dev/null 2>&1; then
+    dir=$(python3 -c 'import json,os,sys; print(json.loads(os.environ["PI_EVAL_LOCAL_ROOTS"])["local"])' 2>/dev/null || true)
+  fi
+  if [ -z "$dir" ]; then
+    root=$(git rev-parse --show-toplevel 2>/dev/null || pwd)
+    dir="$root/.superpowers/sdd"
+  fi
+  mkdir -p "$dir"
+  out="$dir/sdd-review-$(git rev-parse --short "$base")..$(git rev-parse --short "$head").diff"
 fi
 
 {

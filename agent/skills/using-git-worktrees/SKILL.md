@@ -38,27 +38,33 @@ Report with branch state:
 
 **If `GIT_DIR == GIT_COMMON` (or in a submodule):** You are in a normal repo checkout.
 
-Has the user already indicated their worktree preference in your instructions? If not, ask for consent before creating a worktree:
-
-> "Would you like me to set up an isolated worktree? It protects your current branch from changes."
-
+Has the user already indicated their worktree preference in your instructions? If not, ask for consent before creating a worktree — one `ask` call:
+`questions[]: [{header: "Workspace", question: "Set up an isolated worktree? It protects your current branch from changes.", options: [{label: "Isolated worktree", description: "Branch + directory away from your checkout; changes merge back when reviewed"}, {label: "Work in place", description: "Work directly in the current checkout on a new branch"}], recommended: 0}]`.
 Honor any existing declared preference without asking. If the user declines consent, work in place and skip to Step 2.
 
 ## Step 1: Create Isolated Workspace
 
 **You have two mechanisms. Try them in this order.**
 
-### 1a. Native Worktree Tools (preferred)
+### 1a. `task` with `isolated: true` (preferred)
 
-The user has asked for an isolated workspace (Step 0 consent). Do you already have a way to create a worktree? It might be a tool with a name like `EnterWorktree`, `WorktreeCreate`, a `/worktree` command, or a `--worktree` flag. If you do, use it and skip to Step 2.
+The user has asked for an isolated workspace (Step 0 consent). In omp the
+native mechanism is a `task` dispatch with `isolated: true` — the item runs
+in a dedicated git worktree (`task.isolation.enabled` in config.yml): the
+workspace is created for you, the subagent works in it, successful changes
+auto-apply to the parent checkout, and cleanup is automatic. Name the work
+in the item's `task` field and skip to Step 2's baseline expectations when
+reporting back.
 
-Native tools handle directory placement, branch creation, and cleanup automatically. Using `git worktree add` when you have a native tool creates phantom state your harness can't see or manage.
+Using `git worktree add` when `isolated: true` fits creates phantom state
+your harness can't see or manage.
 
-Only proceed to Step 1b if you have no native worktree tool available.
+Only proceed to Step 1b for work the main thread does itself — you cannot
+dispatch it to a subagent, so there is nothing for `isolated: true` to run.
 
-### 1b. Git Worktree Fallback
+### 1b. Manual Git Worktree (fallback, not the default)
 
-**Only use this if Step 1a does not apply** — you have no native worktree tool available. Create a worktree manually using git.
+**Only use this if Step 1a does not apply** — the work stays on the main thread. Create a worktree manually using git.
 
 #### Directory Selection
 
@@ -145,8 +151,8 @@ Ready to implement <feature-name>
 |-----------|--------|
 | Already in linked worktree | Skip creation (Step 0) |
 | In a submodule | Treat as normal repo (Step 0 guard) |
-| Native worktree tool available | Use it (Step 1a) |
-| No native tool | Git worktree fallback (Step 1b) |
+| Work dispatchable to a subagent | `task` with `isolated: true` (Step 1a) |
+| Work stays on the main thread | Manual git worktree fallback (Step 1b) |
 | `.worktrees/` exists | Use it (verify ignored) |
 | `worktrees/` exists | Use it (verify ignored) |
 | Both exist | Use `.worktrees/` |
@@ -160,8 +166,8 @@ Ready to implement <feature-name>
 
 ### Fighting the harness
 
-- **Problem:** Using `git worktree add` when the platform already provides isolation
-- **Fix:** Step 0 detects existing isolation. Step 1a defers to native tools.
+- **Problem:** Using `git worktree add` when the harness already provides isolation
+- **Fix:** Step 0 detects existing isolation. Step 1a is `task` with `isolated: true`.
 
 ### Skipping detection
 
@@ -187,7 +193,7 @@ Ready to implement <feature-name>
 
 **Never:**
 - Create a worktree when Step 0 detects existing isolation
-- Use `git worktree add` when you have a native worktree tool (e.g., `EnterWorktree`). This is the #1 mistake — if you have it, use it.
+- Use `git worktree add` when the work could run as a `task` item with `isolated: true`. This is the #1 mistake — if the work is dispatchable, use Step 1a.
 - Skip Step 1a by jumping straight to Step 1b's git commands
 - Create worktree without verifying it's ignored (project-local)
 - Skip baseline test verification
@@ -195,7 +201,7 @@ Ready to implement <feature-name>
 
 **Always:**
 - Run Step 0 detection first
-- Prefer native tools over git fallback
+- Prefer `task` with `isolated: true` over manual git worktrees
 - Follow directory priority: explicit instructions > existing project-local directory > default
 - Verify directory is ignored for project-local
 - Auto-detect and run project setup

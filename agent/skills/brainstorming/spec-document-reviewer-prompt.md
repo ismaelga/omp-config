@@ -4,12 +4,14 @@ Use this template when dispatching a spec document reviewer subagent.
 
 **Purpose:** Verify the spec is complete, consistent, and ready for implementation planning.
 
-**Dispatch after:** Spec document is written to .omo/specs/
+**Dispatch after:** Spec document is written to docs/specs/
 
 ```
-Subagent (general-purpose):
-  description: "Review spec document"
-  prompt: |
+task item:
+  agent: reviewer
+  name: "SpecReview"
+  outputSchema: {status: "Approved" | "Issues Found", issues: [...], recommendations: [...]}
+  task: |
     You are a spec document reviewer. Verify this spec is complete and ready for planning.
 
     **Spec to review:** [SPEC_FILE_PATH]

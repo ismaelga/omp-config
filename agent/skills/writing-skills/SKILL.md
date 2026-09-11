@@ -15,7 +15,7 @@ You write test cases (pressure scenarios with subagents), watch them fail (basel
 
 **Core principle:** If you didn't watch an agent fail without the skill, you don't know if the skill teaches the right thing.
 
-**REQUIRED BACKGROUND:** You MUST understand superpowers:test-driven-development before using this skill. That skill defines the fundamental RED-GREEN-REFACTOR cycle. This skill adapts TDD to documentation.
+**REQUIRED BACKGROUND:** You MUST understand `skill://test-driven-development` before using this skill. That skill defines the fundamental RED-GREEN-REFACTOR cycle. This skill adapts TDD to documentation.
 
 **Official guidance:** For Anthropic's official skill authoring best practices, see anthropic-best-practices.md. This document provides additional patterns and guidelines that complement the TDD-focused approach in this skill.
 
@@ -283,9 +283,9 @@ wc -w skills/path/SKILL.md
 
 **When writing documentation that references other skills:**
 
-Use skill name only, with explicit requirement markers:
-- ✅ Good: `**REQUIRED SUB-SKILL:** Use superpowers:test-driven-development`
-- ✅ Good: `**REQUIRED BACKGROUND:** You MUST understand superpowers:systematic-debugging`
+Reference by `skill://<name>` URI, with explicit requirement markers:
+- ✅ Good: `**REQUIRED SUB-SKILL:** Use skill://test-driven-development`
+- ✅ Good: `**REQUIRED BACKGROUND:** You MUST understand skill://systematic-debugging`
 - ❌ Bad: `See skills/testing/test-driven-development` (unclear if required)
 - ❌ Bad: `@skills/testing/test-driven-development/SKILL.md` (force-loads, burns context)
 
@@ -394,7 +394,7 @@ Edit skill without testing? Same violation.
 - Don't "adapt" while running tests
 - Delete means delete
 
-**REQUIRED BACKGROUND:** The superpowers:test-driven-development skill explains why this matters. Same principles apply to documentation.
+**REQUIRED BACKGROUND:** The `skill://test-driven-development` skill explains why this matters. Same principles apply to documentation.
 
 ## Testing All Skill Types
 
@@ -580,9 +580,13 @@ Agent found new rationalization? Add explicit counter. Re-test until bulletproof
 
 Full pressure-scenario runs are the final gate, but they are slow and expensive per iteration. Verify the wording itself first with micro-tests:
 
-1. **One fresh-context sample per call** — a raw API call, or a single-shot subagent if you don't have API access. System prompt = the realistic context the guidance will live in (the full skill or prompt template, not the guidance in isolation); user message = a task that tempts the failure.
+1. **One fresh-context sample per call** — a `task` item (agent: `task`)
+   whose `task` field carries the realistic context the guidance will live
+   in (the full skill or prompt template, not the guidance in isolation)
+   plus a user message that tempts the failure. No API access needed.
 2. **Always include a no-guidance control.** If the control doesn't exhibit the failure, there is nothing to fix — stop, don't author the guidance.
-3. **5+ reps per variant.** Single samples lie.
+3. **5+ reps per variant.** Single samples lie. One batched `task` call with
+   five items runs the reps in parallel.
 4. **Manually read every flagged match.** Score programmatically if you like, but template echoes and quoted counter-examples masquerade as hits; automated counts alone overstate both failure and success.
 5. **Variance is a metric.** When guidance lands, reps converge on the same shape. Five different interpretations across five reps means the wording isn't binding — tighten the form before adding words.
 
@@ -630,7 +634,8 @@ Deploying untested skills = deploying untested code. It's a violation of quality
 
 ## Skill Creation Checklist (TDD Adapted)
 
-**IMPORTANT: Create a todo for EACH checklist item below.**
+**IMPORTANT: Track the checklist with the `todo` tool — `todo init` with the
+items below, then `todo start` / `todo done` on each as you work it.**
 
 **RED Phase - Write Failing Test:**
 - [ ] Create pressure scenarios (3+ combined pressures for discipline skills)

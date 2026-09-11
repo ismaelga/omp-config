@@ -10,11 +10,17 @@ SKILL.md "Per-Task Spec Check" for the measurement that settled it.
 **Purpose:** Verify the work in range matches its requirements (nothing more, nothing less) and is
 well-built (clean, tested, maintainable)
 
-```
-Subagent (general-purpose):
+`task` item (agent: `reviewer` — there is no per-spawn model parameter; model
+  resolves from the agent type and `task.agentModelOverrides` in config.yml):
   description: "Review tasks N-M (spec + quality)"
-  model: [MODEL — REQUIRED: choose per SKILL.md Model Selection; an omitted
-         model silently inherits the session's most expensive one]
+  outputSchema: {"status": "Approved|Needs fixes",
+                 "specCompliance": "compliant|issues",
+                 "cannotVerify": "requirements not checkable from this diff, or empty",
+                 "strengths": "specific, brief",
+                 "critical": [{"file": "path:line", "issue": "what's wrong", "fix": "how to fix"}],
+                 "important": [{"file": "path:line", "issue": "what's wrong", "fix": "how to fix"}],
+                 "minor": [{"file": "path:line", "issue": "what's wrong", "fix": "how to fix"}],
+                 "reasoning": "1-2 sentence technical assessment"}
   prompt: |
     You are reviewing the accumulated implementation of one or more tasks: first
     whether it matches its requirements, then whether it is well-built. This is a
@@ -23,27 +29,28 @@ Subagent (general-purpose):
 
     ## What Was Requested
 
-    Read the task brief: [BRIEF_FILE]
+    Read your task brief: [BRIEF_FILE] — a `local://` URI passed in your
+    dispatch.
 
     Global constraints from the spec/design that bind this task:
     [GLOBAL_CONSTRAINTS]
 
     ## What the Implementer Claims They Built
 
-    Read the implementer's report: [REPORT_FILE]
+    Read the implementer's report: [REPORT_FILE] — also a `local://` URI.
 
     ## Diff Under Review
 
     **Base:** [BASE_SHA]
     **Head:** [HEAD_SHA]
-    **Diff file:** [DIFF_FILE]
+    **Review package:** [REVIEW_PACKAGE]
 
-    Read the diff file once — it contains the commit list, a stat summary,
-    and the full diff with surrounding context, and it is your view of the
-    change. The diff's context lines ARE the changed files: do not Read a
-    changed file separately unless a hunk you must judge is cut off
+    Read the review package once — it contains the commit list, a stat
+    summary, and the full diff with surrounding context, and it is your view
+    of the change. The diff's context lines ARE the changed files: do not
+    Read a changed file separately unless a hunk you must judge is cut off
     mid-function — and say so in your report. Do not re-run git commands.
-    If the diff file is missing, fetch the diff yourself:
+    If the review package is missing, fetch the diff yourself:
     `git diff --stat [BASE_SHA]..[HEAD_SHA]` and `git diff [BASE_SHA]..[HEAD_SHA]`.
     Do not crawl the broader codebase. Inspect code outside the diff only
     to evaluate a concrete risk you can name — one focused check per named
@@ -90,8 +97,8 @@ Subagent (general-purpose):
       solved
 
     If a requirement cannot be verified from this diff alone (it lives in
-    unchanged code or spans tasks), report it as a ⚠️ item instead of
-    broadening your search.
+    unchanged code or spans tasks), put it in `cannotVerify` instead of
+    broadening your search — say what the controller should check.
 
     ## Part 2: Code Quality
 
@@ -118,74 +125,43 @@ Subagent (general-purpose):
     "yes." A tight report that cites lines gives the controller everything
     it needs.
 
-    Your final message is the report itself: begin directly with the
-    spec-compliance verdict. Every line is a verdict, a finding with
-    file:line, or a check you ran — no preamble, no process narration,
-    no closing summary.
+    Your final message must be only the JSON object matching the dispatch's
+    `outputSchema` — status, specCompliance, cannotVerify, strengths,
+    critical/important/minor findings, reasoning. Keep each finding short;
+    the controller reads the diff itself.
 
-    ## Calibration
+    ### Calibration
 
-    Categorize issues by actual severity. Not everything is Critical.
-    Important means this task cannot be trusted until it is fixed: incorrect
-    or fragile behavior, a missed requirement, or maintainability damage you
-    would block a merge over — verbatim duplication of a logic block,
-    swallowed errors, tests that assert nothing. "Coverage could be broader"
-    and polish suggestions are Minor.
+    Not everything is Critical. Important means this task cannot be trusted
+    until it is fixed: incorrect or fragile behavior, a missed requirement, or
+    maintainability damage you would block a merge over — verbatim duplication
+    of a logic block, swallowed errors, tests that assert nothing. "Coverage
+    could be broader" and polish suggestions are Minor.
     If the plan or brief explicitly mandates something this rubric calls a
     defect (a test that asserts nothing, verbatim duplication of a logic
     block), that IS a finding — report it as Important, labeled
-    plan-mandated. The plan's authorship does not grade its own work; the
-    human decides.
-    Acknowledge what was done well before listing issues — accurate praise
-    helps the implementer trust the rest of the feedback.
-
-    ## Output Format
-
-    ### Spec Compliance
-
-    - ✅ Spec compliant | ❌ Issues found: [what's missing/extra/misunderstood,
-      with file:line references]
-    - ⚠️ Cannot verify from diff: [requirements you could not verify from the
-      diff alone, and what the controller should check — report alongside the
-      ✅/❌ verdict for everything you could verify]
-
-    ### Strengths
-    [What's well done? Be specific.]
-
-    ### Issues
-
-    #### Critical (Must Fix)
-    #### Important (Should Fix)
-    #### Minor (Nice to Have)
-
-    For each issue: file:line, what's wrong, why it matters, how to fix
-    (if not obvious).
-
-    ### Assessment
-
-    **Task quality:** [Approved | Needs fixes]
-
-    **Reasoning:** [1-2 sentence technical assessment]
+    plan-mandated in the issue text. The plan's authorship does not grade
+    its own work; the human decides.
+    Acknowledge what was done well in `strengths` — accurate praise helps the
+    implementer trust the rest of the feedback.
 ```
 
 **Placeholders:**
-- `[MODEL]` — REQUIRED: reviewer model per SKILL.md Model Selection
-- `[BRIEF_FILE]` — REQUIRED: the task brief file (`scripts/task-brief PLAN N`
-  prints the path; same file the implementer worked from)
 - `[GLOBAL_CONSTRAINTS]` — the binding requirements copied verbatim from
   the plan's Global Constraints section or the spec: exact values, formats,
   and stated relationships between components (not process rules — those
   are already in this template)
-- `[REPORT_FILE]` — REQUIRED: the file the implementer wrote its detailed
-  report to
+- `[REPORT_FILE]` — REQUIRED: the `local://` URI of the file the implementer
+  wrote its detailed report to
 - `[BASE_SHA]` — commit before this task
 - `[HEAD_SHA]` — current commit
-- `[DIFF_FILE]` — REQUIRED: the path the controller wrote the review
-  package to (`scripts/review-package BASE HEAD` prints the unique path it
-  wrote; the package never enters the controller's context)
+- `[REVIEW_PACKAGE]` — REQUIRED: the `local://` URI the controller wrote the
+  review package to; the package never enters the controller's context
 
-**Reviewer returns:** Spec Compliance verdict (✅/❌/⚠️), Strengths, Issues
-(Critical/Important/Minor), Task quality verdict
+**Reviewer returns:** the `outputSchema` object — `status`
+(Approved | Needs fixes), `specCompliance`, `strengths`, and
+Critical/Important/Minor findings — delivered validated; the full result is
+also reachable at `agent://<id>?q=.status` and friends.
 
 A fix dispatch can address spec gaps and quality findings together;
 re-review after fixes covers both verdicts.

@@ -3,9 +3,12 @@
 # implementer reads in one call, so the task text never has to be pasted
 # through the controller's context.
 #
+# Writes to the session's local:// payload directory when resolvable
+# (subagents read the parent's local:// root by path), else to the given
+# OUTFILE.
+#
 # Usage: task-brief PLAN_FILE TASK_NUMBER [OUTFILE]
-# Default OUTFILE: <repo-root>/.superpowers/sdd/task-<N>-brief.md
-# (per worktree; concurrent runs in the same working tree share it).
+# Default OUTFILE: local://sdd-task-<N>-brief.md
 set -euo pipefail
 
 if [ $# -lt 2 ] || [ $# -gt 3 ]; then
@@ -20,8 +23,18 @@ n=$2
 if [ $# -eq 3 ]; then
   out=$3
 else
-  dir=$("$(cd "$(dirname "$0")" && pwd)/sdd-workspace")
-  out="$dir/task-${n}-brief.md"
+  # omp exposes the session's local:// root to subprocesses via
+  # PI_EVAL_LOCAL_ROOTS (JSON: {"local": "<path>"}). Fall back to a
+  # working-tree scratch dir when running outside the harness.
+  if [ -n "${PI_EVAL_LOCAL_ROOTS:-}" ] && command -v python3 >/dev/null 2>&1; then
+    out=$(python3 -c 'import json,os,sys; print(json.loads(os.environ["PI_EVAL_LOCAL_ROOTS"])["local"])' 2>/dev/null || true)
+  fi
+  if [ -z "$out" ]; then
+    root=$(git rev-parse --show-toplevel 2>/dev/null || pwd)
+    out="$root/.superpowers/sdd"
+  fi
+  mkdir -p "$out"
+  out="$out/sdd-task-${n}-brief.md"
 fi
 
 awk -v n="$n" '

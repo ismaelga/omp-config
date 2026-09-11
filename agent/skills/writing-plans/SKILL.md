@@ -13,10 +13,10 @@ Assume they are a skilled developer, but know almost nothing about our toolset o
 
 **Announce at start:** "I'm using the writing-plans skill to create the implementation plan."
 
-**Context:** If working in an isolated worktree, it should have been created via the `superpowers:using-git-worktrees` skill at execution time.
+**Context:** If working in an isolated worktree, it should have been created via the `skill://using-git-worktrees` skill at execution time.
 
-**Save plans to:** `.omo/plans/YYYY-MM-DD-<feature-name>.md`
-- This path makes plans discoverable by oh-my-openagent's `start-work` skill and Boulder state.
+**Save plans to:** `docs/plans/YYYY-MM-DD-<feature-name>.md`
+- This path is what `skill://subagent-driven-development` reads when it executes the plan.
 - (User preferences for plan location override this default)
 
 ## Scope Check
@@ -59,7 +59,7 @@ independently testable deliverable.
 ```markdown
 # [Feature Name] Implementation Plan
 
-> **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
+> **For agentic workers:** REQUIRED SUB-SKILL: Use `skill://subagent-driven-development` to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
 **Goal:** [One sentence describing what this builds]
 
@@ -162,7 +162,13 @@ If you find issues, fix them inline. No need to re-review — just fix and move 
 
 ## External Review Gate (MANDATORY)
 
-After self-review passes and the plan is saved, dispatch a **reviewer** subagent with the plan file path (and spec path if one exists) for a plan critique:
+After self-review passes and the plan is saved, dispatch a plan critique —
+one `task` call, `agent: "reviewer"`, with the plan and spec handed over as
+`local://` URIs (write the payload once; the reviewer reads it by path) and
+`outputSchema {"status": "Approved|Issues Found", "issues": [{"task": "Task N, Step M", "issue": "specific issue", "why": "why it matters"}]}`.
+Use [plan-document-reviewer-prompt.md](plan-document-reviewer-prompt.md) as the `prompt` body:
+
+Ask it for:
 
 - Wrong problem, work already in the repo, hidden coupling, unhandled failure modes, cost multipliers, acceptance criteria that cannot fail
 - Placeholders, path/type inconsistencies, ordering bugs, spec gaps
@@ -178,8 +184,8 @@ Do NOT proceed to Execution Handoff until the review came back and findings are 
 
 After saving the plan, offer only subagent-driven execution:
 
-**"Plan complete, reviewed, saved to `.omo/plans/<filename>.md`. Recommended execution: subagent-driven. I dispatch a fresh subagent per task and review between tasks. Say `start work` when ready."**
+**"Plan complete, reviewed, saved to `docs/plans/<filename>.md`. Recommended execution: subagent-driven. I dispatch a fresh subagent per task and review between tasks. Say `start work` when ready."**
 
-- **REQUIRED SUB-SKILL:** Use superpowers:subagent-driven-development
+- **REQUIRED SUB-SKILL:** Use `skill://subagent-driven-development`
 - Fresh subagent per task + review between tasks
 - Never suggest starting a new session as an execution alternative.
