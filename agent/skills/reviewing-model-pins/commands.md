@@ -123,13 +123,20 @@ route does not really take images however the catalog is marked.
 
 ## Local measurements: what this machine actually got
 
-`model_perf` is every real session call, not a synthetic benchmark. n≥50 is meaningful.
+`model_perf` aggregates real session calls, not a synthetic benchmark — but it is a
+**decaying rolling window**, so read it as a snapshot with three traps. `samples` is a
+fractional decayed weight, not a count. `ttft_samples` is a *separate, often smaller*
+denominator, so a TTFT average divided by `samples` is wrong. And a model nothing calls
+any more freezes at its last average instead of aging out, which flatters a route that
+was retired for being slow. Select `updated_at` every time; n≥50 is meaningful only
+alongside it.
 
 ```bash
 sqlite3 -header -column ~/.omp/agent/agent.db "
-  select model_key, cast(samples as int) n,
+  select model_key, round(samples,1) n, round(ttft_samples,1) n_ttft,
          round(output_tokens/(gen_ms/1000.0),1) tok_s,
-         round(ttft_ms/ttft_samples) ttft_ms
+         round(ttft_ms/nullif(ttft_samples,0)) ttft_ms,
+         datetime(updated_at,'unixepoch','localtime') updated
   from model_perf where samples >= 10 order by tok_s desc;"
 ```
 

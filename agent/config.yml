@@ -119,8 +119,10 @@ modelRoles:
   # --par 1, while ordinary session calls on the same model succeed. So :high is
   # the one tier that both exists everywhere and has numbers behind it.
   smol: ollama-cloud/glm-5.3-flash:high
-  # gpt-oss:120b is FASTER than the 20b here -- 258.2 tok/s / 706 ms TTFT vs
-  # 77.7 / 1308 ms. Both $0 on the flat plan, so the bigger one is free speed.
+  # gpt-oss:120b is FASTER than the 20b here -- roughly 2.5x the decode rate at
+  # about half the TTFT, on every model_perf read since 2026-09-02, and both are
+  # $0 on the flat plan, so the bigger one is free speed. Constants live in
+  # README's role table: model_perf decays, and these rows move between reads.
   tiny: ollama-cloud/gpt-oss:120b
   # No `designer` and no `librarian` role, deliberately: omp removed the bundled
   # designer subagent AND the built-in `designer` role in 18.1.5 ("`modelRoles.
@@ -156,11 +158,15 @@ modelRoles:
   commit: ollama-cloud/gpt-oss:120b
   # Tripwire, not reviewer. Advisor cost is uncached INPUT (p1 bench: 4.32M in vs
   # 18k out, cacheRead=0), so prefill and TTFT decide this, not reasoning rank.
-  # The "lowest TTFT measured here (1279 ms)" that justified the zai pin is now
-  # false: across real calls zai/glm-5.3-flash measures 5143 ms TTFT / 32.1 tok/s
-  # (n=148) against ollama-cloud/glm-5.3-flash's 2252 ms / 54.4 tok/s (n=428)
-  # -- same model, 2.3x the wait, on the provider that is also out of weekly
-  # quota (agent.db model_perf + omp usage, both 2026-09-10).
+  # The "lowest TTFT measured here (1279 ms)" that justified the zai pin is
+  # false: on the same weights, zai/glm-5.3-flash is slower on both axes than
+  # ollama-cloud/glm-5.3-flash on every model_perf read from 2026-09-10 on, and
+  # zai's row has been frozen since 2026-09-06 -- nothing calls it now, so its
+  # average cannot recover. The multiplier is not worth pinning here: it read
+  # 2.3x on 09-10 and 1.4x on 09-11 as the ollama-cloud row re-averaged, which
+  # is the table decaying, not the route changing. README's role table carries
+  # the dated snapshot. zai's spent week has since reset, so quota no longer
+  # separates them; speed alone carries the pin.
   # Two costs accepted: this shares the ollama-cloud 8-slot queue with task and
   # scout, and ollama-cloud does no prompt caching, so prefill is never cached.
   advisor: ollama-cloud/glm-5.3-flash:high
@@ -172,7 +178,8 @@ modelRoles:
   # rescale. Budget follows the pin: thinkingBudgets.xhigh defaults to 32768
   # against the 65536 set for max below, and `ultrathink` still reaches max.
   # Locally opus-5 also beats fable-5-1, the model at the top of that index, on
-  # both axes: 63.7 tok/s / 2309 ms TTFT (n=255) against 45.0 / 5338 (n=150).
+  # both axes -- about 1.35x the decode rate at under half the TTFT, holding on
+  # every read from 2026-09-10 through 2026-09-11 (model_perf, both rows current).
   default: anthropic/claude-opus-5:xhigh
   # deepseek-v4-flash is out of both roles, on measurement and on vendor notice.
   # Measured 2026-09-10: all four bakeoff calls to ollama-cloud/deepseek-v4-flash
@@ -215,12 +222,15 @@ modelRoles:
   # not an entitlement loss.
   critic: openai-codex/gpt-6-astra:high
   # Same weights as the zai pin it replaces, on the provider with room:
-  # opencode-go reads 0% of its 5-hour and 8% of its weekly allowance against
-  # zai's exhausted week (omp usage, 2026-09-10). Security review is
+  # opencode-go reads 0% of its 5-hour, 11% of its weekly and 7% of its monthly
+  # allowance (omp usage, 2026-09-11); zai's week, exhausted on 2026-09-10, has
+  # since reset, so headroom no longer separates them. Security review is
   # precision-bound and low-volume, so this provider's slower measured route
-  # (41.0 tok/s / 4668 ms on opencode-go/glm-5.2, n=471, the only measured row
-  # here) costs nothing that matters, and it keeps one reviewer off the
-  # ollama-cloud queue that task, scout, smol and advisor now share.
+  # (opencode-go/glm-5.2 at 41.0 tok/s over n=471, 4668 ms TTFT over the 331 of
+  # those samples that carry one -- the only measured row here, and unchanged
+  # since 2026-09-02) costs nothing that matters, and it keeps one reviewer off
+  # the ollama-cloud queue that task, scout, smol, tiny, vision, commit and
+  # advisor now share.
   sentinel: opencode-go/glm-5.3:high
 modelProviderOrder:
   # z.ai first (2026-09-10, user's call, reinstating the 2026-08-27 rule): it is

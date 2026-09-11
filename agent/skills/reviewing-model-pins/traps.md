@@ -130,6 +130,20 @@ order, always from Google AI Studio. Scored naively that is "1/4", a quality ver
 the data does not support. → Read `finish_reason` and `usage` on every failure; an
 upstream error is a reachability finding, not a ranking.
 
+**`model_perf` decays, and a dead row freezes.** The table is a rolling window, not a
+tally: `samples` is a fractional decayed weight (`zai/glm-5.3-flash` reads `148.03125`),
+`ttft_samples` is a separate and smaller denominator (115.8 on that same row, so a TTFT
+average divided by `samples` is ~22% low), and a model nothing routes to any more stops
+updating instead of aging out. The costs, all 2026-09-11: an `n=428` cited from a
+2026-09-10 read of `ollama-cloud/glm-5.3-flash` could not be found at all — the row had
+re-averaged to n=140 and 2252 → 3671 ms, which read as a fabricated number; the same
+row's advisor comparison was live-against-frozen, since zai last moved 2026-09-06 and
+`opencode-go/glm-5.2` 2026-09-02, both flattered by retirement; and `gpt-oss:120b`
+moved 207.7 → 201.9 tok/s *inside one session*, so a constant written into a config
+comment was false before the turn ended. → Select `samples`, `ttft_samples` and
+`updated_at` together (`commands.md`), quote a *direction* in config comments and keep
+dated constants in one place, and treat any frozen row as unscored rather than fast.
+
 **Never time the CLI.** `omp -p` pays ~8 s of startup before a request leaves the
 process: a model with 345 ms TTFT still took 8.48 s that way, which is where a phantom
 "fixed 10 s OpenRouter transport floor" came from. Raw curl answered 1.97–3.49 s. → Use

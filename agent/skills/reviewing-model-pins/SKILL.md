@@ -22,7 +22,7 @@ allowed to be.
 
 | Class | What it is | Sufficient to re-pin? |
 |---|---|---|
-| **M** — measured here | bakeoff execution, `omp bench`, raw `curl` wire timing, `model_perf` with n≥50 | Yes |
+| **M** — measured here | bakeoff execution, `omp bench`, raw `curl` wire timing, `model_perf` with n≥50 *and* a fresh `updated_at` | Yes |
 | **L** — leaderboard read today | Artificial Analysis, OpenRouter rankings; effort tier recorded | Yes, for quality ordering only |
 | **V** — vendor fact | release date, model id spelling, list price, plan availability, modality, deprecation notice | Yes, for facts. Never for quality ordering |
 | **C** — bundled catalog | `omp models` rows: context, output cap, effort ladder, image input | Yes, for capability facts. Never for quality ordering — `int`/`tps` fields are unaudited vendor numbers |
