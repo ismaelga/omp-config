@@ -6,7 +6,7 @@ description: Use the Figma MCP server to fetch design context, screenshots, vari
 
 # Figma MCP
 
-Use the Figma MCP server for Figma-driven implementation. For setup and debugging details (env vars, config, verification), see `references/figma-mcp-config.md`.
+Use the Figma MCP server for Figma-driven implementation. If no Figma MCP tools are mounted, work from an exported screenshot of the node instead: `read <screenshot>.png?q="<question>"` answers specific comparison questions about it as text.
 
 ## Figma MCP Integration Rules
 These rules define how to translate Figma inputs into code for this project and must be followed for every Figma-driven change.
@@ -17,7 +17,7 @@ These rules define how to translate Figma inputs into code for this project and 
 3. Run get_screenshot for a visual reference of the node variant being implemented.
 4. Only after you have both get_design_context and get_screenshot, download any assets needed and start implementation.
 5. Translate the output (usually React + Tailwind) into this project's conventions, styles and framework. Reuse the project's color tokens, components, and typography wherever possible.
-6. Validate against Figma for 1:1 look and behavior before marking complete.
+6. Validate against Figma for 1:1 look and behavior before marking complete: `hub start` the app, `browser.open` the implemented page, `screenshot` it, and compare against the Figma screenshot.
 
 ### Implementation rules
 - Treat the Figma MCP output (React + Tailwind) as a representation of design and behavior, not as final code style.
@@ -26,7 +26,7 @@ These rules define how to translate Figma inputs into code for this project and 
 - Use the project's color system, typography scale, and spacing tokens consistently.
 - Respect existing routing, state management, and data-fetch patterns already adopted in the repo.
 - Strive for 1:1 visual parity with the Figma design. When conflicts arise, prefer design-system tokens and adjust spacing or sizes minimally to match visuals.
-- Validate the final UI against the Figma screenshot for both look and behavior.
+- Validate the final UI against the Figma screenshot for both look and behavior: `hub start` the app, `browser.open` it, `screenshot` it, and compare — `read <built-screenshot>.png?q="<comparison question>"` answers a specific comparison question as text without pulling both images into context.
 
 ### Asset handling
 - The Figma MCP Server provides an assets endpoint which can serve image and SVG assets.
@@ -39,5 +39,4 @@ These rules define how to translate Figma inputs into code for this project and 
 - The client cannot browse the URL but extracts the node ID from the link; always ensure the link points to the exact node/variant you want.
 
 ## References
-- `references/figma-mcp-config.md` — setup, verification, troubleshooting, and link-based usage reminders.
 - `references/figma-tools-and-prompts.md` — tool catalog and prompt patterns for selecting frameworks/components and fetching metadata.

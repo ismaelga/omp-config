@@ -17,4 +17,4 @@ Remove obstacles between the user and the main task without removing necessary c
 - Do not flatten genuinely complex information until it becomes harder to understand.
 - Prefer spacing and alignment over nested cards; prefer plain language over explanatory copy.
 
-Verify that the simplified result still supports the complete task, including its important states, at the relevant screen sizes.
+`browser.open` the simplified result and `screenshot` the important states at the relevant screen sizes; a distillation judged from source is not verified. Confirm it still supports the complete task.

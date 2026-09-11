@@ -6,7 +6,7 @@ disable-model-invocation: true
 
 This skill takes the current conversation context and codebase understanding and produces a spec. Do NOT interview the user; just synthesize what you already know.
 
-The issue tracker and triage label vocabulary should have been provided to you. If not, tell the user to run `/skill:setup-matt-pocock-skills`.
+The tracker is the mounted Linear MCP (`save_issue` with `addLabels`, `blockedBy`); the `ready-for-agent` label already exists — confirm with `list_issue_labels` if unsure.
 
 ## Process
 
@@ -14,9 +14,8 @@ The issue tracker and triage label vocabulary should have been provided to you. 
 
 2. Sketch out the seams at which you're going to test the feature. Existing seams should be preferred to new ones. Use the highest seam possible. If new seams are needed, propose them at the highest point you can. The fewer seams across the codebase, the better - the ideal number is one.
 
-Check with the user that these seams match their expectations.
-
-3. Write the spec using the template below, then publish it to the project issue tracker. Apply the `ready-for-agent` triage label - no need for additional triage.
+Check the seams with one batched `ask` call: one `questions[]` entry per seam, each with 2–5 seam options and `recommended` on the seam you prefer.
+3. Write the spec using the template below, then publish it with `save_issue` (`addLabels: ["ready-for-agent"]`, no additional triage needed) — or `save_document` when the spec belongs in Linear as a document rather than a ticket.
 
 <spec-template>
 

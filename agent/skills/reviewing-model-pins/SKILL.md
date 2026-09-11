@@ -55,9 +55,12 @@ real news.
    live provider call.
 
 4. **Candidates.** For each role, name the newest plausible model reachable on an
-   authenticated provider. Research vendor facts (id spelling per provider, release
-   date, price, plan reachability, modality, deprecation/reroute notices) and read one
-   leaderboard directly, recording the effort tier each score was measured at.
+   authenticated provider. Research vendor facts via `web_search` with `site:`-scoped
+   queries (id spelling per provider, release date, price, plan reachability, modality,
+   deprecation/reroute notices) and `read <vendor notice url>`; read one leaderboard
+   directly, recording the effort tier each score was measured at. For local measured
+   evidence, `read agent.db:model_perf?q=SELECT … model_key, samples, ttft_samples,
+   updated_at …` with a freshness filter on `updated_at`.
 
 5. **Measure only the contested ones.** Most roles are decided by sources plus a wire
    probe, and running a bakeoff for them is wasted wall time: context, price,
@@ -148,7 +151,9 @@ Ranking every role by one intelligence index is the mistake this table prevents.
   or curl.
 - **google-antigravity is refused on terms grounds**, not missing. Do not re-add it.
 
-## Red flags
+- "I could not verify the price / the quota / the route" → one call settles it. `read
+  https://openrouter.ai/api/v1/models` for prices, `omp usage` for quota; keep curl
+  only for latency probes, where the timing is the measurement.
 
 - "I did not run anything, but the index is higher" → that is a watch item, not a re-pin.
 - "I could not verify the price / the quota / the route" → one curl settles it. Run it.

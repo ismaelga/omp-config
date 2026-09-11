@@ -65,7 +65,7 @@ Or ask: "This branch split from main - is that correct?"
 
 ### Step 4: Present Options
 
-**Normal repo and named-branch worktree — present exactly these 4 options:**
+**Normal repo and named-branch worktree — present exactly these 4 options as one `ask` call, `recommended` on merging locally once tests are green:**
 
 ```
 Implementation complete. What would you like to do?
@@ -78,7 +78,7 @@ Implementation complete. What would you like to do?
 Which option?
 ```
 
-**Detached HEAD — present exactly these 3 options:**
+**Detached HEAD — present exactly these 3 options (no merge) the same way:**
 
 ```
 Implementation complete. You're on a detached HEAD (externally managed workspace).
@@ -90,7 +90,7 @@ Implementation complete. You're on a detached HEAD (externally managed workspace
 Which option?
 ```
 
-**Don't add explanation** - keep options concise.
+**Don't add explanation** - keep the option labels and descriptions to the wording above.
 
 ### Step 5: Execute Choice
 
@@ -120,12 +120,7 @@ git branch -d <feature-branch>
 
 #### Option 2: Push and Create PR
 
-```bash
-# Push branch
-git push -u origin <feature-branch>
-```
-
-**Do NOT clean up worktree** — user needs it alive to iterate on PR feedback.
+Push the branch, then use the `github` tool: `pr_push` (forceWithLease if the branch was ever force-pushed), then `pr_create` (`fill` to draw the title/body from commits; `draft` and `reviewer` when the user asked for either), then `run_watch` to watch CI on the opened PR — it fast-fails on the first job failure and saves logs to an artifact.
 
 #### Option 3: Keep As-Is
 

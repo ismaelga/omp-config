@@ -1,6 +1,6 @@
 ---
 name: to-tickets
-description: Break a plan, spec, or the current conversation into a set of tracer-bullet tickets, each declaring its blocking edges, published to the configured tracker (edges as text in one file per ticket locally, or native blocking links on a real tracker).
+description: Break a plan, spec, or the current conversation into a set of tracer-bullet tickets, each declaring its blocking edges, published to a tracker (edges as text in one file per ticket locally, or native blocking links on Linear/GitHub).
 disable-model-invocation: true
 ---
 
@@ -8,13 +8,13 @@ disable-model-invocation: true
 
 Break a plan, spec, or conversation into a set of **tickets**: tracer-bullet vertical slices, each declaring the tickets that **block** it.
 
-The issue tracker and triage label vocabulary should have been provided to you. If not, tell the user to run `/skill:setup-matt-pocock-skills`.
+The tracker is the mounted Linear MCP (`save_issue` with `blockedBy`, `addLabels`, `parentId`); GitHub trackers use the `github` tool ops (`pr_create`, `search_issues`). The `ready-for-agent` label already exists — confirm with `list_issue_labels` if unsure.
 
 ## Process
 
 ### 1. Gather context
 
-Work from whatever is already in the conversation context. If the user passes a reference (a spec path, an issue number or URL) as an argument, fetch it and read its full body and comments.
+Work from whatever is already in the conversation context. If the user passes a reference as an argument, fetch it and read its full body and comments: `issue://N` / `pr://N` for GitHub (with `pr://N/diff` where useful), or `get_issue` + `list_comments` for Linear.
 
 ### 2. Explore the codebase (optional)
 
@@ -47,20 +47,20 @@ Present the proposed breakdown as a numbered list. For each ticket, show:
 - **Blocked by**: which other tickets (if any) must complete first
 - **What it delivers**: the end-to-end behaviour this ticket makes work
 
-Ask the user:
+Put the proposed breakdown in front of the user as one batched `ask` call — a numbered list in prose, then `questions[]` for the three decisions:
 
-- Does the granularity feel right? (too coarse / too fine)
-- Are the blocking edges correct: does each ticket only depend on tickets that genuinely gate it?
-- Should any tickets be merged or split further?
+- granularity (too coarse / too fine), with the option you favour as `recommended`
+- blocking edges (does each ticket only depend on tickets that genuinely gate it?)
+- merge or split candidates, with `multi: true` since several tickets can be merged or split at once
 
-Iterate until the user approves the breakdown.
+Iterate the same way until the user approves the breakdown.
 
-### 5. Publish the tickets to the configured tracker
+### 5. Publish the tickets to the tracker
 
-Publish the approved tickets. **How** depends on the tracker `/skill:setup-matt-pocock-skills` configured; the tickets are the same either way, only the shape of the blocking edges changes:
+Publish the approved tickets. **How** depends on the tracker; the tickets are the same either way, only the shape of the blocking edges changes:
 
 - **Local files** → write one file per ticket under `.scratch/<feature-slug>/issues/<NN>-<slug>.md`, numbered from `01` in dependency order (blockers first). Each file's "Blocked by" lists the numbers/titles it depends on. Use the per-ticket file template below: one ticket per file, never a single combined file.
-- **A real issue tracker (GitHub, Linear, …)** → publish one issue per ticket in dependency order (blockers first) so each ticket's blocking edges can reference real identifiers. Use the platform's native blocking / sub-issue relationship where it has one; otherwise set each ticket's "Blocked by" to the blocking issues. Apply the `ready-for-agent` triage label unless instructed otherwise; the tickets are agent-grabbable by construction.
+- **A real issue tracker** → publish one issue per ticket with `save_issue` in dependency order (blockers first, so each ticket's `blockedBy: [ids]` references real identifiers), passing `addLabels: ["ready-for-agent"]` and `parentId` where a parent exists. GitHub trackers use the `github` tool ops instead; the tickets are agent-grabbable by construction.
 
 Work the **frontier**: any ticket whose blockers are all done. For a purely linear chain that means top to bottom.
 

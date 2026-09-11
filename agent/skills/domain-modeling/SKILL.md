@@ -43,11 +43,11 @@ Create files lazily: only when you have something to write. If no `CONTEXT.md` e
 
 ### Challenge against the glossary
 
-When the user uses a term that conflicts with the existing language in `CONTEXT.md`, call it out immediately. "Your glossary defines 'cancellation' as X, but you seem to mean Y. Which is it?"
+When the user uses a term that conflicts with the existing language in `CONTEXT.md`, call it out immediately — as one `ask` question with one option per meaning ("Your glossary defines 'cancellation' as X, but you seem to mean Y — which is it?"), `recommended` on the meaning the glossary already sanctions.
 
 ### Sharpen fuzzy language
 
-When the user uses vague or overloaded terms, propose a precise canonical term. "You're saying 'account': do you mean the Customer or the User? Those are different things."
+When the user uses vague or overloaded terms, propose a precise canonical term as one `ask` question: each candidate term an option, its `description` carrying what choosing it commits the model to ("'account' as the Customer identity vs. the User record — those are different things"), `recommended` on the sharper term.
 
 ### Discuss concrete scenarios
 
@@ -71,4 +71,6 @@ Only offer to create an ADR when all three are true:
 2. **Surprising without context**: a future reader will wonder "why did they do it this way?"
 3. **The result of a real trade-off**: there were genuine alternatives and you picked one for specific reasons
 
-If any of the three is missing, skip the ADR. Use the format in [ADR-FORMAT.md](./ADR-FORMAT.md).
+If any of the three is missing, skip the ADR. Use the format in [ADR-FORMAT.md](./ADR-FORMAT.md). Once the user accepts an ADR, `retain` its one-line decision plus the file path, so a later session can `recall` it instead of re-litigating the same choice.
+
+

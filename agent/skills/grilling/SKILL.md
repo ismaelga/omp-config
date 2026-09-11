@@ -18,7 +18,7 @@ A round is **one `ask` call**, not a markdown list. The frontier goes in `questi
 | `recommended` | index of your answer. Every question carries one: a frontier question you have no opinion on is one you have not thought about yet |
 | `multi` | `true` where answers can co-exist instead of competing |
 
-The UI appends "Other (type your own)" to every question, so options never box the user in.
+Answering outside the options stays open to the user at all times, so a short option set never boxes them in — and never write your own "Other" option.
 
 A question with no enumerable answers ("what does _done_ look like here?") stays in prose beneath the call — but reach for that rarely. Naming 2–5 concrete answers is most of the work of grilling; a question you cannot option is usually a question you have not sharpened.
 

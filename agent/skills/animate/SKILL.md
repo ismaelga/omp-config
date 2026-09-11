@@ -1,11 +1,11 @@
 ---
 name: animate
-description: Build an animation from scratch, making the decisions in the order that determines whether it feels right — should it animate at all, what purpose, which tool, which properties, which curve and duration, how it interrupts, how it exits. Writes the implementation. Use when asked to animate something, add motion, make a component feel alive, or build a transition. For critiquing existing motion use review-animations; for auditing a whole codebase use improve-animations.
+description: Build an animation from scratch, making the decisions in the order that determines whether it feels right — should it animate at all, what purpose, which tool, which properties, which curve and duration, how it interrupts, how it exits. Writes the implementation. Use when asked to animate something, add motion, make a component feel alive, or build a transition. For critiquing existing motion use review-animations; for UI design grounding use anti-ui-slop.
 ---
 
 # Building Animations
 
-A construction skill. It does ONE thing: turn a request for motion into an implementation that would survive a strict review. It does not audit a codebase (that's `improve-animations`), critique a diff (that's `review-animations`), hunt for places that could animate (that's `find-animation-opportunities`), or build for React Native (that's `animate-expo`).
+A construction skill. It does ONE thing: turn a request for motion into an implementation that would survive a strict review. It does not audit a codebase, critique a diff (that's `review-animations`), or build the surrounding interface (that's `anti-ui-slop` or `emil-design-eng`).
 
 ## Operating Posture
 
@@ -70,7 +70,7 @@ Walk down; stop at the first that fits.
 
 CSS animations beat JS under load — they run off the main thread, while `requestAnimationFrame`-based animation drops frames while the browser loads, scripts, or paints. Use CSS for predetermined motion, JS for dynamic and interruptible motion.
 
-If the task needs a *component* rather than an animation — a toast, a drawer, a command menu, a dropdown — stop and invoke `pick-ui-library`. Hand-rolling those is how you end up with a `<div>` dropdown and no focus management.
+If the task needs a *component* rather than an animation — a toast, a drawer, a command menu, a dropdown — reach for the codebase's existing component library or a headless one (Base UI, Radix) instead of hand-rolling. Hand-rolling those is how you end up with a `<div>` dropdown and no focus management.
 
 ### 4. Pick the properties
 
@@ -190,7 +190,7 @@ Write the code. Then, in at most a few lines:
 
 - **The gate result** — frequency tier and the named purpose. If something in the request was rejected, say which and why.
 - **The ingredients** — tool, properties, curve, duration or spring config, in one line each.
-- **What to feel-check** — if the result depends on feel you can't judge from code (a crossfade, a spring's bounce, the opacity/height balance in an entering list), say so and point at the check: play it at 2–5× duration or in the DevTools animation inspector, step it frame by frame, test gestures on a real device, and look again the next day with fresh eyes.
+- **What to feel-check** — if the result depends on feel you can't judge from code (a crossfade, a spring's bounce, the opacity/height balance in an entering list), say so and point at the check: `hub start` the dev server, `browser.open` the page, then `tab.evaluate(() => document.getAnimations().forEach(a => a.playbackRate = 0.2))` and screenshot per step — this covers CSS transitions/animations and WAAPI, but not a JS library that drives inline styles without registering browser animations, so for those step the driving state in `tab.evaluate` instead. Test gestures on a real device, and look again the next day with fresh eyes.
 
 Don't pad this into a report. The code is the deliverable.
 

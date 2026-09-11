@@ -68,17 +68,15 @@ digraph brainstorming {
 - Before asking detailed questions, assess scope: if the request describes multiple independent subsystems (e.g., "build a platform with chat, file storage, billing, and analytics"), flag this immediately. Don't spend questions refining details of a project that needs to be decomposed first.
 - If the project is too large for a single spec, help the user decompose into sub-projects: what are the independent pieces, how do they relate, what order should they be built? Then brainstorm the first sub-project through the normal design flow. Each sub-project gets its own spec → plan → implementation cycle.
 - For appropriately-scoped projects, ask questions one at a time to refine the idea
-- Prefer multiple choice questions when possible, but open-ended is fine too
-- Only one question per message - if a topic needs more exploration, break it into multiple questions
+- Multiple choice is executed by the `ask` tool: one `ask` call per question, `options[]` carrying the candidate answers with their trade-offs in `description`, and `recommended` set on the option you would pick. Open-ended questions stay in prose.
+- Only one question per message — unlike grilling, which asks the whole frontier in one round, brainstorming's dialogue is deliberately one question at a time: each answer reshapes the next question
 - Focus on understanding: purpose, constraints, success criteria
 - **Facts you look up. Decisions you ask.** Anything the codebase, docs, or a tool can settle is a fact — go find it, never spend a question on it. Anything that trades one thing the user cares about against another is a decision — put it to them and wait. You NEVER answer a decision on the user's behalf, and you NEVER interview yourself: an agent that asks and answers its own design questions has produced a design nobody approved.
 - If the questions are ordered across sessions — you cannot phrase question three until questions one and two are answered, and the chain does not fit one session — this is not a brainstorming session. Use `wayfinding` to chart the effort as a map, then come back per decision.
 
 **Exploring approaches:**
 
-- Propose 2-3 different approaches with trade-offs
-- Present options conversationally with your recommendation and reasoning
-- Lead with your recommended option and explain why
+- Propose the 2-3 approaches as one `ask` call: each approach an `options[]` entry, its trade-offs in `description`, `recommended` on the one you'd lead with; use `preview` for an approach that needs a fuller body than a `description` line
 
 **Presenting the design:**
 
@@ -134,9 +132,8 @@ Wait for the user's response. If they request changes, make them and re-run the 
 
 ## Key Principles
 
-- **One question at a time** - Don't overwhelm with multiple questions
-- **Multiple choice preferred** - Easier to answer than open-ended when possible
-- **YAGNI ruthlessly** - Remove unnecessary features from all designs
+- **One question at a time** - one `ask` call per question; don't batch into a multi-question round
+- **Multiple choice preferred** - when the answers are enumerable, they go in `options[]` via the `ask` tool, easier to answer than open-ended
 - **Explore alternatives** - Always propose 2-3 approaches before settling
 - **Incremental validation** - Present design, get approval before moving on
 - **Be flexible** - Go back and clarify when something doesn't make sense
@@ -148,9 +145,7 @@ A browser-based companion for showing mockups, diagrams, and visual options duri
 **Offering the companion (just-in-time):** Do NOT offer it upfront. Wait until a question would genuinely be clearer shown than told — a real mockup / layout / diagram question, not merely a UI *topic*. The first time that happens, offer it then, as its own message:
 > "This next part might be easier if I show you — I can put together mockups, diagrams, and comparisons in a browser tab as we go. It's still new and can be token-intensive. Want me to? I'll open it for you."
 
-**This offer MUST be its own message.** Only the offer — no clarifying question, summary, or other content. Wait for the user's response. If they accept, start the server with `--open` so their browser opens to the first screen automatically. If they decline, continue text-only and don't offer again unless they raise it.
-
-**Per-question decision:** Even after the user accepts, decide FOR EACH QUESTION whether to use the browser or the terminal. The test: **would the user understand this better by seeing it than reading it?**
+**This offer MUST be its own message.** Only the offer — no clarifying question, summary, or other content. Wait for the user's response. If they accept, start the server with `--open` so their browser opens to the first screen automatically. (The harness can also open and drive the tab itself via `eval`'s `browser` — a real Chromium tab you screenshot directly — so the question is whether the user wants visual treatment, never whether the environment can render it.) If they decline, continue text-only and don't offer again unless they raise it.
 
 - **Use the browser** for content that IS visual — mockups, wireframes, layout comparisons, architecture diagrams, side-by-side visual designs
 - **Use the terminal** for content that is text — requirements questions, conceptual choices, tradeoff lists, A/B/C/D text options, scope decisions

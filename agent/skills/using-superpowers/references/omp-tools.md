@@ -8,14 +8,14 @@ Skills speak in actions ("dispatch a subagent", "create a todo", "read a file").
 | Task tracking ("create a todo", "mark complete") | the `todo` tool |
 | Isolated workspace ("git worktree add …") | `isolated: true` on a `task` item — a dedicated worktree that auto-applies on success |
 | Long-running process, server, or REPL | `hub start {name, application, args[], ready:{log?, port?}}` — never a backgrounded `bash` |
-| Ask the user a question | the `ask` tool — `questions[]` with 2–5 options each; the UI appends "Other (type your own)" |
+| Ask the user a question | the `ask` tool — `questions[]` with 2–5 options each; free-text answers stay open, so never add your own "Other" option |
 | Large payload to a subagent | `local://<name>.md` — subagents read the parent's `local://` root |
 | A subagent's result | `agent://<id>` (full output, `?q=.field` for one field), `history://<id>` for its transcript |
 | Skill addressing | `skill://<name>` — never the `superpowers:` prefix, which resolves to nothing in omp |
 
 ## Subagents
 
-One `task` call takes the whole batch: a shared `context` string plus one item per subagent (`{name, agent, task}`). Items are independent slices; results auto-deliver, no polling. Read-only investigation runs on `scout`. Give each item everything it needs — subagents start blank, with no conversation history.
+One `task` call takes the whole batch: a shared `context` string plus one item per subagent (`{name, agent, task}`). Items are independent slices; a background `task` spawn delivers its result into the conversation on its own, so there is nothing to poll. Read-only investigation runs on `scout`. Give each item everything it needs — subagents start blank, with no conversation history.
 
 ## Long-running processes
 

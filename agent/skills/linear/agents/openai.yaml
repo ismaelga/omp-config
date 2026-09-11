@@ -1,6 +1,0 @@
-display_name: Linear
-short_description: Create and sync Linear issues from docs/TODO.md task IDs.
-default_prompt: |
-  Use the Linear skill to create/update issues for TODO tasks in this repo.
-  Map one [T-###] task ID to one Linear issue.
-  Mirror deps: fields as blocked-by relations.

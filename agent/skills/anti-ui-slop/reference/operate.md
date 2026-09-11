@@ -20,4 +20,4 @@ Product UI should disappear into the task. Familiarity is a feature when users n
 
 ## Finish
 
-Use the interface at representative sizes. Fix the few observable issues that obstruct the task or break consistency. Do not redesign working areas outside the requested scope.
+`browser.open` the interface at representative sizes and `click`/`fill` through the primary task at each size, judging what actually renders rather than the source. Fix the few observable issues that obstruct the task or break consistency. Do not redesign working areas outside the requested scope.

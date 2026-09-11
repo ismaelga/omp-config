@@ -155,10 +155,11 @@ fanning out CLI invocations.
 
 **A bakeoff in an eval cell dies with the kernel.** An 18-call run returned
 `[kernel] Python kernel shutdown` and every raw model output went with it — nothing
-re-scorable, nothing to show for the wall time. → Write the harness to a file, run it as
-a background `bash` job, and append each finished call to a JSONL as it lands. A silent
-job is still checkable: `lsof -p <pid> -a -i -nP | grep -c ESTABLISHED` counts requests
-in flight, and 0% CPU on a network-bound run is health, not a hang.
+re-scorable, nothing to show for the wall time. → Write the harness to a file, run it
+via `hub start` with a `ready` condition, and append each finished call to a JSONL as
+it lands. A silent job is still checkable: `hub logs {name, follow: true, cursor}`
+tails it from the last read cursor, and 0% CPU on a network-bound run is health, not
+a hang.
 
 **`omp bench` has its own path, and it fails where sessions do not.** zai returns 429
 `[1310] Weekly/Monthly Limit Exceeded` on every bench run even at `--par 1`; every
@@ -200,8 +201,10 @@ defaults to true on APFS, so `[a-z]` matched `Q`. Set it false. One real mismatc
 survived and was also not a semantic difference — git ignores children of an ignored
 directory, so `/*` "matches" `a/b`.
 
-**Read-only sqlite on a WAL database returns empty tables.** `mode=ro` on `agent.db`
-shows nothing. Use a read-write handle, or copy `.db` + `-wal` + `-shm` together.
+**A hand-copied sqlite handle is what fails on a WAL database.** Copying only
+`agent.db` misses the `-wal` and `-shm` siblings, so the copy shows stale or empty
+tables. → Use the `read` tool's SQLite selector (`read agent.db:model_perf?q=SELECT
+…`), which opens the live database and handles WAL correctly.
 
 **Catalog `int`/`tps` fields are not measurements.** They are vendor-supplied numbers
 carried in the bundled catalog. Quoting them as evidence for a quality ordering is the
@@ -209,10 +212,11 @@ most common way this review goes wrong.
 
 ## Sources
 
-**Leaderboards are client-rendered.** OpenRouter's Coding Index does not exist in static
-HTML: scroll `#benchmarks` into view, then read the React fiber props. A plain fetch
-greps zero hits and looks like an empty leaderboard. Artificial Analysis is the same
-class of page.
+**Leaderboards are client-rendered.** OpenRouter's Coding Index does not exist in
+static HTML: a plain fetch greps zero hits and looks like an empty leaderboard.
+Artificial Analysis is the same class of page. → `eval`'s `browser`:
+`browser.open`, wait for the render, `tab.scrollIntoView`/`tab.evaluate` to reach
+`#benchmarks`, `tab.ariaSnapshot()` to read what actually rendered.
 
 **Slugs and pages disappear.** AA's `artificial-analysis-coding-index` evaluation page is
 retired; `qwen3-5-flash` 404s where `qwen3-5-omni-flash` resolves. A 404 is a wrong

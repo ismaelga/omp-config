@@ -147,9 +147,9 @@ sqlite3 -header -column ~/.omp/agent/agent.db "
   select provider, sum(cost) spend, min(date(created_at/1000,'unixepoch')) from usage_cost_history group by provider;"
 ```
 
-Reading a WAL database read-only shows empty tables. Either use the commands above
-(read-write handle) or copy `agent.db`, `agent.db-wal`, `agent.db-shm` to a temp dir and
-open the copy.
+Read the tables with the `read` tool's SQLite selector
+(`read agent.db:model_perf?q=SELECT …`), which opens the live database and handles WAL
+correctly — no read-write handle or file copy needed.
 
 ## Latency and throughput: `omp bench`
 
@@ -183,10 +183,11 @@ cd /tmp && omp bench <every-link-selector-without-effort-suffix> --profile chat 
 
 ## Bakeoff: execution-scored coding comparison
 
-The shape that decided the `task` pin. Write it to a **file** and run it as a
-background `bash` job — never `omp -p` fan-out (concurrent CLI processes deadlock) and
-never a long eval cell (the kernel can die mid-run and take every raw output with it,
-which is exactly how one pass lost 18 scored calls).
+The shape that decided the `task` pin. Write it to a **file** and run it via `hub start`
+(`{name, application, args, ready: {log, timeout}}`) — never `omp -p` fan-out
+(concurrent CLI processes deadlock) and never a long eval cell (the kernel can die
+mid-run and take every raw output with it, which is exactly how one pass lost 18
+scored calls).
 
 1. Pick 2 problems shaped like the harness's own work (a unified-diff generator, a glob
    matcher — both small, both with brutal edge cases).
@@ -219,7 +220,8 @@ which is exactly how one pass lost 18 scored calls).
    fresh cost. Append the row before writing the text, or a write that throws costs
    you the whole record: a model id containing `/` did exactly that here, killing a
    run mid-flight on a path that did not exist.
-   Progress of a silent job: `lsof -p <pid> -a -i -nP | grep -c ESTABLISHED`.
+   Progress of a silent job: `hub logs {name, follow: true, cursor}` — tail from the
+   last read cursor instead of guessing at `lsof`.
 6. Record: pass count, wall time, output tokens (verbosity is a latency cost), and
    whether reasoning mode returned code at all.
 

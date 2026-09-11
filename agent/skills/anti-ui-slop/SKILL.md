@@ -53,4 +53,4 @@ Read `references/uizze-reference-policy.md` before using the paid MCP. It expose
 
 ## Finish
 
-Complete the requested scope. When the environment supports it, render and inspect once. Fix observable breakage such as clipping, overlap, distorted media, inaccessible controls, or inert interactions. Keep the handoff concise.
+Complete the requested scope. Render and inspect once: open the page with `eval`'s `browser` global (`browser.open`), then `screenshot` and `observe` it. Fix observable breakage such as clipping, overlap, distorted media, inaccessible controls, or inert interactions. Keep the handoff concise.

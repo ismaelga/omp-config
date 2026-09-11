@@ -638,7 +638,7 @@ Keep stagger delays short (30-80ms between items). Long delays make the interfac
 
 ### Slow motion testing
 
-Play animations at reduced speed to spot issues invisible at full speed. Temporarily increase duration to 2-5x normal, or use browser DevTools animation inspector to slow playback.
+Play animations at reduced speed to spot issues invisible at full speed. In `eval`, `browser.open` the page and `tab.evaluate` to set `playbackRate` on `document.getAnimations()` — no temporary duration edit to undo — then `screenshot` each checklist item.
 
 Things to look for in slow motion:
 
@@ -649,11 +649,11 @@ Things to look for in slow motion:
 
 ### Frame-by-frame inspection
 
-Step through animations frame by frame in Chrome DevTools (Animations panel). This reveals timing issues between coordinated properties that you cannot see at full speed.
+Step through animations frame by frame with `tab.evaluate`: advance `animation.currentTime` incrementally and `screenshot` after each step. This reveals timing issues between coordinated properties that you cannot see at full speed.
 
 ### Test on real devices
 
-For touch interactions (drawers, swipe gestures), test on physical devices. Connect your phone via USB, visit your local dev server by IP address, and use Safari's remote devtools. The Xcode Simulator is an alternative but real hardware is better for gesture testing.
+For touch interactions (drawers, swipe gestures), test on physical devices. Serve the dev server with `hub start` (`ready.port` for readiness detection) and drive it with the browser; connect a phone over USB or use the Xcode Simulator — real hardware is better for gesture testing.
 
 ## Review Checklist
 

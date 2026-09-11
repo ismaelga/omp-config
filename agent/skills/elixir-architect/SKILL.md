@@ -38,14 +38,14 @@ Invoke this skill when you need to:
 
 ### Phase 1: Gather Requirements
 
-Ask the user these essential questions:
+Ask these essential questions as one `ask` call — `questions[]` with one entry per topic, `recommended` set on every closed question:
 
 1. **Project Domain**: What is the system for? (e.g., task management, e-commerce, SaaS, messaging platform)
 2. **Tech Stack**: Confirm Elixir + OTP + Ash + Oban + Phoenix + LiveView?
 3. **Project Location**: Where should files be created? (provide absolute path)
-4. **Structure Style**: Dave Thomas path-based dependencies or umbrella app?
+4. **Structure Style**: Dave Thomas path-based dependencies or umbrella app? (recommended: Dave Thomas path-based dependencies)
 5. **Special Requirements**:
-   - Multi-tenancy needed?
+   - Multi-tenancy needed? (recommended: no)
    - Event sourcing or CQRS?
    - External integrations (payment processors, APIs)?
    - Real-time features (WebSockets, LiveView)?
@@ -53,9 +53,11 @@ Ask the user these essential questions:
 6. **Scale Targets**: Expected load, users, transactions per second?
 7. **AI Collaboration**: Will Director and Implementor AIs be used?
 
+Closed questions (Structure Style, Multi-tenancy) get their two answers as `options`; open ones keep a short option set — the UI appends "Other (type your own)" automatically.
+
 ### Phase 2: Expert Consultation
 
-Launch parallel Task agents to research:
+Dispatch one `task` call with `tasks[]` items, all on `agent: scout` (read-only research) with a shared `context` describing the project domain and stack; results auto-deliver:
 
 1. **Domain Patterns** - Research similar systems and proven architectures
 2. **Framework Best Practices** - Ash Framework, Oban, Phoenix patterns
@@ -63,7 +65,7 @@ Launch parallel Task agents to research:
 4. **Structure Analysis** - Study Dave Thomas's multi-app approach
 5. **Superpowers Framework** - If handoff docs needed, research task breakdown format
 
-Example Task invocations:
+Example task batch:
 ```
 Task 1: Research [domain] architecture patterns and data models
 Task 2: Analyze Ash Framework resource patterns, extensions, and best practices

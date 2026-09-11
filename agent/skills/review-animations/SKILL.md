@@ -109,4 +109,4 @@ Be specific and cite `file:line`. When a value is needed (a curve, a duration, a
 ## Guidelines
 
 - Prefer CSS transitions/`@starting-style`/WAAPI for predetermined motion; JS/springs for dynamic, interruptible, gesture-driven motion.
-- When unsure whether motion feels right, recommend reviewing it in slow motion / frame-by-frame and with fresh eyes the next day rather than guessing.
+- When unsure whether motion feels right, review it in slow motion before judging: `browser.open` the page and `tab.evaluate` to set `playbackRate` down (or step `currentTime`), `screenshot` each frame, and look again with fresh eyes the next day rather than guessing.

@@ -20,4 +20,4 @@ Start from the product, not from a style trend. Read the brief, existing compone
 
 ## Verify once
 
-Render the result at the relevant sizes when the environment supports it. Fix observable clipping, overlap, distorted media, inaccessible controls, broken focus, unreadable hierarchy, or inert interactions. Stop when the requested interface works and feels coherent; do not add a separate ceremony around the work.
+Render the result with the browser global from `eval`: `browser.open` the page and `screenshot` it at a desktop and a mobile viewport. Fix observable clipping, overlap, distorted media, inaccessible controls, broken focus, unreadable hierarchy, or inert interactions. Stop when the requested interface works and feels coherent; do not add a separate ceremony around the work.

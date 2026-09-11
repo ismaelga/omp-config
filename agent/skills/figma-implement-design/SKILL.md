@@ -17,25 +17,16 @@ This skill provides a structured workflow for translating Figma designs into pro
 - User must provide a Figma URL in the format: `https://figma.com/design/:fileKey/:fileName?node-id=1-2`
   - `:fileKey` is the file key
   - `1-2` is the node ID (the specific component or frame to implement)
-- **OR** when using `figma-desktop` MCP: User can select a node directly in the Figma desktop app (no URL required)
+- **If no Figma MCP is mounted** (the default in omp): figma tools are unavailable unless a figma server is added to `~/.omp/agent/mcp.json`. You can still work from an exported screenshot of the node — `read <screenshot>.png?q="<question>"` answers specific questions about it as text.
 - Project should have an established design system or component library (preferred)
 
 ## Required Workflow
 
 **Follow these steps in order. Do not skip steps.**
 
-### Step 0: Set up Figma MCP (if not already configured)
+### Step 0: Check for Figma MCP tools
 
-If any MCP call fails because Figma MCP is not connected, pause and set it up:
-
-1. Add the Figma MCP:
-   - `codex mcp add figma --url https://mcp.figma.com/mcp`
-2. Enable remote MCP client:
-   - Set `[features].rmcp_client = true` in `config.toml` **or** run `codex --enable rmcp_client`
-3. Log in with OAuth:
-   - `codex mcp login figma`
-
-After successful login, the user will have to restart codex. You should finish your answer and tell them so when they try again they can continue with Step 1.
+If any MCP call fails because no Figma MCP tools are mounted, do not attempt Codex-style setup (`codex mcp add`, `rmcp_client` flags) — omp mounts MCP servers from `~/.omp/agent/mcp.json`, which has no figma entry here. Tell the user a figma server must be added there, and meanwhile work from an exported screenshot of the node: `read <screenshot>.png?q="<question>"` for layout, typography, color, and component structure questions.
 
 ### Step 1: Get Node ID
 
@@ -50,7 +41,7 @@ When the user provides a Figma URL, extract the file key and node ID to pass as 
 - **File key:** `:fileKey` (the segment after `/design/`)
 - **Node ID:** `1-2` (the value of the `node-id` query parameter)
 
-**Note:** When using the local desktop MCP (`figma-desktop`), `fileKey` is not passed as a parameter to tool calls. The server automatically uses the currently open file, so only `nodeId` is needed.
+**Note:** No `figma-desktop` MCP variant is mounted or configurable in omp — a URL is always required.
 
 **Example:**
 
@@ -58,11 +49,6 @@ When the user provides a Figma URL, extract the file key and node ID to pass as 
 - File key: `kL9xQn2VwM8pYrTb4ZcHjF`
 - Node ID: `42-15`
 
-#### Option B: Use Current Selection from Figma Desktop App (figma-desktop MCP only)
-
-When using the `figma-desktop` MCP and the user has NOT provided a URL, the tools automatically use the currently selected node from the open Figma file in the desktop app.
-
-**Note:** Selection-based prompting only works with the `figma-desktop` MCP server. The remote server requires a link to a frame or layer to extract context. The user must have the Figma desktop app open with a node selected.
 
 ### Step 2: Fetch Design Context
 
@@ -133,7 +119,7 @@ Strive for pixel-perfect visual parity with the Figma design.
 
 ### Step 7: Validate Against Figma
 
-Before marking complete, validate the final UI against the Figma screenshot.
+Before marking complete, validate the final UI against the Figma screenshot from Step 3: `hub start` the dev server, then `browser.open` the built page and `screenshot` it at mobile and desktop viewports; use `tab.observe()` for interactive state.
 
 **Validation checklist:**
 
@@ -212,7 +198,7 @@ Never implement based on assumptions. Always fetch `get_design_context` and `get
 
 ### Incremental Validation
 
-Validate frequently during implementation, not just at the end. This catches issues early.
+Validate frequently during implementation, not just at the end: after each component, `screenshot`/`observe` it on the running dev server and compare against the Step 3 screenshot. This catches issues early.
 
 ### Document Deviations
 

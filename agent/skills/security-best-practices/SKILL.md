@@ -30,7 +30,7 @@ From there it can operate in a few ways.
 
 2. The secondary mode is to passively detect vulnerabilities while working in the project and writing code for the user. Critical or very important vulnerabilities or major issues going against security guidance can be flagged and the user can be told about them. This passive mode should focus on the largest impact vulnerabilities and secure defaults.
 
-3. The user can ask for a security report or to improve the security of the codebase. In this case a full report should be produced describe anyways the project fails to follow security best practices guidance. The report should be prioritized and have clear sections of severity and urgency. Then offer to start working on fixes for these issues. See #fixes below.
+3. The user can ask for a security report or to improve the security of the codebase. In this case a full report should be produced describe anyways the project fails to follow security best practices guidance. The report should be prioritized and have clear sections of severity and urgency. For a whole-codebase report, dispatch a `task` batch on `agent: security-reviewer` with an `outputSchema` pinning the findings shape (numeric ID, severity, file, line, description, suggested fix), so the sweep runs out-of-context and only the structured findings land back here. Then offer to start working on fixes for these issues. See #fixes below.
 
 ## Workflow Decision Tree
 
@@ -62,9 +62,7 @@ Also tell the user where the final report was written to
 
 # Fixes
 
-If you produced a report, let the user read the report and ask to begin performing fixes.
-
-If you passively found a critical finding, notify the user and ask if they would like you to fix this finding.
+If you produced a report, let the user read the report, then present the fixes as one `ask` call with `multi: true` — one option per finding ID, `recommended` on the critical set. If you passively found a critical finding, notify the user and offer it as a single-question `ask` with `recommended` on yes.
 
 When producing fixes, focus on fixing a single finding at a time. The fixes should have concise clear comments explaining that the new code is based on the specific security best practice, and perhaps a very short reason why it would be dangerous to not do it in this way.
 

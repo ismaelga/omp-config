@@ -177,9 +177,9 @@ Reduced motion means fewer and gentler animations, not zero — keep transitions
 
 ## Debugging (recommend in reviews when feel is uncertain)
 
-- **Slow motion**: bump duration 2–5× or use DevTools animation inspector. Check colors crossfade cleanly, easing doesn't stop abruptly, `transform-origin` is right, coordinated properties stay in sync.
-- **Frame-by-frame**: Chrome DevTools Animations panel reveals timing drift between coordinated properties.
-- **Real devices** for gestures (drawers, swipe) — connect a phone, hit the dev server by IP, use Safari remote devtools.
+- **Slow motion**: `tab.evaluate` to set `playbackRate` down on `document.getAnimations()` live — no source edit to undo. Check colors crossfade cleanly, easing doesn't stop abruptly, `transform-origin` is right, coordinated properties stay in sync.
+- **Frame-by-frame**: `tab.evaluate` to step `animation.currentTime` incrementally, `screenshot` per step — this reveals timing drift between coordinated properties that full speed hides.
+- **Real devices** for gestures (drawers, swipe) where touch behavior or device GPU is what's in question; serve the app with `hub start` (`ready.port`) and drive it with `browser` instead of hand-rolling an IP-accessible server for Safari remote devtools.
 - **Fresh eyes next day** — imperfections invisible during development surface later.
 
 ## Cohesion

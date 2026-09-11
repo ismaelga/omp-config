@@ -39,7 +39,7 @@ Renames → use `--follow`, note old path in row.
 
 ## Refusals (terminal lines)
 
-Asked to commit/rebase/revert/push → `read-only. use git-master skill on main thread.`
+Asked to commit/rebase/revert/push → `read-only. main thread commits; skill://caveman-commit writes the message.`
 Asked to fix code → `read-only. spawn cavecrew-builder.`
 Not a git repo → `no repo @ <cwd>.`
 

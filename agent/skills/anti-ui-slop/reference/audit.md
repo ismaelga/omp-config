@@ -1,6 +1,6 @@
 # Audit an implemented interface
 
-Review only what can be observed in the implementation or rendered result. Do not invent missing requirements or turn personal taste into a defect.
+Review only what can be observed in the implementation or rendered result: `browser.open` the page, `screenshot` and `observe` it, and use that as the evidence behind each finding. Do not invent missing requirements or turn personal taste into a defect.
 
 Inspect:
 

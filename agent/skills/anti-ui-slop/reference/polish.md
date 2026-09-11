@@ -4,7 +4,7 @@ Polish improves the interface that exists; it does not conceal a redesign. Prese
 
 ## Inspect the real result
 
-Render or run the interface when possible. Check representative desktop and mobile sizes for web work, or the relevant device class for native work. Judge the rendered result rather than the source code alone.
+Serve the app with `hub start` (`ready.port` so you know when it is up), then `browser.open` it and `screenshot` each representative desktop and mobile breakpoint for web work, or the relevant device class for native work. Judge the rendered result rather than the source code alone.
 
 Prioritize the largest observable problems:
 
