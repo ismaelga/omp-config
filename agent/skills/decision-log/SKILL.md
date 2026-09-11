@@ -38,7 +38,7 @@ Lightweight ADR (Architecture Decision Record), 5 sections, <100 words total:
 **Consequences:** <What this commits us to / closes off, 1-2 sentences>
 ```
 
-That's it. 5 sections. < 100 words. Stored in `.omo/decisions/` or `docs/decisions/`. Then `retain` the one-line decision plus the file path — a file only helps a session that thinks to look; memory brings it to the next session that logs in the same area. Before logging a new decision, `recall` on the topic so you supersede the old entry rather than duplicate it.
+That's it. 5 sections. < 100 words. Stored in `docs/decisions/`. Then `retain` the one-line decision plus the file path — a file only helps a session that thinks to look; memory brings it to the next session that logs in the same area. Before logging a new decision, `recall` on the topic so you supersede the old entry rather than duplicate it.
 
 ## When to write a decision
 
@@ -113,7 +113,7 @@ Don't delete. Mark the old one Superseded-by and create a new entry. The history
 
 ## Naming
 
-`DEC-NNN-short-title.md` in `.omo/decisions/` or `docs/decisions/`.
+`DEC-NNN-short-title.md` in `docs/decisions/`.
 
 `NNN` is sequential, never reused. If DEC-007 is superseded, DEC-007 stays in place (marked Superseded), DEC-024 is the new one.
 
@@ -145,7 +145,7 @@ Roughly the categories that matter:
 ## Integration with your skills
 
 - **`writing-plans`** (superpowers) → Plans should reference relevant ADRs
-- **`.omo/specs/`** → A spec's "decisions" section can reference ADRs
+- **`docs/specs/`** → A spec's "decisions" section can reference ADRs
 - **`pre-mortem`** → Surface decisions that should be ADR'd before they're forgotten
 - **repo `AGENTS.md`** (auto-loaded by omp) → link to the decision log so every session starts knowing it exists.
 

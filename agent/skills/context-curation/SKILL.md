@@ -42,7 +42,7 @@ Keep canon in front. Push scratch behind. When in doubt about what to keep, ask:
 
 ### 4. Externalize before the context burns
 
-If a piece of information is important and might be needed later, externalize it BEFORE the context gets compacted. Real targets: a file on disk (AGENTS.md, a planning doc, a scratch file in `.omo/`); `local://<name>.md` when a subagent must read it; `artifact://<id>` for tool output that already spilled (spilled output is recoverable, not lost — page it back with `:N-M`). Files and artifacts persist, context doesn't.
+If a piece of information is important and might be needed later, externalize it BEFORE the context gets compacted. Real targets: a file on disk (AGENTS.md, a planning doc, a scratch file in `docs/`); `local://<name>.md` when a subagent must read it; `artifact://<id>` for tool output that already spilled (spilled output is recoverable, not lost — page it back with `:N-M`). Files and artifacts persist, context doesn't.
 
 ## When to curate
 

@@ -32,7 +32,7 @@ Cavecrew = fourteen subagent presets emitting caveman receipts. Same jobs as van
 | "Who wrote X / when added / which commit broke Z" | `cavecrew-githistorian` |
 | Commit, rebase, squash, push | Main thread, or `skill://caveman-commit` for the commit message |
 | External library or API facts | `task` (vanilla) |
-| Review plan in `.omo/plans/` | `cavecrew-plancritic` (pair with Momus) |
+| Review plan in `docs/plans/` | `cavecrew-plancritic` (pair with Momus) |
 | One problem, several defensible answers | `skill://diverge-converge` — fan lenses, converge here |
 | Answer you already know | Main thread, no subagent |
 

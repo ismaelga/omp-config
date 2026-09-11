@@ -63,7 +63,7 @@ modelRoles:
   # wrote (41 of 42 testable cases agreed; the one disagreement is git ignoring
   # children of an ignored directory).
   # Raw evidence (every scored call, its response text, and the harness that ran
-  # them): .omo/research/model-selection/bakeoff-2026-09-11/.
+  # them): docs/research/model-selection/bakeoff-2026-09-11/.
   # 2026-09-11, think=high, 2 samples per model per problem, 6 workers, read cap
   # raised to 1500 s after two 700 s "timeouts" turned out to be the cap itself:
   #   ollama-cloud/glm-5.3-flash        4/4  median 111 s  4.7K-22.6K out tokens

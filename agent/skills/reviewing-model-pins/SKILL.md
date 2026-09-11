@@ -170,5 +170,5 @@ Ranking every role by one intelligence index is the mistake this table prevents.
 - `commands.md` — runnable verification commands: catalog, price, latency, perf,
   link audit, config validation, bakeoff harness shape.
 - `traps.md` — known failure modes, each as symptom → cause → detection.
-- `~/.omp/.omo/research/model-selection/` — prior decision docs; `00-decision.md` holds
+- `~/.omp/docs/research/model-selection/` — prior decision docs; `00-decision.md` holds
   the role-bottleneck reasoning and the advisor economics.

@@ -35,7 +35,7 @@ until you can.
 
 ## The map
 
-One file, canonical, human-editable: `.omo/maps/YYYY-MM-DD-<effort>.md`.
+One file, canonical, human-editable: `docs/maps/YYYY-MM-DD-<effort>.md`.
 
 The map is an **index**, not a store. Each resolved question keeps its detail in its own
 resolution block; the index carries a one-line gist so a fresh session can judge relevance
@@ -158,10 +158,10 @@ Recording a resolution means: write the resolution block, move the question into
 The map is done when **Open questions**, **Blocked**, and **Not yet specified** are all empty.
 Then, in a fresh session:
 
-1. Write the spec from **Decisions so far** to `.omo/specs/YYYY-MM-DD-<effort>-design.md`. Every
+1. Write the spec from **Decisions so far** to `docs/specs/YYYY-MM-DD-<effort>-design.md`. Every
    decision carries its resolution gist — a spec that drops the reasoning gets re-litigated
    during implementation.
-2. `writing-plans` → `.omo/plans/`, then `subagent-driven-development`.
+2. `writing-plans` → `docs/plans/`, then `subagent-driven-development`.
 
 If the map stalls — the same question reopens twice, or the destination moves — the destination
 was wrong. Redraw it as a fresh effort; do not resume a map whose destination changed.

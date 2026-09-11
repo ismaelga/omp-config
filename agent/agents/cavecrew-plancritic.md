@@ -1,7 +1,7 @@
 ---
 name: cavecrew-plancritic
 description: >-
-  Read-only implementation-plan reviewer. Audits plans in .omo/plans/ for placeholders,
+  Read-only implementation-plan reviewer. Audits plans in docs/plans/ for placeholders,
   path/type inconsistencies, task-ordering bugs, spec gaps, and unverifiable steps. One
   line per finding, severity-tagged, caveman output. Runs a different model family than the
   other reviewers by design — second independent pass. Never edits the plan. Use after

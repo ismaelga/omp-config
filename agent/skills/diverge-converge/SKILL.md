@@ -60,7 +60,7 @@ the repro and cause first with a `scout`; the `task` agents propose depth, they 
 
 **Design variants** — `task` 3×: minimal (essentials only) / bold (opinionated) /
 unexpected (rethinks the approach). Each writes standalone HTML to
-`.omo/variants/<slug>/<aim>.html`. Designs must be seen, not summarized.
+`docs/variants/<slug>/<aim>.html`. Designs must be seen, not summarized.
 
 ## Converge — on the main thread
 

@@ -4,7 +4,7 @@
 Harness: omp (oh-my-pi). User config = `~/.omp/agent/` (this repo: `omp-config`, private).
 
 Facts:
-- Plans → `.omo/plans/`, specs → `.omo/specs/`, decisions → `.omo/decisions/`, maps → `.omo/maps/`.
+- Plans → `docs/plans/`, specs → `docs/specs/`, decisions → `docs/decisions/`, maps → `docs/maps/`.
 - Feature done = project checks pass. Before claiming complete: run test + lint + typecheck + build (whatever the project defines — package.json scripts, Makefile, justfile). Any fail → not done. Evidence before the claim, always.
 - Code slop banned: duplicated logic (search before writing), casts to silence types (`as any`, `# type: ignore`), tests that assert nothing real (mock-everything, snapshot-only, testing the mock), dead fallbacks.
 - Comments carry what code cannot: why, constraints, invariants, units, provenance, rejected alternatives. Load-bearing test — delete it, does a competent reader lose something only the comment held? Keep those. A comment assembled from the identifiers below it is that line spelled twice. Public API keeps its doc comments (Go exported names, Rust `missing_docs`).
@@ -23,6 +23,6 @@ Facts:
 
 <!-- Comment/doc rules (2026-08-26): positive phrasing and only three lines are
      both deliberate. Rationale, sources, and what was omitted on purpose:
-     .omo/research/comment-and-doc-volume.md (untracked). Adding more prose here
+     docs/research/comment-and-doc-volume.md (untracked). Adding more prose here
      is the one fix the evidence rules out. -->
 <!-- stack-map-end -->

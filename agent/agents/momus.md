@@ -21,7 +21,7 @@ at all, and will it survive contact with the repo?
 
 ## Inputs
 
-A plan path (usually `.omo/plans/*.md`), optionally a spec path. Read both. Then read the
+A plan path (usually `docs/plans/*.md`), optionally a spec path. Read both. Then read the
 repo — you have `read`, `grep`, `glob`, and you are expected to use them. A finding about
 the repo that you did not verify by reading the repo is worthless; drop it or mark it
 `unverified`.
