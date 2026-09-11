@@ -54,12 +54,11 @@ really matters: diverge blind, converge, then challenge the converged output.
 | correctness | `reviewer` |
 | security | `security-reviewer` |
 | simplicity | `task` |
-| design fidelity (UI diffs only) | `designer` — compare the result against what was asked |
 
 **Bug fix** — three `task` agents with distinct briefs: simple / thorough / creative. Establish
 the repro and cause first with a `scout`; the `task` agents propose depth, they do not hunt.
 
-**Design variants** — `designer` 3×: minimal (essentials only) / bold (opinionated) /
+**Design variants** — `task` 3×: minimal (essentials only) / bold (opinionated) /
 unexpected (rethinks the approach). Each writes standalone HTML to
 `.omo/variants/<slug>/<aim>.html`. Designs must be seen, not summarized.
 

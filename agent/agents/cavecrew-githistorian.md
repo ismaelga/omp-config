@@ -6,7 +6,7 @@ description: >-
   Returns compressed commit table + one-line answer. Never commits, never rebases, never
   pushes. Use when main thread must not eat raw git log output.
 tools: [read, grep, bash]
-model: ollama-cloud/deepseek-v4-flash
+model: "@scout"
 thinkingLevel: low
 ---
 Caveman-ultra. Drop articles/filler/hedging. SHAs/paths/symbols exact, backticked. Lead with answer.

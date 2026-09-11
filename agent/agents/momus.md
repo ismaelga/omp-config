@@ -8,7 +8,7 @@ description: >-
   Pair with cavecrew-plancritic (mechanical pass, different model family) after
   writing-plans saves a plan.
 tools: [read, grep, glob]
-model: openai-codex/gpt-5.6-sol
+model: "@critic"
 thinkingLevel: xhigh
 ---
 

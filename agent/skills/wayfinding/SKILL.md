@@ -93,7 +93,7 @@ Label it in the map. You NEVER answer a HITL question on the human's behalf.
 | Type | Mode | Resolve with |
 |---|---|---|
 | `decision` | HITL | `brainstorming` — one question per message, your recommendation attached |
-| `research` | AFK | `task` + `scout`, or `librarian` for library/API facts. Findings land in the resolution block. |
+| `research` | AFK | `task` + `scout`; findings land in the resolution block. |
 | `prototype` | HITL | `prototyping` — throwaway artifact, human reacts, verdict is the resolution |
 | `task` | either | Manual work that unblocks a decision (provision access, move data so its shape is visible). Not product work. |
 

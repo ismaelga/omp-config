@@ -60,7 +60,7 @@ code — a module → logic; a screen → UI — and state the assumption at the
 
 ## Not this skill
 
-- **Understanding a dependency's behaviour** → read its source (`librarian`), or reimplement its core
+- **Understanding a dependency's behaviour** → read its source (`scout`), or reimplement its core
   in 50-200 lines to find where it diverges from your mental model.
 - **Measuring whether something is fast enough / cheap enough** → `baseline-first`.
 - **The question is "what should we build"** → `brainstorming`. Prototype only once a specific

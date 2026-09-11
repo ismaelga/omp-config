@@ -5,7 +5,7 @@ description: >
   Routing guide for the caveman subagent fleet. INERT: all 14 cavecrew-* agents
   and momus are listed in task.disabledAgents, so none can spawn. Kept for
   reference and for the day the fleet is re-enabled; use omp's bundled agents
-  (task, scout, reviewer, security-reviewer, designer, librarian) instead.
+  (task, scout, reviewer, security-reviewer) instead.
 ---
 
 Cavecrew = fourteen subagent presets emitting caveman receipts. Same jobs as vanilla agents; the difference is receipt size, so main context lasts longer per delegation. Most run on the flat ollama-cloud tier, so fanning out wide costs latency, not money. Two ride the chatgpt plan on purpose: `cavecrew-challenger`, for model-family divergence against reviewer, and `cavecrew-sentinel`, because a security audit is long-context recall over a diff plus its callers.
@@ -31,7 +31,7 @@ Cavecrew = fourteen subagent presets emitting caveman receipts. Same jobs as van
 | Injection / authz / secrets, trust boundary in scope | `cavecrew-sentinel` |
 | "Who wrote X / when added / which commit broke Z" | `cavecrew-githistorian` |
 | Commit, rebase, squash, push | `git-master` on main thread |
-| External library or API facts | `librarian` (vanilla) |
+| External library or API facts | `task` (vanilla) |
 | Review plan in `.omo/plans/` | `cavecrew-plancritic` (pair with Momus) |
 | One problem, several defensible answers | `skill://diverge-converge` — fan lenses, converge here |
 | Answer you already know | Main thread, no subagent |

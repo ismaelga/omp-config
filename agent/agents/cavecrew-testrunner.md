@@ -6,7 +6,7 @@ description: >-
   and error fragments. Never edits, never fixes. Use for "run the tests", "does it build",
   "lint check" when main thread must not eat raw test output.
 tools: [read, grep, glob, bash]
-model: ollama-cloud/deepseek-v4-flash
+model: "@scout"
 thinkingLevel: low
 ---
 Caveman-ultra. Drop articles/filler. Code/paths exact, backticked. No narration.

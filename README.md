@@ -21,7 +21,7 @@ Claude Code is one vendor, one model family, one price per token. This setup kee
 | | raw Claude Code | omp + this config |
 |---|---|---|
 | Providers | Anthropic only | 40+ supported; 6 in this config's `modelProviderOrder`, 7 authenticated |
-| Model choice | pick from the Claude family | 14 named roles, each pinned to a provider/model/thinking level |
+| Model choice | pick from the Claude family | 12 named roles, each pinned to a provider/model/thinking level |
 | Per-subagent model | subagent picks a Claude tier | `task.agentModelOverrides` pins each subagent to a named role, so swapping a role re-points every agent that uses it |
 | Provider outage / 429 | turn fails | `retry.fallbackChains` hands the rest of the turn to the next model, restored on cooldown |
 | Cost of bulk work | metered Anthropic tokens | read-only fan-out runs on flat-rate `ollama-cloud`; the frontier models stay for synthesis |
@@ -30,7 +30,7 @@ Claude Code is one vendor, one model family, one price per token. This setup kee
 | Edit format | full-line rewrites | hashline content-anchored patches; stale anchors are rejected instead of corrupting the file |
 | Existing config | its own conventions | reads `.claude`, `.cursor`, `.codex`, `.gemini`, `.github/copilot`, `.cline`, opencode — no migration |
 
-Concretely: the main turn is `claude-opus-5:max`, but locating code runs on `kimi-k2.7-code`, doc and API lookup on `minimax-m3`, general subagent work on `glm-5.2` — all flat-rate — and only code review reaches metered `gpt-5.6-terra`, deliberately a different family from the diff it reviews. Claude Code would bill all of it at Anthropic rates against one weekly window.
+Concretely: the main turn is `claude-opus-5:xhigh` on the Anthropic subscription, while locating code, general subagent work, image reads and the advisor tripwire all run on flat-rate `ollama-cloud/glm-5.3-flash:high`, and code review reaches `gpt-6-astra:high` on the ChatGPT plan — deliberately a different family from the diff it reviews. No metered key serves a role. Claude Code would bill all of it at Anthropic rates against one weekly window.
 
 Honest caveats:
 
@@ -91,12 +91,12 @@ Providers in use, how each is authenticated, and what it serves. `modelProviderO
 
 | Provider | Auth used here | Alternative | Role in this setup |
 |---|---|---|---|
-| `anthropic` | OAuth | `ANTHROPIC_API_KEY` | `default` (`claude-opus-5:xhigh`), `plan` + `slow` (`claude-fable-5:high`) |
-| `openai-codex` | OAuth (ChatGPT plan) | `OPENAI_CODEX_OAUTH_TOKEN` | `critic` (`gpt-5.6-terra`) — the one metered role, because a reviewer in the same family as the diff's author is worth little. Also the `gpt-5.6-luna` retry hop |
-| `zai` | stored API key | `ZAI_API_KEY` | GLM direct: `designer` + `advisor` (`glm-5.3-flash`), `sentinel` (`glm-5.3:high`). `zai/glm-5.3:high` is also the most-used fallback link in the file — 11 of 22 chains |
-| `ollama-cloud` | stored API key | `OLLAMA_CLOUD_API_KEY` | flat-rate workhorse: `scout`, `librarian`, `smol`, `tiny`, `commit` |
-| `openrouter` | stored API key | `OPENROUTER_API_KEY` | the one model no flat-rate provider here serves: `gemini-3.7-flash`, for `task` + `vision`. Breadth stopped being the reason on 2026-08-30, when ollama-cloud gained `glm-5.3`, `glm-5.3-flash`, `kimi-k3` and `deepseek-v4-flash` itself |
-| `opencode-go` | stored API key | `OPENCODE_API_KEY` | same-weight sibling hop, tried *before* `openrouter` wherever both carry a model, because openrouter is the metered path and this is not |
+| `anthropic` | OAuth | `ANTHROPIC_API_KEY` | `default` (`claude-opus-5:xhigh`), `plan` + `slow` (`claude-fable-5-1:high`) |
+| `openai-codex` | OAuth (ChatGPT plan) | `OPENAI_CODEX_OAUTH_TOKEN` | `critic` (`gpt-6-astra:high`) — a reviewer in the same family as the diff's author is worth little. Also the `gpt-5.6-luna` retry hop, 7 of 15 chains |
+| `zai` | stored API key | `ZAI_API_KEY` | no role pin since the 2026-09-10/11 pass moved `advisor` and `sentinel` off it; links only, `zai/glm-5.3:high` in 4 of 15 chains |
+| `ollama-cloud` | stored API key | `OLLAMA_CLOUD_API_KEY` | flat-rate workhorse, 7 of the 12 roles: `task`, `scout`, `smol`, `vision`, `advisor`, `tiny`, `commit`. `ollama-cloud/glm-5.3:high` is also the most-used fallback link — 9 of 15 chains |
+| `openrouter` | stored API key | `OPENROUTER_API_KEY` | no role pin. The `openrouter/*` head survives only so an explicit `--model` selector has somewhere to land, and its links all point off openrouter — it is the one metered key here |
+| `opencode-go` | stored API key | `OPENCODE_API_KEY` | `sentinel` (`glm-5.3:high`), plus the same-weight sibling hop tried *before* `openrouter` wherever both carry a model, because openrouter is the metered path and this is not |
 
 `google-gemini-cli` is authenticated and deliberately absent from `modelProviderOrder` — and also dead, measured 2026-09-01: `loadCodeAssist` returns 200 with no `currentTier` and an explicit `UNSUPPORTED_CLIENT` ("no longer supported for Gemini Code Assist for individuals"), and every `generateContent` returns 403. Its only `allowedTier` is `standard-tier`, which needs a paid GCP Code Assist license the account does not hold.
 
@@ -110,20 +110,18 @@ Providers in use, how each is authenticated, and what it serves. `modelProviderO
 
 | Role | Model here | Why |
 |---|---|---|
-| `default` | `anthropic/claude-opus-5:xhigh` | main turns: the one that reads your intent and owns the diff. `:xhigh` rather than `:max` — Artificial Analysis measures both at intelligence 63, while `max` costs 42.91 s TTFT against xhigh's 20.04 s. `ultrathink` still reaches `max` on demand |
-| `plan` | `anthropic/claude-fable-5:high` | plan mode and `slow` share the strongest planner in the roster |
-| `slow` | `anthropic/claude-fable-5:high` | deep reasoning on demand |
-| `task` | `openrouter/google/gemini-3.7-flash` | subagent default, picked 2026-09-01 by *executing* output against hidden validators rather than by index rank: 3/4 on a unified-diff generator plus a glob matcher, against `glm-5.3:high`'s 2/2 and `deepseek-v4-flash`'s 0/4. Metered, and worth it: `omp bench --profile chat` puts it at TTFT p50 3.5 s for $0.0010 a turn, against `ollama-cloud/glm-5.3:high` at 931 ms TTFT and $0 but 700–1500 tokens per reply, so 13.5–20.5 s to a finished answer. There is no flat-rate gemini to fall back to — `ollama-cloud/gemini-3-flash-preview` was retired 2026-07-15 and answers HTTP 410 |
-| `scout` | `ollama-cloud/deepseek-v4-flash:high` | read-only locator on flat rate, 1M context. Output is a `file:line` table, so the win is reading a lot of code accurately, not reasoning about it. Caveat measured the same day: this model in reasoning mode spirals on hard *generation* prompts — three attempts hit the 65 536-token ceiling and returned no code at all. Scout never generates code, which is why the pin survives here and lost `task` |
-| `librarian` | `ollama-cloud/deepseek-v4-flash` | reads library source to answer API questions — high volume in, a few verified lines out |
-| `critic` | `openai-codex/gpt-5.6-terra:high` | code review is judgement, and every miss costs later. Deliberately a different family from `claude-opus-5`, whose diff it reads. `:high` is pinned, not left to `auto`: Artificial Analysis measures 141.99 s TTFT at `max` against 2.84 s at `high`, for the same review |
-| `sentinel` | `zai/glm-5.3:high` | security review is long-context recall over a diff *plus its callers* — 1M context |
-| `smol` | `ollama-cloud/glm-5.3-flash` | cheap fan-out |
+| `default` | `anthropic/claude-opus-5:xhigh` | main turns: the one that reads your intent and owns the diff. `:xhigh` rather than `:max` — Artificial Analysis Intelligence Index v4.3 scores Opus 5 at 51 / 50 / 48 for `max` / `xhigh` / `high`, at first-chunk latencies of 94.9 s / 30.6 s / 26.0 s. One index point for three times the wait. `ultrathink` still reaches `max` on demand |
+| `plan` | `anthropic/claude-fable-5-1:high` | plan mode and `slow` share the strongest planner in the roster. The id is the dash form: `anthropic/claude-fable-5.1` is openrouter's spelling of the same weights and resolves off OAuth onto metered $10/$50. Needs omp ≥18.1.2 — Anthropic rejects this model below client version 2.1.251, and the version rides in a `cc_version` billing line injected as `system[0]`, so earlier builds answer `claude_code_version_too_old` |
+| `slow` | `anthropic/claude-fable-5-1:high` | deep reasoning on demand |
+| `task` | `ollama-cloud/glm-5.3-flash:high` | subagent default, picked 2026-09-11 by *executing* output against hidden validators rather than by index rank: 4/4 on a unified-diff generator plus a glob matcher, tying `deepseek-v4.1-flash` and beating `glm-5.3`'s 2/4 — the highest-index model of the three and the worst at finishing the work. The tiebreak against DeepSeek is tokens emitted, not tokens per second: glm-5.3-flash answers in 3–5× fewer tokens (62–68 s against 117–140 s on the easy problem) and loses the raw-rate contest (88.7 tok/s / 685 ms TTFT against 200.7 / 317 ms) while still winning the turn. That matters most here, where 8–32 concurrent subagents share `ollama-cloud`'s 8-slot queue |
+| `scout` | `ollama-cloud/glm-5.3-flash:high` | read-only locator on flat rate. Output is a `file:line` table, so the win is reading a lot of code accurately and answering briefly — which is paid for in tokens emitted. `deepseek-v4-flash` held this pin until 2026-09-10, when all four bakeoff calls to it timed out at 420 s having returned no code; its successor `deepseek-v4.1-flash` scores 4/4 but emits 3–5× the tokens, so it sits in the chain rather than the role |
+| `critic` | `openai-codex/gpt-6-astra:high` | code review is judgement, and every miss costs later. Deliberately a different family from `claude-opus-5`, whose diff it reads. AA v4.3 puts astra at 53 against `gpt-5.6-terra`'s 34 and both ride the ChatGPT plan, so the points are free. `:high` costs first-chunk latency (AA measures 5.8 s / 93 s / 221 s / 335 s across medium→max) and `critic` backs the `reviewer` agent, which is dispatched in the background — so async execution absorbs it rather than a waiting human. `max` is still refused: slow enough to outlive the turn that spawned it |
+| `sentinel` | `opencode-go/glm-5.3:high` | security review is long-context recall over a diff *plus its callers* — 1M context. Same weights as the `zai` pin it replaces, on the provider with room: opencode-go reads 0% of its 5-hour and 8% of its weekly allowance, and it keeps one reviewer off the `ollama-cloud` queue that `task`, `scout`, `smol` and `advisor` now share |
+| `smol` | `ollama-cloud/glm-5.3-flash:high` | cheap fan-out |
 | `tiny` | `ollama-cloud/gpt-oss:120b` | session titles, memory writes, auto-thinking classification, unexpected-stop detection — highest frequency, disposable output. The 120b is *faster* than the 20b here (258.2 tok/s / 706 ms TTFT vs 77.7 / 1308 ms) and both are flat-rate, so the bigger one is free speed |
-| `vision` | `openrouter/google/gemini-3.7-flash` | image reads: the only candidate taking text + image + video + audio + pdf, where `glm-5.3-flash` is image-only |
-| `designer` | `zai/glm-5.3-flash` | UI/UX agent: native multimodal, and vendor-documented screenshot → UI coding |
+| `vision` | `ollama-cloud/glm-5.3-flash:high` | image reads. `gemini-3.7-flash` held this for modality breadth — text + image + video + audio + pdf against glm's image-only — but no role here has ever sent video, audio or a file, so the breadth bought nothing, and OpenRouter's 50% cut ended (now $0.75/$3.75, Google's intro price through 2026-12-31, then double) |
 | `commit` | `ollama-cloud/gpt-oss:120b` | one small payload per commit |
-| `advisor` | `zai/glm-5.3-flash` | live, not inert — see [what is turned off](#what-is-turned-off-and-why). Advisor cost is uncached *input*, so lowest measured TTFT (1279 ms) on a flat plan decides it, not reasoning rank |
+| `advisor` | `ollama-cloud/glm-5.3-flash:high` | live, not inert — see [what is turned off](#what-is-turned-off-and-why). Advisor cost is uncached *input*, so prefill and TTFT decide it, not reasoning rank. Same weights as the `zai` pin it replaces, at 2252 ms TTFT / 54.4 tok/s (n=428) against zai's 5143 ms / 32.1 (n=148) |
 
 Model specs are `provider/model[:thinking]` where thinking ∈ `minimal|low|medium|high|xhigh|max`.
 
@@ -131,25 +129,23 @@ Model specs are `provider/model[:thinking]` where thinking ∈ `minimal|low|medi
 
 Two ordering rules, both deliberate:
 
-- **Same weights on another provider come first.** `zai/glm-5.3:high` is the single most-used link — 11 of 22 chains — and `zai/glm-5.3`, `ollama-cloud/glm-5.3` and `opencode-go/glm-5.3` all fall to each other before anything reaches a different model. Capability-parity substitutes appear only where a sibling does not exist.
-- **`opencode-go` outranks `openrouter`**, not "goes last": openrouter is the metered path and opencode-go is not, so 8 of the 22 chains reach opencode-go before their final link. `gpt-oss:20b` reaches neither — it fails over inside the free tier. `opencode-go`'s `deepseek-v4-flash` and `deepseek-v4-pro` are *not* usable hops: both answer HTTP 403, "only available hosted in China and requires explicit opt in" (measured 2026-09-01), so the `opencode-go/*` wildcard dead-ends for any deepseek head.
+- **Same weights on another provider come first.** `ollama-cloud/glm-5.3:high` is the single most-used link — 9 of 15 chains — and the three GLM-5.3 heads (`ollama-cloud/glm-5.3-flash`, `ollama-cloud/glm-5.3`, `opencode-go/glm-5.3`) fall to each other before anything reaches a different model. Capability-parity substitutes appear only where a sibling does not exist. `zai` is links-only since the 2026-09-11 pass — 5 of 15 chains carry one.
+- **`opencode-go` outranks `openrouter`**, not "goes last": openrouter is the metered path and opencode-go is not, so 9 of the 15 chains carry an opencode-go link and 7 of those reach it before their final hop. `opencode-go`'s DeepSeek region gate lifted on 2026-09-11 — `deepseek-v4.1-flash` answers through the session path where those ids returned HTTP 403, "only available hosted in China and requires explicit opt in", on 2026-09-01 — so the `opencode-go/*` wildcard no longer dead-ends for a deepseek head. Metered `openrouter/deepseek/*` still stays off every chain.
 
 ## Subagents
 
-Six bundled agents are live. `task.agentModelOverrides` pins four of them to a named role with `@role` syntax, so the model is chosen in one place (`modelRoles`) rather than duplicated per agent:
+Four bundled agents are live — `scout`, `reviewer`, `security-reviewer`, `task`; `sonic` is disabled in `task.disabledAgents`. `task.agentModelOverrides` pins three of them to a named role with `@role` syntax, so the model is chosen in one place (`modelRoles`) rather than duplicated per agent:
 
 | Agent | Override | Resolves to |
 |---|---|---|
-| `scout` | `@scout` | `ollama-cloud/deepseek-v4-flash:high` |
-| `librarian` | `@librarian` | `ollama-cloud/deepseek-v4-flash` |
-| `reviewer` | `@critic` | `openai-codex/gpt-5.6-terra:high` |
-| `security-reviewer` | `@sentinel` | `zai/glm-5.3:high` |
-| `task` | — | `modelRoles.task` (`openrouter/google/gemini-3.7-flash`) |
-| `designer` | — | `modelRoles.designer` (`zai/glm-5.3-flash`) |
+| `scout` | `@scout` | `ollama-cloud/glm-5.3-flash:high` |
+| `reviewer` | `@critic` | `openai-codex/gpt-6-astra:high` |
+| `security-reviewer` | `@sentinel` | `opencode-go/glm-5.3:high` |
+| `task` | — | `modelRoles.task` (`ollama-cloud/glm-5.3-flash:high`) |
 
-The rule behind the pairings: **read-only and high volume → cheapest capable model; judgement → a different family from whatever it is checking.** `scout` and `librarian` are read-only volume work on flat-rate. `reviewer` is the only agent worth metered tokens, because it reads `claude-opus-5`'s own diff and a same-family reviewer shares its blind spots.
+The rule behind the pairings: **read-only and high volume → cheapest capable model; judgement → a different family from whatever it is checking.** `scout` and `task` are volume work on flat-rate. `reviewer` is the one agent pointed at a subscription the bulk roles never touch, because it reads `claude-opus-5`'s own diff and a same-family reviewer shares its blind spots.
 
-Also set: `task.eager: preferred` (subagents start without waiting for a full plan), `task.enableLsp: true` (agents get code intelligence, so a "missed callsite" claim is verified rather than guessed), `task.isolation.mode: none` (agents edit the working tree directly, no worktree layer).
+Also set: `task.eager: preferred` (subagents start without waiting for a full plan), `task.enableLsp: true` (agents get code intelligence, so a "missed callsite" claim is verified rather than guessed), `task.isolation.enabled: true` (spawns still edit the working tree — isolation is per-item opt-in via `isolated: true`, and the task schema only exposes that field while this is on; the backend resolves to APFS clonefile and successful patches auto-apply).
 
 ## What is turned off, and why
 
@@ -162,17 +158,40 @@ Two features are configured, present on disk, and deliberately inert. A third wa
 
 `advisor.enabled` is **`true`** since 2026-08-28. The 2026-08-13 A/B did not condemn it: `spawns=0` counts task-tool calls and the advisor is not a spawn, and the notes it produced were real bugs — a `lots.pop()` that needed `shift()`, two dangling refs that would have thrown, a `saleCostUsd` used where `applySale` was required. It never moved a score because the minimal config already scored 1.00 everywhere the advisor spoke; a safety net cannot be measured on tasks nobody falls off. `advisor.syncBacklog: "off"` is the tax control — with a numeric value the advisor blocks the primary turn up to 30 s whenever it falls behind.
 
-MCP is no longer empty either: `mcp.json` runs `sentry` over HTTP, and `disabledServers` keeps `cavemem`, `computer-use` and `pencil` out of discovery.
+MCP runs six servers over Streamable HTTP. Three are live: `sentry`, `linear`, and `voyager` (`http://127.0.0.1:4040/mcp`, a local endpoint, so it simply fails to mount when nothing is listening). Three carry `enabled: false` until their credential exists: `notion`, `alchemy`, `slack`. `disabledServers` keeps `cavemem`, `computer-use` and `pencil` out of discovery.
 
-Re-enabling the fleet means flipping `task.disabledAgents` **and** re-reading `agent/agents/*.md` — those frontmatter models drifted while the fleet was inert and are not covered by `agentModelOverrides`.
+Credentials are designed to come from the **macOS login keychain** — not this repo, not environment variables. A server's `Authorization` header is a `!command` calling `agent/scripts/mcp-keychain-token.sh <service>`, which prints `Bearer <token>` from the keychain and exits non-zero when the item is absent. Today only `slack` carries that header, because of a constraint measured on 2026-09-01 rather than read anywhere: **configuring an `Authorization` header suppresses omp's managed OAuth credential for that URL, and a failing header command does not hand it back.** Sentry with a keychain header and no stored item did not mount at all; the identical entry with the header removed returned its org. Header and OAuth are therefore mutually exclusive per server, and the header may only exist once the token does — which is why `agent/scripts/mcp-credentials-wizard.sh` writes the header in the same step that stores the token, instead of the config carrying headers up front.
+
+The resolver still earns its place: the obvious inline form, `printf 'Bearer %s' "$(security find-generic-password …)"`, exits 0 with an empty token and puts a literal `Bearer ` on the wire. Against a local echo server that recorded what arrived, the inline form sent `'Bearer '`, the script form sent no header, and a stored item sent the real token.
+
+What omp resolves where, from `mcp-config.md` and confirmed on that echo server:
+
+| field | `${VAR}` expansion | `!command` execution |
+| --- | --- | --- |
+| stdio `env` | yes | yes |
+| http `headers` | yes | **yes** |
+| `oauth.clientId` / `clientSecret` | yes | **no** |
+| `auth.*` | yes | **no** |
+
+So `oauth.*` can only ever read process env, and a keystore can never feed it. That is why Slack authenticates with a bearer header here instead of an `oauth` block — the client-credentials route cannot honour the keychain requirement, whatever the docs' Slack example implies.
+
+Items are stored as `security add-generic-password -s omp/<name> -a omp -w …`, deliberately **without `-A`**: the ACL then trusts `/usr/bin/security`, which is also the reader, so reads succeed unprompted without widening the item to every process. Verified both ways — a no-`-A` item read fine from a non-interactive subprocess, which is why the `!command` path never trips a GUI prompt into the 10 s timeout. Run `agent/scripts/mcp-credentials-wizard.sh` to populate it. Its order is **store → probe → wire, and only in that order**: it stores the token, `initialize`s against the real endpoint with it, and writes the header only on HTTP 200. A rejected token leaves `mcp.json` untouched, so that server keeps the OAuth credential that already works — verified with a deliberately bogus token, which produced `HTTP 401` and an unchanged config. Secrets never touch `.env`; `ENV_FILE` points at `/dev/null` and `ask_token` pre-seeds from the keychain so "Enter keeps current" means the stored token rather than an empty read.
+
+What no probe here has settled yet: **whether these endpoints accept a static bearer at all.** A fabricated token returns 401 from an OAuth-only endpoint and from a token-accepting one alike, so the earlier `invalid_token` replies prove only that each validates bearers, not that a PAT is a supported credential. Notion documents static tokens for `api.notion.com`, not `mcp.notion.com`; Slack documents the `xoxp-` user token as a type without promising the MCP endpoint takes it; Sentry documents neither. The wizard's probe is therefore the first real evidence, and the reason nothing is wired ahead of it.
+
+Alchemy is the exception twice over. It is OAuth-only with no static-token path, so nothing goes in the keychain for it — `/mcp reauth alchemy` after a restart, credential lands in profile auth storage. And it advertises **168 tools** across 100+ chains, every name of which reaches the system prompt of every session in every project. Move it to a project-level `.omp/mcp.json` if that stops paying for itself. For OAuth-held credentials the keychain is not the lever at all; `omp auth-broker` is the one that gets them off this disk.
+
+Slack demands the most setup and allows the least: no SSE, no dynamic client registration, and MCP restricted to Marketplace-published or workspace-internal apps. It needs an internal app, possibly workspace-admin approval, and that app's **user** token (`xoxp-`, from OAuth & Permissions after installing). Scopes are per-tool on the user token — `search:read.*`, `channels:history`, `chat:write`, `canvases:*`, `lists:*`; `mcp.slack.com` publishes all 30 in its protected-resource metadata.
+
+Re-enabling the fleet means flipping `task.disabledAgents` — the frontmatter models no longer need a second pass. They drifted onto retired ids while the fleet was inert (`deepseek-v4-flash`, `kimi-k3`, `minimax-m3`), and were repointed on 2026-09-11 to `@task` / `@scout` / `@critic` / `@sentinel`, so `modelRoles` now owns them the same way `agentModelOverrides` owns the bundled agents.
 
 `agent/WATCHDOG.md` (review brief) and `agent/WATCHDOG.yml` (roster granting the advisor `lsp`, withholding `bash`/`edit`/`write`) are live along with the advisor. They stay tracked because they encode two silent failure modes worth not rediscovering: only the **first** `advise` call per model turn is kept and the rest are dropped while the tool still answers `Recorded.`, and requesting a tool the advisor does not hold quarantines the **entire** turn, advice included.
 
 ## Skills
 
-46 skill directories in `agent/skills/`, all with a `SKILL.md`. 26 are model-invoked — omp loads them automatically when the description matches, or explicitly with `/skill:<name>`. 20 are command-only (`disable-model-invocation: true`): `/skill:<name>` works but the model never auto-loads them — `ask-matt`, `grill-me`, `grill-with-docs`, `handoff`, `implement`, `improve-codebase-architecture`, `setup-matt-pocock-skills`, `teach`, `to-questionnaire`, `to-spec`, `to-tickets`, `triage`, `wait-what`, plus `cavecrew` and the six relocated from `~/.codex/skills` (`elixir-architect`, `figma`, `figma-implement-design`, `frontend-design`, `linear`, `security-best-practices`).
+52 skill directories in `agent/skills/`, all with a `SKILL.md`. 32 are model-invoked — omp loads them automatically when the description matches, or explicitly with `/skill:<name>`. 20 are command-only (`disable-model-invocation: true`): `/skill:<name>` works but the model never auto-loads them — `ask-matt`, `grill-me`, `grill-with-docs`, `handoff`, `implement`, `improve-codebase-architecture`, `review-animations`, `setup-matt-pocock-skills`, `teach`, `to-questionnaire`, `to-spec`, `to-tickets`, `triage`, `wait-what`, plus `cavecrew` and the five relocated from `~/.codex/skills` (`elixir-architect`, `figma`, `figma-implement-design`, `linear`, `security-best-practices`).
 
-Only the 26 model-invoked descriptions are always-loaded context. Each command-only skill costs nothing per turn, which is why retiring a skill here means flipping that flag rather than deleting the directory. `cavecrew` was flipped 2026-08-26: it routes to 14 subagents that `task.disabledAgents` turns off, so its 191-token description was instructing the model to spawn agents that cannot spawn.
+Only the 32 model-invoked descriptions are always-loaded context. Each command-only skill costs nothing per turn, which is why retiring a skill here means flipping that flag rather than deleting the directory. `cavecrew` was flipped 2026-08-26: it routes to 14 subagents that `task.disabledAgents` turns off, so its 191-token description was instructing the model to spawn agents that cannot spawn.
 
 `skills.enabled: true`, `enableSkillCommands: true`, no ignore list.
 
@@ -260,7 +279,7 @@ graph LR
   X --> R[reviewer + security-reviewer]
 ```
 
-Locating code is `scout`, library and API questions are `librarian`, and review is a `task` batch at the end rather than a model watching every turn.
+Locating code is `scout`, and review is a `task` batch at the end rather than a model watching every turn.
 
 Prompt keywords (plain prose, one lowercase word):
 
@@ -302,15 +321,16 @@ Working agreements encoded in `agent/AGENTS.md`: plans in `.omo/plans/`, specs i
 | `agent/PERSONALITY.md` | replaces omp's `default` personality preset. Engineering judgement and escalation only; tone is owned by the caveman block and not restated |
 | `agent/RULES.md` | always-apply rules. Three lines; the fourth duplicated the harness contract verbatim and was cut |
 | `agent/config.yml` | model roles, provider order, fallback chains, TUI, memory, tool settings |
-| `agent/models.yml` | override-only, and only two entries: corrected `gpt-5.6-luna` / `gpt-5.6-terra` prices after the 2026-07-30 cut |
-| `agent/mcp.json` | empty server map plus a `disabledServers` list. Kept so discovery stays explicit |
+| `agent/models.yml` | override-only, and only two entries: `gpt-6-astra`'s context window raised to the plan ceiling the catalog understates, and `deepseek-v4.1-flash`'s output cap corrected from a discovery guess |
+| `agent/mcp.json` | six HTTP servers — `sentry`, `linear`, `voyager` live; `notion`, `alchemy`, `slack` at `enabled: false` — plus a `disabledServers` list. No secrets: OAuth credentials live in profile auth storage, static tokens in the login keychain |
 | `agent/lsp.json` | one override: `idleTimeoutMs: 300000` |
-| `agent/WATCHDOG.md` | advisor review brief — inert while `advisor.enabled: false` |
-| `agent/WATCHDOG.yml` | advisor roster: one entry, widening the advisor's tool grant to include `lsp`. Also inert |
-| `agent/agents/*.md` | 14 cavecrew subagents + `momus`, all in `disabledAgents`. Kept for re-measurement |
+| `agent/WATCHDOG.md` | advisor review brief — live since `advisor.enabled: true` (2026-08-28) |
+| `agent/WATCHDOG.yml` | advisor roster: one entry, widening the advisor's tool grant to include `lsp`. Also live |
+| `agent/agents/*.md` | 14 cavecrew subagents + `momus`, all in `disabledAgents`. Kept for re-measurement; models reference `@role`, not pinned ids |
 | `agent/commands/*.md` | 5 caveman slash commands + `/diverge` |
 | `agent/tools/caveman-compress/` | the compress tool (scripts + docs), graduated from a skill |
-| `agent/skills/*/SKILL.md` | 46 skill directories: 26 model-invoked, 20 command-only |
+| `agent/skills/*/SKILL.md` | 52 skill directories: 32 model-invoked, 20 command-only |
+| `agent/scripts/*.sh` | `mcp-keychain-token.sh` (reads an MCP bearer token from the login keychain) and `mcp-credentials-wizard.sh` (mints and stores them). Tracked because the tracked `mcp.json` references the first by path |
 
 Everything else under `~/.omp` — `agent.db`, `history.db`, `models.db`, `sessions/`, `blobs/`, `banks/`, `cache/`, `logs/`, `run/` — is state or secrets and stays local.
 
@@ -341,9 +361,10 @@ terms (full notices in [`NOTICE`](NOTICE)):
 | [`obra/superpowers`](https://github.com/obra/superpowers) | 11 skills: `brainstorming`, `code-review` (modified from `requesting-code-review`), `dispatching-parallel-agents`, `finishing-a-development-branch`, `subagent-driven-development`, `systematic-debugging`, `test-driven-development`, `using-git-worktrees`, `using-superpowers`, `writing-plans`, `writing-skills` |
 | [`mattpocock/skills`](https://github.com/mattpocock/skills) | 20 skills, unmodified: `ask-matt`, `codebase-design`, `domain-modeling`, `grill-me`, `grill-with-docs`, `grilling`, `handoff`, `implement`, `improve-codebase-architecture`, `research`, `resolving-merge-conflicts`, `setup-matt-pocock-skills`, `teach`, `to-questionnaire`, `to-spec`, `to-tickets`, `triage`, `wait-what`, `wizard`, `writing-for-agents` |
 | [`JuliusBrussee/caveman`](https://github.com/JuliusBrussee/caveman) | the `caveman*` skills and commands, `cavecrew`, and the `cavecrew-builder` / `cavecrew-investigator` / `cavecrew-reviewer` subagents |
-| relocated from `~/.codex/skills` (2026-08-26) | 6 command-only skills. `figma`, `figma-implement-design`, `security-best-practices` ship a stock Apache-2.0 `LICENSE.txt` with no holder named; `elixir-architect`, `linear`, `frontend-design` arrived with no license or attribution and no ownership is claimed over them |
+| relocated from `~/.codex/skills` (2026-08-26) | 5 command-only skills. `figma`, `figma-implement-design`, `security-best-practices` ship a stock Apache-2.0 `LICENSE.txt` with no holder named; `elixir-architect` and `linear` arrived with no license or attribution and no ownership is claimed over them. A sixth, `frontend-design`, was traced to `anthropics/skills` on 2026-08-27, replaced with upstream, and un-gated — the 2026-08-26 sweep had flipped it command-only only as a side effect of the move |
+| [`emilkowalski/skills`](https://github.com/emilkowalski/skills) (MIT), [`uizze/uizze`](https://github.com/uizze/uizze), [`vercel-labs/web-interface-guidelines`](https://github.com/vercel-labs/web-interface-guidelines) | the UI set vendored 2026-08-27: `animate`, `emil-design-eng`, `review-animations` from the first; `anti-ui-slop` from the second (its remote banner image removed); `web-interface-guidelines` from the third. Full terms in NOTICE |
 
-The remaining 7 skills (`baseline-first`, `context-curation`, `decision-log`, `diverge-converge`, `pre-mortem`, `prototyping`, `wayfinding`), the other 11 cavecrew subagents, `momus`, `agent/WATCHDOG.md`, `agent/WATCHDOG.yml`, and all config in `agent/*.yml` / `agent/*.json` are original to this repo.
+The remaining 8 skills (`baseline-first`, `context-curation`, `decision-log`, `diverge-converge`, `pre-mortem`, `prototyping`, `reviewing-model-pins`, `wayfinding`), the other 11 cavecrew subagents, `momus`, `agent/WATCHDOG.md`, `agent/WATCHDOG.yml`, `agent/scripts/*.sh`, and all config in `agent/*.yml` / `agent/*.json` are original to this repo.
 
 Provenance is file-level, not guessed: every pre-existing tracked file was compared against the upstream git trees; the mattpocock import (2026-08-20) is unmodified upstream. Vendored files are edited freely here — do not treat them as upstream-current. One file is original despite living in a vendored directory: `test-driven-development/testing-anti-patterns.md` (superpowers' reference-doc idiom, ~10% word overlap with its `writing-good-tests.md`, which it does not replace).
 
@@ -351,4 +372,4 @@ Provenance is file-level, not guessed: every pre-existing tracked file was compa
 
 - Config changes require an omp restart.
 - Sibling repo: [`opencode-config`](https://github.com/ismaelga/opencode-config), the same stack for opencode. Skills under `agent/skills/` are **copies**, not shared — editing one does not propagate, and omp's `opencode` skill provider reads `~/.config/opencode/skills`, so a skill deleted here can still load from the sibling checkout. The sibling's copies of the 14 skills retired here (the `caveman` family minus `caveman-commit`, plus `cost-aware-coding`, `eval-driven-development`, `executing-plans`, `minimum-viable-reimplementation`, `receiving-code-review`, `requesting-code-review`, `spec-driven-development`, `verification-before-completion`, `vibe-coding-guardrails`) were removed 2026-08-20 to match — keep the two checkouts in sync when retiring skills.
-- `~/.codex/skills` is gone. Its 6 skills (`elixir-architect`, `figma`, `figma-implement-design`, `frontend-design`, `linear`, `security-best-practices`) were moved into `agent/skills/` on 2026-08-26 and flipped to command-only, so they are tracked and cost nothing per turn. Three carry a stock Apache-2.0 `LICENSE.txt` with no copyright holder filled in; the other three arrived with no license or attribution at all — see NOTICE. `~/.codex` itself stays: it holds the Codex OAuth credential that the `openai-codex` provider uses.
+- `~/.codex/skills` is gone. Its 6 skills (`elixir-architect`, `figma`, `figma-implement-design`, `frontend-design`, `linear`, `security-best-practices`) were moved into `agent/skills/` on 2026-08-26 and flipped to command-only, so they are tracked and cost nothing per turn. Five still are; `frontend-design` was traced to `anthropics/skills` on 2026-08-27, replaced with upstream and un-gated, since upstream sets no `disable-model-invocation`. Three carry a stock Apache-2.0 `LICENSE.txt` with no copyright holder filled in; the other three arrived with no license or attribution at all — see NOTICE. `~/.codex` itself stays: it holds the Codex OAuth credential that the `openai-codex` provider uses.

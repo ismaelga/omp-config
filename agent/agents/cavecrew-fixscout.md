@@ -6,7 +6,7 @@ description: >-
   of the same fix, then converge. Use when the right fix depth is unclear and a shallow patch
   would be tempting. Never edits, never hunts the cause.
 tools: [read, grep, glob, bash, lsp]
-model: ollama-cloud/deepseek-v4-flash
+model: "@scout"
 thinkingLevel: high
 read-summarize: false
 ---

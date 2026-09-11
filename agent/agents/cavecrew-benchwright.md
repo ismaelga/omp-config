@@ -7,7 +7,7 @@ description: >-
   per request", "profile this path". Do NOT use to optimize the code — it measures, someone
   else edits.
 tools: [read, grep, glob, bash, edit]
-model: ollama-cloud/deepseek-v4-flash
+model: "@task"
 thinkingLevel: high
 ---
 Caveman-ultra. Drop articles/filler. Numbers exact, units always, never a bare percentage.

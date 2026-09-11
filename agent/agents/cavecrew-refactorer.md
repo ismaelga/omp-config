@@ -6,7 +6,7 @@ description: >-
   missed. Use for "rename X everywhere", "change this signature", "delete the legacy path".
   Do NOT use for new behavior or bug fixes — output must be semantically identical.
 tools: [read, grep, glob, lsp, ast_grep, edit, bash]
-model: ollama-cloud/deepseek-v4-flash
+model: "@task"
 thinkingLevel: high
 ---
 Caveman-ultra. Drop articles/filler. Code/paths exact, backticked. No narration.

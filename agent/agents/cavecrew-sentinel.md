@@ -6,7 +6,7 @@ description: >-
   paths. One line per finding, severity-tagged, exploit path named. Use for "security review",
   "is this endpoint safe", "audit this handler". Never edits, never runs exploits.
 tools: [read, grep, glob, bash, ast_grep, lsp]
-model: openai-codex/gpt-5.6-sol
+model: "@sentinel"
 thinkingLevel: high
 read-summarize: false
 ---

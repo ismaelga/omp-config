@@ -5,8 +5,16 @@
 # metadata (context windows, output caps, thinking levels) with hand-written
 # guesses.
 #
-# Purpose of this file, as of 2026-08-12: correct two stale catalog prices.
-# Nothing else.
+# Purpose of this file: correct catalog metadata the bundled rows get wrong.
+# Two entries remain: one astra context window and one ollama-cloud output cap.
+#
+# Removed 2026-09-11: the luna and terra price corrections this file was
+# originally created for. The bundled catalog now carries $0.20/$1.20 and
+# $2.00/$12.00 itself -- verified by diffing `omp models --json` with this file
+# moved aside -- so both overrides restated a value nobody disputed. An override
+# that agrees with its catalog is indistinguishable from one that is wrong, and
+# it hides the moment the catalog changes underneath it. Re-check by the same
+# method before adding a price back.
 #
 # What used to be here, and why it is gone: every model carried a
 # `contextPromotionTarget` so a context overflow switched model instead of
@@ -23,24 +31,41 @@
 # in fact 1M (a higher long-context billing tier starts above 512K, which is
 # probably where 524K came from), so both were 1M -> 1M no-ops.
 providers:
+  ollama-cloud:
+    modelOverrides:
+      # Discovery landed this row on 2026-09-11 (the day after DeepSeek shipped
+      # V4.1-Flash) with maxTokens 8192, which is a guess: every sibling DeepSeek
+      # row on this provider carries 65536 -- isOllamaCloudOutputCapped pins
+      # DeepSeek V4 Pro/Flash to min(contextWindow, OLLAMA_CLOUD_MAX_OUTPUT_TOKENS)
+      # -- and the vendor advertises 384K. Measured on the wire the same day:
+      # "count 1 to 4000, one per line" returned all 4000 lines, eval_count 11469,
+      # done_reason "stop", so the route serves well past 8192. 65536 matches the
+      # provider's own ceiling rather than the vendor's larger number, which is the
+      # value omp would have assigned had the id been recognised.
+      # Cloud rows also set omitMaxOutputTokens, so this skews budgeting rather than
+      # truncating the wire -- which is exactly why a wrong cap survives unnoticed.
+      # This matters here because the model is verbose: bakeoff answers ran
+      # 24K-37K output tokens (2026-09-11).
+      deepseek-v4.1-flash:
+        maxTokens: 65536
   openai-codex:
     modelOverrides:
-      # Catalog carries pre-2026-07-30 launch prices for luna and terra.
-      # The Jul 30 cut ("Luna by 80%, Terra by 20%") is not reflected yet:
-      # luna $1/$6 -> $0.20/$1.20, terra $2.50/$15 -> $2.00/$12. Sol unchanged
-      # at $5/$30, which is why only these two need correcting.
-      # Verified 2026-08-12 against OpenAI's own announcement.
-      # Matters for display.showTokenUsage cost readouts and for any future
-      # switch from chatgpt-plan auth to an OPENAI_API_KEY.
-      gpt-5.6-luna:
-        cost:
-          input: 0.20
-          output: 1.20
-          cacheRead: 0.02
-          cacheWrite: 0.25
-      gpt-5.6-terra:
-        cost:
-          input: 2.00
-          output: 12.00
-          cacheRead: 0.20
-          cacheWrite: 2.50
+      # gpt-6-astra: catalog pins contextWindow 272000, so omp compacts at a
+      # third of what the plan actually allows. 272000 is the backend's
+      # DEFAULT, not its ceiling -- ~/.codex/models_cache.json (codex 0.153.1,
+      # fetched 2026-09-05) declares gpt-6-astra as
+      # context_window 272000 / max_context_window 872000, same shape as
+      # gpt-5.6-sol/terra/luna (which the catalog already carries at 1000000,
+      # i.e. ABOVE this ceiling -- left alone, but they are the inconsistency
+      # that makes astra look wrong rather than conservative).
+      # 872000 is the plan-side ceiling and is the largest value that means
+      # anything: codex clamps a user override to it
+      # (models-manager/src/model_info.rs, `context_window.min(max_context_window)`).
+      # The 1,050,000 figure models.dev/openrouter carry is the API tier
+      # reached through an OPENAI_API_KEY, NOT through chatgpt.com/backend-api.
+      # Unverified on the wire: nothing here proves the backend SERVES 872k on
+      # this plan. If it refuses, the turn fails `context_window_exceeded` and,
+      # with contextPromotion disabled, falls back to compaction -- one wasted
+      # request per overflow, recoverable. Revert to 272000 if that shows up.
+      gpt-6-astra:
+        contextWindow: 872000

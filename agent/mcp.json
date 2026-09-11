@@ -4,6 +4,32 @@
     "sentry": {
       "type": "http",
       "url": "https://mcp.sentry.dev/mcp"
+    },
+    "notion": {
+      "type": "http",
+      "url": "https://mcp.notion.com/mcp",
+      "enabled": false
+    },
+    "alchemy": {
+      "type": "http",
+      "url": "https://mcp.alchemy.com/mcp",
+      "enabled": false
+    },
+    "voyager": {
+      "type": "http",
+      "url": "http://127.0.0.1:4040/mcp"
+    },
+    "linear": {
+      "type": "http",
+      "url": "https://mcp.linear.app/mcp"
+    },
+    "slack": {
+      "type": "http",
+      "url": "https://mcp.slack.com/mcp",
+      "enabled": false,
+      "headers": {
+        "Authorization": "!$HOME/.omp/agent/scripts/mcp-keychain-token.sh omp/slack-mcp-user-token"
+      }
     }
   },
   "disabledServers": [

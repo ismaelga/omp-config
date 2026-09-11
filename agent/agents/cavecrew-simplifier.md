@@ -7,7 +7,7 @@ description: >-
   this over-abstracted", "what can we delete", or as the third lens in a diverge review
   alongside cavecrew-reviewer and cavecrew-sentinel. Never edits, never restyles.
 tools: [read, grep, glob, bash, lsp, ast_grep]
-model: ollama-cloud/minimax-m3
+model: "@task"
 thinkingLevel: high
 read-summarize: false
 ---

@@ -6,7 +6,7 @@ description: >-
   Runs a different model family than cavecrew-reviewer by design. Use after cavecrew-reviewer
   on a diff that matters. Never edits, never reviews from scratch without a prior report.
 tools: [read, grep, glob, bash, lsp]
-model: openrouter/moonshotai/kimi-k3
+model: "@critic"
 thinkingLevel: max
 read-summarize: false
 ---

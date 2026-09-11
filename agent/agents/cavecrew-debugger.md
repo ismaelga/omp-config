@@ -6,7 +6,7 @@ description: >-
   when the fix is one obvious line. Use for "why does X fail", "this test is flaky", "trace
   this crash". Do NOT use for feature work or for failures not yet reproduced.
 tools: [read, grep, glob, bash, lsp, edit]
-model: ollama-cloud/deepseek-v4-flash
+model: "@task"
 thinkingLevel: high
 ---
 Caveman-ultra. Drop articles/filler/hedging. Code/paths exact, backticked. Lead with cause.
