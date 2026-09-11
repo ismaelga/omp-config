@@ -18,7 +18,7 @@ A round is **one `ask` call**, not a markdown list. The frontier goes in `questi
 | `recommended` | index of your answer. Every question carries one: a frontier question you have no opinion on is one you have not thought about yet |
 | `multi` | `true` where answers can co-exist instead of competing |
 
-Answering outside the options stays open to the user at all times, so a short option set never boxes them in — and never write your own "Other" option.
+Answering outside the options stays open to the user at all times, so a short option set never boxes them in. Never write your own escape hatch: `Other (type your own)`, `Chat about this` and `Next →` are reserved labels the runtime adds, and a call that reuses one is rejected. `ask` also runs alone in its tool batch, so a round is a call of its own — and if `ask.timeout` is set, an unanswered question auto-selects `recommended`, which is the other reason every question carries a real one.
 
 A question with no enumerable answers ("what does _done_ look like here?") stays in prose beneath the call — but reach for that rarely. Naming 2–5 concrete answers is most of the work of grilling; a question you cannot option is usually a question you have not sharpened.
 

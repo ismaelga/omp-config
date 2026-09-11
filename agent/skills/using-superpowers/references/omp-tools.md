@@ -8,7 +8,7 @@ Skills speak in actions ("dispatch a subagent", "create a todo", "read a file").
 | Task tracking ("create a todo", "mark complete") | the `todo` tool |
 | Isolated workspace ("git worktree add …") | `isolated: true` on a `task` item — a dedicated worktree that auto-applies on success |
 | Long-running process, server, or REPL | `hub start {name, application, args[], ready:{log?, port?}}` — never a backgrounded `bash` |
-| Ask the user a question | the `ask` tool — `questions[]` with 2–5 options each; free-text answers stay open, so never add your own "Other" option |
+| Ask the user a question | the `ask` tool — `questions[]`, 2–5 options each. Free-text stays open; the runtime owns the reserved labels `Other (type your own)`, `Chat about this`, `Next →`, so never write them yourself |
 | Large payload to a subagent | `local://<name>.md` — subagents read the parent's `local://` root |
 | A subagent's result | `agent://<id>` (full output, `?q=.field` for one field), `history://<id>` for its transcript |
 | Skill addressing | `skill://<name>` — never the `superpowers:` prefix, which resolves to nothing in omp |

@@ -65,7 +65,9 @@ Project.create('name', context.tempDir); // Accessed before beforeEach!
 
 ## Attaching a Debugger
 
-When you can't trace manually, use the `debug` tool (DAP; adapters configured here: `gdb`, `lldb-dap`, `debugpy`, `dlv`, `rdbg`). It gets strictly better evidence than print-logging, with zero source edits and nothing to remove afterward:
+When you can't trace manually, use the `debug` tool (DAP). It gets strictly better evidence than print-logging, with zero source edits and nothing to remove afterward:
+
+Adapters ship built in — `gdb`, `lldb-dap`, `debugpy`, `dlv`, `rdbg`, `js-debug-adapter` and others — but auto-selection only considers the ones whose command actually resolves on this machine, and anything else comes from a `dap.json`. The TypeScript examples here run under vscode-js-debug, which is a separate install; a missing adapter fails with `No debugger adapter available. Installed adapters: …`, which is your signal to fall back to logging rather than yak-shave.
 
 ```
 debug {action: "launch", program: ..., adapter: ..., file: ..., line: ...}   // start under the adapter
