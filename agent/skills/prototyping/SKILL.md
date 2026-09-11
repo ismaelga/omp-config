@@ -23,8 +23,11 @@ code — a module → logic; a screen → UI — and state the assumption at the
 
 ## Rules
 
-1. **Throwaway from line one, and named so.** `prototype-<question>.<ext>`, sitting next to the
-   code it informs. A reader must not mistake it for production.
+1. **Throwaway from line one.** For a logic-shaped question, the default is the `eval` kernel: it
+   runs in a scratch session, never touches the repo, and has nothing to delete. A file
+   (`prototype-<question>.<ext>`, sitting next to the code it informs, named so no reader mistakes
+   it for production) is only for prototypes that must be **seen** — a rendered page, something
+   the user opens — or that must run under the project's own toolchain.
 2. **One command to run**, using whatever runner the project already has. No new toolchain.
 3. **No persistence.** State lives in memory. If the question genuinely involves storage, use a
    scratch file named `PROTOTYPE-wipe-me`.
@@ -42,7 +45,8 @@ code — a module → logic; a screen → UI — and state the assumption at the
 2. Fold the validated decision into the real code — by hand, deliberately. You NEVER promote
    prototype code to production; it was written without tests, error handling, or boundaries.
 3. Delete the prototype, or park it on a scratch branch and link it from wherever the verdict
-   went. `main` keeps the decision, never the prototype.
+   went. `main` keeps the decision, never the prototype. An `eval`-kernel prototype has nothing
+   to delete — closing the session is the cleanup.
 
 ## Stop signals
 

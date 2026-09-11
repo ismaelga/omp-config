@@ -73,13 +73,12 @@ You MUST complete each phase before proceeding to the next.
 
    **WHEN system has multiple components (CI → build → signing, API → service → database):**
 
-   **BEFORE proposing fixes, add diagnostic instrumentation:**
+   **BEFORE proposing fixes, attach a debugger (`debug` tool) instead of adding throwaway logging:**
    ```
-   For EACH component boundary:
-     - Log what data enters component
-     - Log what data exits component
-     - Verify environment/config propagation
-     - Check state at each layer
+   At EACH component boundary:
+     - set_breakpoint where data enters the component
+     - step_over through the component, variables at each hop
+     - Verify environment/config propagation, check state at each layer
 
    Run once to gather evidence showing WHERE it breaks
    THEN analyze evidence to identify failing component
@@ -152,7 +151,8 @@ You MUST complete each phase before proceeding to the next.
    - Be specific, not vague
 
 2. **Test Minimally**
-   - Make the SMALLEST possible change to test hypothesis
+   - The smallest possible change is often NO change: a conditional breakpoint (`condition` on `debug set_breakpoint`) plus `evaluate` tests the hypothesis against live state without editing the program
+   - When a change is needed, make the SMALLEST possible change
    - One variable at a time
    - Don't fix multiple things at once
 
@@ -174,9 +174,9 @@ You MUST complete each phase before proceeding to the next.
 1. **Create Failing Test Case**
    - Simplest possible reproduction
    - Automated test if possible
-   - One-off test script if no framework
+   - `eval` kernel script (Python or JS, state survives across calls, top-level `await`) if no framework
    - MUST have before fixing
-   - Use the `superpowers:test-driven-development` skill for writing proper failing tests
+   - Use the `skill://test-driven-development` skill for writing proper failing tests
 
 2. **Implement Single Fix**
    - Address the root cause identified
@@ -284,7 +284,7 @@ These techniques are part of systematic debugging and available in this director
 - **`condition-based-waiting.md`** - Replace arbitrary timeouts with condition polling
 
 **Related skills:**
-- **superpowers:test-driven-development** - For creating failing test case (Phase 4, Step 1)
+- **skill://test-driven-development** - For creating failing test case (Phase 4, Step 1)
 - **Project checks** - Run test + lint + typecheck + build to confirm the fix before claiming success
 
 ## Real-World Impact

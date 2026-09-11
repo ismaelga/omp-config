@@ -63,36 +63,24 @@ const context = setupCoreTest(); // Returns { tempDir: '' }
 Project.create('name', context.tempDir); // Accessed before beforeEach!
 ```
 
-## Adding Stack Traces
+## Attaching a Debugger
 
-When you can't trace manually, add instrumentation:
+When you can't trace manually, use the `debug` tool (DAP; adapters configured here: `gdb`, `lldb-dap`, `debugpy`, `dlv`, `rdbg`). It gets strictly better evidence than print-logging, with zero source edits and nothing to remove afterward:
 
-```typescript
-// Before the problematic operation
-async function gitInit(directory: string) {
-  const stack = new Error().stack;
-  console.error('DEBUG git init:', {
-    directory,
-    cwd: process.cwd(),
-    nodeEnv: process.env.NODE_ENV,
-    stack,
-  });
-
-  await execFileAsync('git', ['init'], { cwd: directory });
-}
+```
+debug {action: "launch", program: ..., adapter: ..., file: ..., line: ...}   // start under the adapter
+debug {action: "set_breakpoint", file: ..., line: ..., condition?: ...}     // line before the dangerous operation
+debug {action: "continue"}                                                   // run to it
+debug {action: "stack_trace"}                                                // the caller chain the grep was reconstructing
+debug {action: "variables"} / debug {action: "evaluate", expression: ...}    // the state at that point
 ```
 
-**Critical:** Use `console.error()` in tests (not logger - may not show)
+**Analyze the evidence:**
+- `stack_trace` names every caller up to the test
+- `variables` shows what was actually passed (`directory = ''`), not what you logged
+- Repeat: does the same caller hit the same bad value every time?
 
-**Run and capture:**
-```bash
-npm test 2>&1 | grep 'DEBUG git init'
-```
-
-**Analyze stack traces:**
-- Look for test file names
-- Find the line number triggering the call
-- Identify the pattern (same test? same parameter?)
+**When logs are still right:** a process you cannot relaunch under an adapter (a production trace, a one-shot CI run whose environment you don't control), or output you need to keep in the record after the process exits. Then add the temporary logging, run, and remove it — but that is the fallback, not the default.
 
 ## Finding Which Test Causes Pollution
 
@@ -155,10 +143,8 @@ digraph principle {
 
 ## Stack Trace Tips
 
-**In tests:** Use `console.error()` not logger - logger may be suppressed
-**Before operation:** Log before the dangerous operation, not after it fails
-**Include context:** Directory, cwd, environment variables, timestamps
-**Capture stack:** `new Error().stack` shows complete call chain
+**Default:** set a `debug` breakpoint before the dangerous operation — `stack_trace`, `variables`, and `evaluate` give the same facts with no edits to undo.
+**Log-based fallback:** when the process can't run under an adapter, `console.error()` just before the operation (logger may be suppressed), include directory, cwd, environment variables, timestamps, and `new Error().stack` for the call chain — then remove the logging.
 
 ## Real-World Impact
 

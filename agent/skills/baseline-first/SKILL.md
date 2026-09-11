@@ -46,7 +46,12 @@ The baseline is the dumbest thing that could possibly work for the demo case.
 
 ### Step 2: Measure on your eval
 
-Run the baseline against your real measurement — a test suite, a scored sample set, or a perf/cost benchmark. Record:
+Run the baseline against your real measurement — a test suite, a scored sample set, or a perf/cost
+benchmark. Run the scoring loop in the `eval` kernel (persistent Python/JS, so the baseline's
+numbers stay live across cells while you iterate on the smart version); when the thing being
+measured must run as a server, launch it with `hub start {name, application, args, ready:{log, port}}`
+and point `eval` at that port. A baseline measured by a backgrounded `bash` job you then have to
+babysit is the failure this avoids. Record:
 - Accuracy / correctness
 - Latency
 - Cost
