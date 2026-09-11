@@ -14,7 +14,7 @@ Three subagents:
 | `cavecrew-builder` | Surgical edit, 1-2 files | Scope is obvious, ≤2 files. Refuses 3+ file scope. |
 | `cavecrew-reviewer` | Diff/file review | One-line findings with severity emoji |
 
-Use vanilla `Explore` or `Code Reviewer` when you want prose, architecture commentary, or rationale. Use main thread directly for one-line answers and 3+ file refactors.
+Use omp's vanilla equivalents — the `scout` and `reviewer` agent types, dispatched via `task` — when you want prose, architecture commentary, or rationale. Use main thread directly for one-line answers and 3+ file refactors.
 
 This skill is a decision guide, not a slash command. It activates when the conversation mentions delegation.
 

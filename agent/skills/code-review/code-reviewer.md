@@ -5,13 +5,10 @@ Use this template when dispatching a code reviewer subagent.
 **Purpose:** Review completed work against requirements and code quality standards before it cascades into more work.
 
 ```
-Subagent (general-purpose):
-  description: "Review code changes"
-  model: [MODEL — REQUIRED. Floor: openai-codex/gpt-5.6-terra:high. An omitted
-         model inherits the `task` role (luna), whose long-context recall
-         (MRCR 41.3%) is the worst in the config — and a whole-branch review is
-         exactly a long-context recall task over a diff plus its callers. Use
-         openai-codex/gpt-5.6-sol:high for a large or security-sensitive branch.]
+Dispatch via the `task` tool with `agent: reviewer` (omp's task schema has no per-spawn
+`model` field — model strength is a config decision). Hand it the diff via `pr://N/diff`
+for a PR, or the SHA range below, plus this prompt body:
+
   prompt: |
     You are a Senior Code Reviewer with expertise in software architecture,
     design patterns, and best practices. Your job is to review completed work
@@ -37,7 +34,7 @@ Subagent (general-purpose):
 
     ## Read-Only Review
 
-    Your review is read-only on this checkout. Do not mutate the working tree, the index, HEAD, or branch state in any way. Use tools like `git show`, `git diff`, and `git log` to inspect history. If you need a working copy of a different revision, check it out into a separate temporary directory (e.g. `git worktree add /tmp/review-[SHA] [SHA]`) — never move HEAD on this checkout.
+    Your review is read-only on this checkout. Do not mutate the working tree, the index, HEAD, or branch state in any way. Use tools like `git show`, `git diff`, and `git log` to inspect history. If you need a working copy of another revision, use `github pr_checkout` — it checks PRs out into dedicated worktrees, never the working tree, and `pr` accepts an array to batch several.
 
     ## What to Check
 

@@ -20,7 +20,7 @@ Every critic pass is a barrier the main thread blocks on. Match the pass to the 
 
 | Diff | Review |
 |---|---|
-| Low risk: mechanical, local, covered by green checks | None. Read the diff yourself. Checks are the evidence. |
+| Low risk: mechanical, local, covered by green checks | None. Read the diff yourself. Checks are the evidence — get it via `github run_watch` (watches CI for the current HEAD, fast-fails the first job failure, saves full logs to an artifact) or `pr://N` for an already-settled run. |
 | A plan, before execution | `reviewer` given the plan path. Highest-yield pass measured; never skip it. |
 | Normal feature or bugfix | One `reviewer` at the phase boundary, over the accumulated diff |
 | Money, auth, migrations, key custody, anything irreversible | Three lenses via `diverge-converge`: reviewer + security-reviewer + task, one batch |
@@ -59,21 +59,22 @@ critics share blind spots — one family reviewing its own output agrees with it
 returns a rephrased first opinion; self-preference bias in LLM evaluators is measured and
 systematic, not random (NeurIPS 2024, "LLM Evaluators Recognize and Favor Their Own Generations").
 Cross-family disagreement is the signal you are paying for, and a `reviewer` + `security-reviewer`
-pair gives it: `reviewer` on `openai-codex/gpt-5.6-terra` (`@critic`), `security-reviewer` on
-`zai/glm-5.3` (`@sentinel`).
+pair gives it: two agent types with different model families by design — the pins live in
+`task.agentModelOverrides` in config.yml (`critic`, `sentinel` roles), so name the roles, not the
+models. Care what they resolve to? See `skill://reviewing-model-pins`.
 
 **The benefit is asymmetric, and this matters here.** On 116 LiveCodeBench tasks, cross-family
 review raised pass rate 71.6% → 89.7% when the reviewer was the *stronger* model, but *dropped* it
-91.4% → 82.8% when the reviewer was weaker (Agentic SE @ KDD '26, arxiv 2607.21656). Both reviewers
-above are weaker than an `opus-5` primary. So their findings are input to your adjudication, never
-something you apply on sight — the adjudication step below is what keeps a weaker reviewer from
-degrading the diff. For money, auth, migration, or key-custody code, put the reviewer on a model at
-least as strong as the one that wrote it.
+whether each reviewer is the stronger or weaker model is decided by `task.agentModelOverrides` and
+shifts as pins move, so the direction of that effect is never guaranteed at dispatch time. Treat
+reviewer findings as input to your adjudication either way — the adjudication step below is what
+keeps a reviewer from degrading the diff. For money, auth, migration, or key-custody code, check
+the current pins and put the reviewer on a model at least as strong as the one that wrote it.
 
-The heavyweight template's `model:` field is REQUIRED — fill it. An omitted model silently
-inherits the `task` role, the weakest coding model configured. Its four `[PLACEHOLDER]` tokens are
-documented in that file (square brackets, not braces). Do not restate them here; a second copy is
-how the two files drifted apart before.
+Dispatch the heavyweight review via the `task` tool with `agent: reviewer` — omp's task schema has
+no per-spawn `model` field, so model strength is a config decision, not a template decision. Its
+four `[PLACEHOLDER]` tokens are documented in that file (square brackets, not braces). Do not
+restate them here; a second copy is how the two files drifted apart before.
 
 ### Arbitrating a pair
 

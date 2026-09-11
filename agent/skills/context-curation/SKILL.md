@@ -42,12 +42,12 @@ Keep canon in front. Push scratch behind. When in doubt about what to keep, ask:
 
 ### 4. Externalize before the context burns
 
-If a piece of information is important and might be needed later, write it to a file (AGENTS.md, a planning doc, a scratch file in `.omo/`) BEFORE the context gets compacted. Files persist, context doesn't.
+If a piece of information is important and might be needed later, externalize it BEFORE the context gets compacted. Real targets: a file on disk (AGENTS.md, a planning doc, a scratch file in `.omo/`); `local://<name>.md` when a subagent must read it; `artifact://<id>` for tool output that already spilled (spilled output is recoverable, not lost — page it back with `:N-M`). Files and artifacts persist, context doesn't.
 
 ## When to curate
 
-- **Every ~30k tokens of conversation growth** — proactive pruning
-- **Before any delegated subagent task** — give them a clean working set
+- **Every ~30k tokens of conversation growth** — proactive pruning. For background jobs, a settled `hub jobs` snapshot consumes the auto-delivery, and `agent://<id>` / `history://<id>` keep a subagent's full output out of your window until you actually need it.
+- **Before any delegated subagent task** — give them a clean working set. A `task` subagent starts blank by construction, so the curation that matters is what you put in `context` and `local://`, not what you prune from your own window.
 - **After completing a logical unit of work** — discard exploration debris
 - **Before context compaction kicks in** — better that you choose what to keep than the compactor does it for you
 - **When you notice the agent referencing stale info** — symptom of bloated context
@@ -71,10 +71,8 @@ When you see any of these: stop, summarize, prune, continue.
 
 ## Integration with your setup
 
-- **`experimental.dynamic_context_pruning: true`** (you have this enabled) — passive layer. This skill is the active layer.
-- **`experimental.preemptive_compaction: true`** (you have this) — kicks in when window fills. This skill prevents you from needing it.
-- **`team_mode`** — each member starts with a clean window. Curate the lead's context before delegating.
-- **`/init-deep`** AGENTS.md files — externalization done right. Use them.
+- **`checkpoint` / `rewind`** (`checkpoint.enabled: true`) — the active mechanism for move #1. Open `checkpoint {goal}` before exploratory work, close `rewind {report}` after: the intermediate reads, greps, and lsp calls leave the context, only the written report stays.
+- **AGENTS.md files** — externalization done right. Use them.
 
 ## Quick test
 

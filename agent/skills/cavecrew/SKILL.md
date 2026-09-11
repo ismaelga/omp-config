@@ -30,7 +30,7 @@ Cavecrew = fourteen subagent presets emitting caveman receipts. Same jobs as van
 | "Can this be simpler" / over-abstracted / what deletes | `cavecrew-simplifier` |
 | Injection / authz / secrets, trust boundary in scope | `cavecrew-sentinel` |
 | "Who wrote X / when added / which commit broke Z" | `cavecrew-githistorian` |
-| Commit, rebase, squash, push | `git-master` on main thread |
+| Commit, rebase, squash, push | Main thread, or `skill://caveman-commit` for the commit message |
 | External library or API facts | `task` (vanilla) |
 | Review plan in `.omo/plans/` | `cavecrew-plancritic` (pair with Momus) |
 | One problem, several defensible answers | `skill://diverge-converge` — fan lenses, converge here |
@@ -118,7 +118,7 @@ ollama-cloud does no prompt caching, so every subagent turn re-bills its whole t
 - Don't ask testwright to touch production code, or testrunner/benchwright to fix anything.
 - Don't ask benchwright for a verdict with no "before" — it needs a baseline ref.
 - Don't ask sentinel for a generic sweep with no trust boundary in scope.
-- Don't ask reviewer for architecture opinions — those stay on the main thread. Vanilla `reviewer` and `security-reviewer` are disabled; `cavecrew-reviewer` and `cavecrew-sentinel` replace them.
+- Don't ask reviewer for architecture opinions — those stay on the main thread. Vanilla `reviewer` and `security-reviewer` are the enabled ones; `task.agentModelOverrides` remaps them.
 - Don't ask githistorian or plancritic to mutate anything. Both read-only.
 - Don't ask simplifier or fixscout to edit. Simplifier hands off to refactorer, fixscout to builder.
 - Don't spawn fixscout without an `aim` and a cause — it returns `no aim.` / `no cause.`
