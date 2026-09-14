@@ -490,6 +490,12 @@ retry:
     #   :low    9/9  median 142.6 s  median 16.0K out  worst 22.4K
     #   :medium 9/9  median 146.7 s  median 25.8K out  worst 49.2K
     #   :high   7/9  median 200.8 s  median 34.0K out  worst 61.1K
+    # The tiers are real, not aliases: `omp bench <id>:<tier> --json` echoes the
+    # resolved level, and minimal/low/medium/high each survive round-trip while
+    # :max silently resolves to high (2026-09-14). That matches the catalog --
+    # ollama-cloud.kdl:5 gives class "unknown" [minimal, low, medium, high], and
+    # the [low, high, max] row at kdl:9 names only deepseek-v4-pro:preview, not
+    # this id. Worth knowing before trusting any tier comparison on this route.
     # Correctness is flat from :low to :medium and then falls, so nothing here
     # buys anything above the floor. The tiebreaker is the output budget: this
     # id is capped at 65536 on ollama-cloud (see models.yml), and :high's worst

@@ -47,26 +47,43 @@ providers:
       # This matters here because the model is verbose: at the pinned :low tier
       # bakeoff answers ran 9.2-22.4K output tokens, and 61.1K at :high
       # (2026-09-14, three problems x 3 samples).
+      # Re-verified 2026-09-14 on omp 18.1.21 and still load-bearing. Discovery
+      # is not cached -- models.db is 0 bytes, models.dev carries no ollama
+      # provider at all, and the bundled ollama-cloud KDL rows hold thinking
+      # policy but no limits -- so the pre-override number can only be read by
+      # running discovery without this file. A throwaway profile does that:
+      #   omp --profile <fresh> models ollama-cloud --json
+      # Today it still returns maxTokens 8192 for this id against 65536 for
+      # every sibling (v4-flash, v4-pro, v3.2), contextWindow 1048576. The cap
+      # function has not learned the id in three days. It matters more now than
+      # when it was written: `task` runs here, and an 8192 budget sits under
+      # the tier's own measured floor.
       deepseek-v4.1-flash:
         maxTokens: 65536
   openai-codex:
     modelOverrides:
       # gpt-6-astra: catalog pins contextWindow 272000, so omp compacts at a
       # third of what the plan actually allows. 272000 is the backend's
-      # DEFAULT, not its ceiling -- ~/.codex/models_cache.json (codex 0.153.1,
-      # fetched 2026-09-05) declares gpt-6-astra as
+      # DEFAULT, not its ceiling -- ~/.codex/models_cache.json (codex 0.153.4,
+      # fetched 2026-09-09) declares gpt-6-astra as
       # context_window 272000 / max_context_window 872000, same shape as
       # gpt-5.6-sol/terra/luna (which the catalog already carries at 1000000,
       # i.e. ABOVE this ceiling -- left alone, but they are the inconsistency
       # that makes astra look wrong rather than conservative).
       # 872000 is the plan-side ceiling and is the largest value that means
-      # anything: codex clamps a user override to it
-      # (models-manager/src/model_info.rs, `context_window.min(max_context_window)`).
+      # anything: codex clamps a user override to it (models-manager/src/
+      # model_info.rs, `context_window.min(max_context_window)`) -- read from
+      # codex sources when this was written, not re-checked since, so treat the
+      # clamp as plausible rather than proven.
       # The 1,050,000 figure models.dev/openrouter carry is the API tier
       # reached through an OPENAI_API_KEY, NOT through chatgpt.com/backend-api.
       # Unverified on the wire: nothing here proves the backend SERVES 872k on
       # this plan. If it refuses, the turn fails `context_window_exceeded` and,
       # with contextPromotion disabled, falls back to compaction -- one wasted
       # request per overflow, recoverable. Revert to 272000 if that shows up.
+      # Re-verified 2026-09-14 on omp 18.1.21: the bundled catalog still pins
+      # 272000 and the string 872000 does not occur anywhere in the binary, so
+      # the 872000 that `omp models --json` reports can only be this override.
+      # Same recheck method as the row above -- discovery in a fresh profile.
       gpt-6-astra:
         contextWindow: 872000
