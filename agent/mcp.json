@@ -23,6 +23,10 @@
       "type": "http",
       "url": "https://mcp.linear.app/mcp"
     },
+    "cloudflare": {
+      "type": "http",
+      "url": "https://mcp.cloudflare.com/mcp"
+    },
     "slack": {
       "type": "http",
       "url": "https://mcp.slack.com/mcp",

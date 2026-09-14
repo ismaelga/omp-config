@@ -1,0 +1,3 @@
+[submodule "agent/skills/.sources/cloudflare"]
+	path = agent/skills/.sources/cloudflare
+	url = ssh://git@github.com/cloudflare/skills.git
