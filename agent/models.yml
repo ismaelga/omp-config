@@ -44,8 +44,9 @@ providers:
       # value omp would have assigned had the id been recognised.
       # Cloud rows also set omitMaxOutputTokens, so this skews budgeting rather than
       # truncating the wire -- which is exactly why a wrong cap survives unnoticed.
-      # This matters here because the model is verbose: bakeoff answers ran
-      # 24K-37K output tokens (2026-09-11).
+      # This matters here because the model is verbose: at the pinned :low tier
+      # bakeoff answers ran 9.2-22.4K output tokens, and 61.1K at :high
+      # (2026-09-14, three problems x 3 samples).
       deepseek-v4.1-flash:
         maxTokens: 65536
   openai-codex:
