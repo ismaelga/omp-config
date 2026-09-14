@@ -322,6 +322,29 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 
 --------------------------------------------------------------------------------
+cloudflare/skills -- https://github.com/cloudflare/skills
+--------------------------------------------------------------------------------
+
+Applies to these skill directories in agent/skills/, which are symlinks into the
+submodule at agent/skills/.sources/cloudflare, pinned at b052c32 (2026-09-14):
+
+  agents-sdk                        nextjs-on-cloudflare
+  cloudflare                        sandbox-migrate-to-next
+  cloudflare-email-service          sandbox-next
+  cloudflare-one                    sandbox-stable
+  cloudflare-one-migrations         turnstile-spin
+  durable-objects                   web-perf
+  workers-best-practices            wrangler
+
+Tracked as a submodule rather than copied, so the working tree is upstream
+verbatim at the pinned commit and carries upstream's own LICENSE. Nothing here
+is modified; edits belong upstream, and moving the pin is
+`git submodule update --remote`.
+
+Apache License 2.0. The license file carries the unfilled template notice with
+no copyright holder named upstream, so none is asserted here.
+
+--------------------------------------------------------------------------------
 Original to this repository
 --------------------------------------------------------------------------------
 

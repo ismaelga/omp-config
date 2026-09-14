@@ -193,9 +193,9 @@ Re-enabling the fleet means flipping `task.disabledAgents` — the frontmatter m
 
 ## Skills
 
-52 skill directories in `agent/skills/`, all with a `SKILL.md`. 32 are model-invoked — omp loads them automatically when the description matches, or explicitly with `/skill:<name>`. 20 are command-only (`disable-model-invocation: true`): `/skill:<name>` works but the model never auto-loads them — `ask-matt`, `grill-me`, `grill-with-docs`, `handoff`, `implement`, `improve-codebase-architecture`, `review-animations`, `setup-matt-pocock-skills`, `teach`, `to-questionnaire`, `to-spec`, `to-tickets`, `triage`, `wait-what`, plus `cavecrew` and the five relocated from `~/.codex/skills` (`elixir-architect`, `figma`, `figma-implement-design`, `linear`, `security-best-practices`).
+66 skill directories in `agent/skills/`, all with a `SKILL.md`. 46 are model-invoked — omp loads them automatically when the description matches, or explicitly with `/skill:<name>`. 20 are command-only (`disable-model-invocation: true`): `/skill:<name>` works but the model never auto-loads them — `ask-matt`, `grill-me`, `grill-with-docs`, `handoff`, `implement`, `improve-codebase-architecture`, `review-animations`, `setup-matt-pocock-skills`, `teach`, `to-questionnaire`, `to-spec`, `to-tickets`, `triage`, `wait-what`, plus `cavecrew` and the five relocated from `~/.codex/skills` (`elixir-architect`, `figma`, `figma-implement-design`, `linear`, `security-best-practices`).
 
-Only the 32 model-invoked descriptions are always-loaded context. Each command-only skill costs nothing per turn, which is why retiring a skill here means flipping that flag rather than deleting the directory. `cavecrew` was flipped 2026-08-26: it routes to 14 subagents that `task.disabledAgents` turns off, so its 191-token description was instructing the model to spawn agents that cannot spawn.
+Only the 46 model-invoked descriptions are always-loaded context. Each command-only skill costs nothing per turn, which is why retiring a skill here means flipping that flag rather than deleting the directory. `cavecrew` was flipped 2026-08-26: it routes to 14 subagents that `task.disabledAgents` turns off, so its 191-token description was instructing the model to spawn agents that cannot spawn. The cloudflare pack arrived un-gated and all 14 of its skills are model-invoked, adding 2274 description chars (~570 tokens) to every turn — worth gating if Workers work stops being frequent.
 
 `skills.enabled: true`, `enableSkillCommands: true`, no ignore list.
 
@@ -326,14 +326,15 @@ Working agreements encoded in `agent/AGENTS.md`: plans in `.omo/plans/`, specs i
 | `agent/RULES.md` | always-apply rules. Three lines; the fourth duplicated the harness contract verbatim and was cut |
 | `agent/config.yml` | model roles, provider order, fallback chains, TUI, memory, tool settings |
 | `agent/models.yml` | override-only, and only two entries: `gpt-6-astra`'s context window raised to the plan ceiling the catalog understates, and `deepseek-v4.1-flash`'s output cap corrected from a discovery guess |
-| `agent/mcp.json` | six HTTP servers — `sentry`, `linear`, `voyager` live; `notion`, `alchemy`, `slack` at `enabled: false` — plus a `disabledServers` list. No secrets: OAuth credentials live in profile auth storage, static tokens in the login keychain |
+| `agent/mcp.json` | seven HTTP servers — `sentry`, `linear`, `voyager`, `cloudflare` live; `notion`, `alchemy`, `slack` at `enabled: false` — plus a `disabledServers` list. No secrets: OAuth credentials live in profile auth storage, static tokens in the login keychain |
 | `agent/lsp.json` | one override: `idleTimeoutMs: 300000` |
 | `agent/WATCHDOG.md` | advisor review brief — live since `advisor.enabled: true` (2026-08-28) |
 | `agent/WATCHDOG.yml` | advisor roster: one entry, widening the advisor's tool grant to include `lsp`. Also live |
 | `agent/agents/*.md` | 14 cavecrew subagents + `momus`, all in `disabledAgents`. Kept for re-measurement; models reference `@role`, not pinned ids |
 | `agent/commands/*.md` | 5 caveman slash commands + `/diverge` |
 | `agent/tools/caveman-compress/` | the compress tool (scripts + docs), graduated from a skill |
-| `agent/skills/*/SKILL.md` | 52 skill directories: 32 model-invoked, 20 command-only |
+| `agent/skills/*/SKILL.md` | 66 skill directories: 52 written here, plus 14 symlinks into the pinned `cloudflare/skills` submodule |
+| `agent/skills/.sources/cloudflare` | submodule gitlink, pinned at `b052c32`. The 14 `agent/skills/<name>` symlinks resolve through it |
 | `agent/scripts/*.sh` | `mcp-keychain-token.sh` (reads an MCP bearer token from the login keychain) and `mcp-credentials-wizard.sh` (mints and stores them). Tracked because the tracked `mcp.json` references the first by path |
 
 Everything else under `~/.omp` — `agent.db`, `history.db`, `models.db`, `sessions/`, `blobs/`, `banks/`, `cache/`, `logs/`, `run/` — is state or secrets and stays local.
@@ -354,11 +355,24 @@ loader only accepts JS/TS modules exporting a factory, so a bare binary there is
 registered as a callable tool — invoke it by path (`~/.omp/agent/tools/yt-dlp`) or put it
 on `PATH`.
 
+The cloudflare skill pack goes the other way — tracked, as a submodule rather than
+per-machine provisioning, because the cost profile is inverted: a gitlink is one
+pinned line, not a 37 MB blob per update. The alternative (ignore `.sources/`, track
+the symlinks, provision on each machine) buys nothing and loses the pin, since a fresh
+clone would then hold 14 dangling symlinks until someone ran the installer. `.gitmodules`
+needs its own `!` line because `.gitignore` is default-deny.
+
+```sh
+git clone --recurse-submodules …          # or, in an existing checkout:
+git submodule update --init
+git submodule update --remote             # move the pin to upstream main
+```
+
 ## License and attribution
 
 MIT, see [`LICENSE`](LICENSE). Skills and subagents here are vendored from three
-upstream MIT projects, plus six relocated skills under Apache-2.0 or unknown
-terms (full notices in [`NOTICE`](NOTICE)):
+upstream MIT projects and one Apache-2.0 project, plus six relocated skills under
+Apache-2.0 or unknown terms (full notices in [`NOTICE`](NOTICE)):
 
 | Upstream | What came from it |
 |---|---|
@@ -367,6 +381,7 @@ terms (full notices in [`NOTICE`](NOTICE)):
 | [`JuliusBrussee/caveman`](https://github.com/JuliusBrussee/caveman) | the `caveman*` skills and commands, `cavecrew`, and the `cavecrew-builder` / `cavecrew-investigator` / `cavecrew-reviewer` subagents |
 | relocated from `~/.codex/skills` (2026-08-26) | 5 command-only skills. `figma`, `figma-implement-design`, `security-best-practices` ship a stock Apache-2.0 `LICENSE.txt` with no holder named; `elixir-architect` and `linear` arrived with no license or attribution and no ownership is claimed over them. A sixth, `frontend-design`, was traced to `anthropics/skills` on 2026-08-27, replaced with upstream, and un-gated — the 2026-08-26 sweep had flipped it command-only only as a side effect of the move |
 | [`emilkowalski/skills`](https://github.com/emilkowalski/skills) (MIT), [`uizze/uizze`](https://github.com/uizze/uizze), [`vercel-labs/web-interface-guidelines`](https://github.com/vercel-labs/web-interface-guidelines) | the UI set vendored 2026-08-27: `animate`, `emil-design-eng`, `review-animations` from the first; `anti-ui-slop` from the second (its remote banner image removed); `web-interface-guidelines` from the third. Full terms in NOTICE |
+| [`cloudflare/skills`](https://github.com/cloudflare/skills) (Apache-2.0) | 14 skills tracked as a submodule rather than copied, pinned at `b052c32`: `agents-sdk`, `cloudflare`, `cloudflare-email-service`, `cloudflare-one`, `cloudflare-one-migrations`, `durable-objects`, `nextjs-on-cloudflare`, `sandbox-migrate-to-next`, `sandbox-next`, `sandbox-stable`, `turnstile-spin`, `web-perf`, `workers-best-practices`, `wrangler`. Upstream-current by construction, so unlike the copied sets these must not be edited in place |
 
 The remaining 8 skills (`baseline-first`, `context-curation`, `decision-log`, `diverge-converge`, `pre-mortem`, `prototyping`, `reviewing-model-pins`, `wayfinding`), the other 11 cavecrew subagents, `momus`, `agent/WATCHDOG.md`, `agent/WATCHDOG.yml`, `agent/scripts/*.sh`, and all config in `agent/*.yml` / `agent/*.json` are original to this repo.
 
