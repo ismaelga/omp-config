@@ -32,8 +32,11 @@ including their scripts and reference documents:
                                      CREATION-LOG.md, test-pressure-*.md)
   test-driven-development           (SKILL.md only -- see "Original", below)
   using-git-worktrees
-  using-superpowers                 (incl. references/pi-tools.md,
-                                     codex-tools.md, antigravity-tools.md)
+  using-superpowers                 (incl. references/omp-tools.md; upstream's
+                                     codex, pi and antigravity tool maps were
+                                     deleted 2026-09-15 as dead weight, and
+                                     the Platform Adaptation section that
+                                     listed them now names omp only)
   writing-plans                     (incl. plan-document-reviewer-prompt.md)
   writing-skills                    (incl. anthropic-best-practices.md,
                                      persuasion-principles.md,
@@ -68,7 +71,22 @@ mattpocock/skills -- https://github.com/mattpocock/skills
 --------------------------------------------------------------------------------
 
 Applies to all files under these 20 skill directories in agent/skills/,
-vendored unmodified on 2026-08-20:
+vendored 2026-08-20 and then ported to omp -- not "unmodified", as this section
+claimed until 2026-09-15. Upstream has not touched skills/engineering or
+skills/productivity since (checked against 3cca18b, 2026-09-04: the only commits
+add two skills/in-progress entries), so every difference is local. The port is
+mechanical in most and substantive in a few: `/x` slash commands became
+`/skill:x`; `/tdd` and `/prototype` were remapped onto the vendored
+`test-driven-development` and `prototyping`; "call the Skill tool with" became
+`Read skill://`; question rounds became batched `ask` calls with `recommended`
+and `multi`; sub-agent walks became `task` batches on `agent: scout` with an
+`outputSchema`; trackers resolve through the mounted Linear MCP or the `github`
+device; lesson servers start with `hub start`; and `teach` mirrors durable user
+facts through `retain`/`recall`. Drift against upstream, in changed lines:
+ask-matt 68, codebase-design 50, setup-matt-pocock-skills 26, grilling 25,
+to-tickets 22, improve-codebase-architecture 22, teach 12, triage 8,
+domain-modeling 8, to-spec 7, implement 4, six more at 2, and four byte-identical
+(resolving-merge-conflicts, to-questionnaire, wait-what, writing-for-agents):
 
   ask-matt                          (incl. PHASE-BOUNDARIES.md)
   codebase-design                   (incl. DEEPENING.md, DESIGN-IT-TWICE.md)
@@ -502,6 +520,133 @@ nothing where CDP Runtime events work 3/3.
 Apache License 2.0, vendored as LICENSE.txt. No copyright holder is named
 upstream -- the license file carries the unfilled template notice, so none is
 asserted here.
+
+--------------------------------------------------------------------------------
+jakubkrehel/skills -- https://github.com/jakubkrehel/skills
+--------------------------------------------------------------------------------
+
+Applies to this skill directory in agent/skills/, vendored 2026-09-15 from
+skills/better-ui at 267330e1adfc:
+
+  better-ui                          (SKILL.md rewritten -- see below; incl.
+                                      surfaces.md and icon-transitions.md
+                                      upstream-verbatim, icons.md with one
+                                      changed line, theme-and-layers.md
+                                      assembled here)
+
+Halved on purpose. Upstream's motion rules restate what `animate`,
+`review-animations` and `emil-design-eng` already own, and restate them with
+different constants -- upstream says stagger by ~100ms where all three installed
+skills say 30-80ms, and fixes press feedback at exactly 0.96 where `animate`
+gives 0.9-0.97 per component. A second motion standard with different numbers is
+worse than none, so animations.md, enter-exit.md and performance.md are not
+vendored and SKILL.md keeps only the static-surface half, routing motion to the
+skills that own it.
+
+What survives is the part nothing installed here covered: concentric radius math,
+optical alignment offsets, shadow-for-depth versus border-for-structure, the
+image-outline rule, icon stroke matched to text weight, one-SVG-per-state, icon
+cross-fade recipes, theme-switch transition suppression and `will-change`
+discipline (greps for `will-change`, theme-flip smear and optical alignment
+across the six installed UI skills returned nothing).
+
+Modified:
+
+- SKILL.md: rewritten. The motion sections are gone, the three references to
+  upstream's `better-typography`, `better-accessibility` and `better-layout`
+  skills (none vendored) now point at `frontend-design` and
+  `web-interface-guidelines`, and upstream's severity/Block/Approve reporting
+  contract is dropped because `code-review` and `interrogate` define output
+  here. `disable-model-invocation: true` added: upstream ships no such key, so
+  as-is it would have cost index space on every turn.
+- icons.md: the closing `better-accessibility` pointer became the equivalent
+  `web-interface-guidelines` audit items. Nothing else changed.
+- icon-transitions.md: upstream verbatim plus a scope note, because its
+  `scale: 0.25` start is correct for a glyph swap and would otherwise read as
+  contradicting `animate`'s rule for elements entering the page.
+- theme-and-layers.md: assembled here from upstream animations.md "Suppress
+  transitions on theme switch" and performance.md "Use `will-change` sparingly",
+  under a new header; the two sections themselves are upstream text.
+
+MIT License
+
+Copyright (c) 2026 Jakub Krehel
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.
+
+--------------------------------------------------------------------------------
+bobmatnyc/claude-mpm-skills -- https://github.com/bobmatnyc/claude-mpm-skills
+--------------------------------------------------------------------------------
+
+Applies to this skill directory in agent/skills/, derived 2026-09-15 from
+toolchains/elixir/frameworks/phoenix-liveview at 718070a7d622:
+
+  phoenix-liveview                   (rewritten -- see below)
+
+Vendored because `elixir-architect` is an architecture-document generator with no
+Phoenix web layer at all: greps for `stream(`, `Registry`, `DynamicSupervisor`,
+`Task.Supervisor`, `Channel`, `Presence`, `LiveViewTest` and `clustering` across
+its 1020 lines return name-drops only. Four other Elixir skills were assessed the
+same day and rejected -- thebushidocollective/han elixir-otp-patterns (ships
+`use Task.Supervisor`, which does not exist, and a nested `Supervisor` child spec
+that cannot start), personamanagmentlayer/pcl elixir-expert (Phoenix 1.5
+`Routes.*_path`, removed in 1.6), sickn33 elixir-pro and mindrally elixir (no
+code at all).
+
+Modified: the skill is rewritten rather than ported. Kept in substance are the
+LiveView lifecycle, HEEx guidance, streams, LiveComponents, PubSub fan-out,
+Channels/Presence, LiveViewTest, the ops list and the pitfalls. Cut were the asdf
+and `mix phx.new` setup block, the router and plug boilerplate, the GenServer
+counter and the Ecto schema/changeset/Multi sections, all of which are either
+model-innate or already in `elixir-architect`. Corrected against current docs:
+upstream's Presence example aliases the `Phoenix.Presence` behaviour and calls
+`Presence.track/3` on it, which cannot work -- a Presence module of your own plus
+a supervision-tree entry between PubSub and the endpoint is now shown
+(hexdocs Phoenix v1.8.14); `<%= @x %>` interpolation and comprehensions became
+HEEx `{...}` with `:for`/`:if`; paths became `~p` verified routes; the PubSub
+example prepends through `stream_insert/4` instead of growing a list assign,
+which is what upstream's own "prefer streams" advice asks for. Upstream's
+`user-invocable`, `version`, `category`, `author`, `license`,
+`progressive_disclosure` and `token_estimate` frontmatter keys were dropped along
+with metadata.json; `disable-model-invocation: true` is upstream's and is kept.
+
+MIT License
+
+Copyright (c) 2025 Claude MPM Contributors
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.
 
 --------------------------------------------------------------------------------
 Original to this repository
