@@ -307,8 +307,8 @@ re-dispatched entire completed task sequences — the single most expensive
 failure observed. The ledger file is the git-durable complement that covers
 both:
 
-- At skill start, check for a ledger:
-  `cat "$(git rev-parse --show-toplevel)/.superpowers/sdd/progress.md"`. Tasks listed there
+- At skill start, check for a ledger: `read` the path
+  `.superpowers/sdd/progress.md` under the repo root. Tasks listed there
   as complete are DONE — do not re-dispatch them; resume at the first task
   not marked complete.
 - When a task's review comes back clean, append one line to the ledger in

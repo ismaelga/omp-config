@@ -1,6 +1,6 @@
 ---
 name: animate
-description: Build an animation from scratch, making the decisions in the order that determines whether it feels right — should it animate at all, what purpose, which tool, which properties, which curve and duration, how it interrupts, how it exits. Writes the implementation. Use when asked to animate something, add motion, make a component feel alive, or build a transition. For critiquing existing motion use review-animations; for UI design grounding use anti-ui-slop.
+description: "Build an animation from scratch, deciding in order: whether it should animate at all, which properties, which curve or spring, how it interrupts, how it exits. Writes the implementation. Use when asked to animate something, add motion, or build a transition. Critiquing existing motion is review-animations."
 ---
 
 # Building Animations

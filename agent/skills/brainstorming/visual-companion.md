@@ -32,15 +32,21 @@ The server watches a directory for HTML files and serves the newest one to the b
 
 ## Starting a Session
 
-```bash
+```
 # Start AFTER the user approves the companion. --open auto-opens their browser on
 # the first screen; --project-dir persists mockups and enables same-port restart.
-scripts/start-server.sh --project-dir /path/to/project --open
+hub start
+  name: "brainstorm"
+  application: "bash"
+  args: ["agent/skills/brainstorming/scripts/start-server.sh",
+         "--project-dir", "/path/to/project", "--open", "--foreground"]
+  ready: { log: "server-started", timeout: 30 }
 
-# Returns: {"type":"server-started","port":52341,
-#           "url":"http://localhost:52341/?key=ab12…",
-#           "screen_dir":"/path/to/project/.superpowers/brainstorm/12345-1706000000/content",
-#           "state_dir":"/path/to/project/.superpowers/brainstorm/12345-1706000000/state"}
+# The startup line is the readiness signal and carries the connection info:
+# {"type":"server-started","port":52341,
+#  "url":"http://localhost:52341/?key=ab12…",
+#  "screen_dir":"/path/to/project/.superpowers/brainstorm/12345-1706000000/content",
+#  "state_dir":"/path/to/project/.superpowers/brainstorm/12345-1706000000/state"}
 ```
 
 Save `screen_dir` and `state_dir` from the response. With `--open`, the browser opens itself when you push the first screen — you don't need to ask the user to open it, but still share the URL as a fallback (headless/remote setups won't auto-open).
@@ -53,52 +59,39 @@ the network can't read the screens or inject events. After the first load the
 browser remembers the key via a cookie, so reloads and `/files/*` assets work
 without repeating it.
 
-**Finding connection info:** The server writes its startup JSON to `$STATE_DIR/server-info`. If you launched the server in the background and didn't capture stdout, read that file to get the URL and port. When using `--project-dir`, check `<project>/.superpowers/brainstorm/` for the session directory.
+**Finding connection info:** The server writes its startup JSON to `$STATE_DIR/server-info`. `read` that file whenever you need the URL and port again. When using `--project-dir`, the session directory is under `<project>/.superpowers/brainstorm/`.
 
 **Note:** Pass the project root as `--project-dir` so mockups persist in `.superpowers/brainstorm/` and survive server restarts. Without it, files go to `/tmp` and get cleaned up. Remind the user to add `.superpowers/` to `.gitignore` if it's not already there.
 
-**Launching the server by platform:**
+**Launching the server.** `hub` owns the process, so the script runs in
+`--foreground` mode and never backgrounds itself -- no `nohup`, no PID file, no
+platform detection:
 
-**Claude Code:**
-```bash
-# Default mode works — the script backgrounds the server itself.
-scripts/start-server.sh --project-dir /path/to/project --open
+```
+hub start
+  name: "brainstorm"
+  application: "bash"
+  args: ["agent/skills/brainstorming/scripts/start-server.sh",
+         "--project-dir", "/path/to/project", "--open", "--foreground"]
+  ready: { log: "server-started", timeout: 30 }
 ```
 
-On Windows, the script auto-detects and switches to foreground mode (which blocks the tool call). Use `run_in_background: true` on the Bash tool call so the server survives across conversation turns, then read `$STATE_DIR/server-info` on the next turn to get the URL and port.
+Readiness is the startup JSON itself, so once `hub start` returns ready the URL
+exists. Read it with `hub logs name: "brainstorm"` (or `read` on
+`$STATE_DIR/server-info`), and keep `screen_dir` and `state_dir` from that JSON.
+`hub stop name: "brainstorm"` ends the session; `hub ps` shows whether it is
+still alive. Never launch this with a backgrounded `bash` call -- the process
+must outlive the turn, which is what `hub` is for.
 
-**Codex:**
-```bash
-# Codex reaps background processes. The script auto-detects CODEX_CI and
-# switches to foreground mode. Run it normally — no extra flags needed.
-scripts/start-server.sh --project-dir /path/to/project --open
-```
-
-**Copilot CLI:**
-```bash
-# Use --foreground and start the server via the bash tool with mode: "async"
-# so the process survives across turns. Capture the returned shellId for
-# read_bash / stop_bash if you need to interact with it later.
-scripts/start-server.sh --project-dir /path/to/project --open --foreground
-```
-
-**Other environments:** The server must keep running in the background across conversation turns. If your environment reaps detached processes, use `--foreground` and launch the command with your platform's background execution mechanism.
-
-If the URL is unreachable from your browser (common in remote/containerized setups), bind a non-loopback host:
-
-```bash
-scripts/start-server.sh \
-  --project-dir /path/to/project \
-  --host 0.0.0.0 \
-  --url-host localhost
-```
-
-Use `--url-host` to control what hostname is printed in the returned URL JSON.
+If the URL is unreachable from the user's browser (common in remote or
+containerized setups), bind a non-loopback interface and control the printed
+hostname separately by adding `"--host", "0.0.0.0", "--url-host", "localhost"`
+to `args`.
 
 ## The Loop
 
 1. **Check server is alive**, then **write HTML** to a new file in `screen_dir`:
-   - **Required: confirm the server is alive before referring to the URL or pushing a screen.** Check that `$STATE_DIR/server-info` exists and `$STATE_DIR/server-stopped` does not. If it has shut down, restart it with `start-server.sh` using the **same `--project-dir`** — it reuses the same port, so the user's open tab reconnects on its own (it shows a "paused" overlay while the server is down) and you don't need to send a new URL. The server auto-exits after 4 hours idle (configurable with `--idle-timeout-minutes`).
+   - **Required: confirm the server is alive before referring to the URL or pushing a screen.** `hub ps` shows the launch, and `$STATE_DIR/server-info` must exist while `$STATE_DIR/server-stopped` must not. If it has shut down, `hub restart name: "brainstorm"` reuses the retained spec and the same `--project-dir`, so it comes back on the same port: the user's open tab reconnects on its own (it shows a "paused" overlay while the server is down) and you don't need to send a new URL. The server auto-exits after 4 hours idle (configurable with `--idle-timeout-minutes`).
    - Use semantic filenames: `platform.html`, `visual-style.html`, `layout.html`
    - **Never reuse filenames** — each screen gets a fresh file
    - Use your file-creation tool — **never use cat/heredoc** (dumps noise into terminal)
@@ -279,9 +272,14 @@ If `$STATE_DIR/events` doesn't exist, the user didn't interact with the browser 
 
 ## Cleaning Up
 
-```bash
-scripts/stop-server.sh $SESSION_DIR
 ```
+hub stop
+  name: "brainstorm"
+```
+
+`hub stop` terminates the process tree gracefully. Run
+`scripts/stop-server.sh $SESSION_DIR` only when the server was started outside
+`hub` and there is a PID file to reap.
 
 If the session used `--project-dir`, mockup files persist in `.superpowers/brainstorm/` for later reference. Only `/tmp` sessions get deleted on stop.
 

@@ -6,7 +6,11 @@ description: Use the Figma MCP server to fetch design context, screenshots, vari
 
 # Figma MCP
 
-Use the Figma MCP server for Figma-driven implementation. If no Figma MCP tools are mounted, work from an exported screenshot of the node instead: `read <screenshot>.png?q="<question>"` answers specific comparison questions about it as text.
+Requires a Figma MCP server, which this harness does not mount by default: add one to
+`~/.omp/agent/mcp.json` and restart, or the tool calls below do not exist. Without it, work
+from an exported screenshot of the node instead -- `read <screenshot>.png?q="<question>"`
+answers specific comparison questions about it as text, which covers review and parity
+checks but not asset or variable extraction.
 
 ## Figma MCP Integration Rules
 These rules define how to translate Figma inputs into code for this project and must be followed for every Figma-driven change.

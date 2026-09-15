@@ -1,11 +1,10 @@
 ---
 name: anti-ui-slop
-description: Stop coding agents from shipping generic UI. Use UIZZE's 800,000+ real web and iOS screens to build product-specific interfaces, define a design contract, cover required states, and run a hard finish gate. Use when designing, implementing, redesigning, critiquing, or pre-ship reviewing a web or iOS interface in Codex, Claude Code, Cursor, Copilot, or another coding agent. Trigger with "anti-ui-slop", "stop UI slop", "ground this UI in real screens", or "run the UI finish gate".
+description: "Stop shipping generic UI. Ground the interface in UIZZE's corpus of real web and iOS screens, pin a design contract, cover every required state, then run a hard finish gate. Use when designing, implementing, redesigning, or pre-ship reviewing a web or iOS interface."
 license: MIT
 metadata:
   version: "1.2.13"
   author: "UIZZE <business@uizze.com>"
-  compatibility: "Designed for Claude Code, Codex, Cursor, and GitHub Copilot; works in any agent that can read project files and fetch a URL."
   tags: "ui-design, design-system, design-review, frontend, web-ui, ios-ui"
 ---
 

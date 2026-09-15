@@ -49,14 +49,11 @@ These thoughts mean STOP—you're rationalizing:
 | "This feels productive" | Undisciplined action wastes time. Skills prevent this. |
 | "I know what that means" | Knowing the concept ≠ using the skill. Invoke it. |
 
-## Platform Adaptation
+## Tool vocabulary
 
-If your harness appears here, read its reference file for special instructions:
-
-- Codex: `references/codex-tools.md`
-- Pi: `references/pi-tools.md`
-- Antigravity: `references/antigravity-tools.md`
-- omp: `references/omp-tools.md`
+Skills speak in actions ("dispatch a subagent", "create a todo", "read a file"). The
+mapping onto omp's tools is in `references/omp-tools.md`. Read it when a skill names an
+action rather than a tool.
 
 ## User Instructions
 
