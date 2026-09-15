@@ -1,8 +1,9 @@
 NOTICE -- third-party components
 ================================
 
-omp-config is MIT licensed (see LICENSE). Parts of it are vendored from three
-upstream projects and remain under their own MIT terms, reproduced below.
+omp-config is MIT licensed (see LICENSE). Parts of it are vendored from the
+upstream projects listed below and remain under their own terms, reproduced with
+each section.
 
 Vendored files are edited freely here -- do not assume any of them is
 upstream-current. Provenance for the pre-existing files was established by
@@ -343,6 +344,164 @@ is modified; edits belong upstream, and moving the pin is
 
 Apache License 2.0. The license file carries the unfilled template notice with
 no copyright holder named upstream, so none is asserted here.
+
+--------------------------------------------------------------------------------
+cursor/plugins -- https://github.com/cursor/plugins (pstack plugin, by poteto)
+--------------------------------------------------------------------------------
+
+Applies to these skill directories in agent/skills/, copied 2026-09-15 from
+pstack/skills at be432a96ed36:
+
+  blast-radius                      (modified -- see below)
+  create-verification-skill         (heavily ported -- see below; incl.
+                                     references/feature-map-example/)
+  interrogate                       (ported -- see below; incl.
+                                     references/rubric.md, reviewer-prompt.md,
+                                     lead-judgment.md, code-quality-review.md)
+  maintain-verification-skill       (heavily ported -- see below)
+  principle-boundary-discipline     (vendored so typescript-best-practices's
+                                     boundary-validation rule can cite it)
+  principle-type-system-discipline
+  typescript-best-practices         (incl. references/patterns.md)
+  unslop
+
+All of them ship `disable-model-invocation: true` upstream and keep it, so they
+add nothing to the always-loaded skill index and are reachable only as
+`/skill:<name>` or `skill://<name>`. The rest of pstack is deliberately not
+vendored: poteto-mode's tree is ~327K and hard-wires Cursor built-ins,
+cursor-team-kit, `subagent_type` spawns and cursor model slugs, and the other 21
+principle leaves restate rules the omp system prompt already carries -- the two
+vendored above are the exceptions with teeth.
+
+Modified per skill:
+
+- blast-radius: lines 11, 33, 36 and 38 referenced pstack's `how`, `why` and
+  `arena` skills, none vendored here. They now describe the split inline
+  (a `task`/`scout` explainer dispatch for what the code does) and point at
+  plain `git blame`/`git log`/PR archaeology and a `task` fan-out across model
+  families. `typescript-best-practices` had its frontmatter `paths:` key
+  renamed to omp's `globs:`, its "type-system-discipline" reference fixed to
+  the vendored `principle-type-system-discipline`, and its
+  "boundary-discipline" reference fixed to the vendored
+  `principle-boundary-discipline`. Nothing else changed in these two, the
+  principle leaves, or unslop.
+- create-verification-skill / maintain-verification-skill: heavily rewritten for
+  omp. Generated verify skills target `.omp/skills/verify-<app>/` (omp's native
+  project skill root, confirmed by nonce probe against the shipped binary);
+  server lifecycle is the `hub` tool (`start` with a `ready` probe, `logs`,
+  `ps`, `stop`) instead of tmux or `scripts`; web driving is the `eval` browser
+  facade; CLI/TUI driving is `hub` PTY `send`; PRs and CI are the `github`
+  device (`pr_create`, `run_watch`); the read-only per-feature subagent became
+  one `task` batch of `scout` items; `/create-skill` and `/loop` references
+  deleted.
+- interrogate: Step 3 rewritten for omp. The four Cursor reviewer models became
+  one `task` batch across four agent/family vehicles: `reviewer` (`@critic`,
+  OpenAI), `security-reviewer` (`@sentinel`, GLM), `interrogator` (`@plan`,
+  Anthropic), `task` (`@task`, DeepSeek). Upstream's `subagent_type`,
+  per-item `model:` slugs, slug-fallback paragraph and `pstack-models.mdc` hook
+  deleted; `task.agentModelOverrides` named as the omp equivalent. Scope step
+  gained `pr://<N>/diff` and packaging to `local://interrogate-package.md`.
+  references/lead-judgment.md and references/code-quality-review.md are
+  upstream byte-identical; rubric and reviewer-prompt have tool-name edits only.
+  Companion file original to this repository: agent/agents/interrogator.md (the
+  Anthropic arm; read-only tools `read`, `grep`, `glob`, `lsp`).
+
+Upstream ships its license at pstack/LICENSE rather than inside each skill
+directory, so it is reproduced here instead of vendored alongside the skills.
+
+MIT License
+
+Copyright (c) 2026 Lauren Tan
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.
+
+--------------------------------------------------------------------------------
+cursor/plugins -- https://github.com/cursor/plugins (cursor-team-kit plugin)
+--------------------------------------------------------------------------------
+
+Applies to this skill directory in agent/skills/, vendored 2026-09-15 from
+cursor-team-kit/skills/deslop at be432a96ed36:
+
+  deslop
+
+Upstream is a 22-line focus-area list with no mechanism. Ported heavily for
+omp: every focus area now carries the exact `ast_grep` pattern or `grep` that
+finds it; the four house slop bans from AGENTS.md (duplicated logic,
+type-silencing casts, tests that assert nothing real, dead fallbacks) are
+encoded as sections; upstream's "extra comments that are unnecessary" was
+reconciled with AGENTS.md's load-bearing-comment rule rather than left as a
+second, blunter comment standard; scope is fenced to deletions and local
+flattenings, routing structural rework to `code-review` + a `reviewer` dispatch.
+
+The task brief assumed deslop delegates to cursor-team-kit's
+thermo-nuclear-code-quality-review; it does not -- upstream never mentions any
+agent or other skill -- so no delegation had to be replaced.
+
+MIT License
+
+Copyright (c) 2026 Cursor
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.
+
+--------------------------------------------------------------------------------
+anthropics/skills -- https://github.com/anthropics/skills (webapp-testing)
+--------------------------------------------------------------------------------
+
+Applies to these files in agent/skills/webapp-testing/, vendored 2026-09-15 from
+skills/webapp-testing at 34040c9c5685:
+
+  SKILL.md                           (heavily rewritten for omp -- see below)
+  LICENSE.txt                        (upstream byte-identical, Apache-2.0)
+  examples/page-check.js             (original to this repo, executed before
+                                     shipping; replaces upstream's three
+                                     Python/Playwright examples)
+  examples/local-server.md           (same)
+
+Upstream drives the browser with Python + Playwright sync API and manages the
+server with scripts/with_server.py; neither runs here. Ported onto the `eval`
+browser facade (browser.open, tab.observe, tab.id/tab.ref handles, tab.run with
+raw Puppeteer, waitForFunction/waitForSelector, CDP console+network capture,
+tab.screenshot) and the `hub` tool (start with a ready probe, logs, stop). Two
+harness defects measured during the port are recorded in the skill text so the
+next agent does not rediscover them: bare-selector tab.click/tab.fill hang to
+their 8 s timeout while handle methods work, and page.on("console") delivers
+nothing where CDP Runtime events work 3/3.
+
+Apache License 2.0, vendored as LICENSE.txt. No copyright holder is named
+upstream -- the license file carries the unfilled template notice, so none is
+asserted here.
 
 --------------------------------------------------------------------------------
 Original to this repository
