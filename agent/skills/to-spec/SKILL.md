@@ -6,7 +6,7 @@ disable-model-invocation: true
 
 This skill takes the current conversation context and codebase understanding and produces a spec. Do NOT interview the user; just synthesize what you already know.
 
-The tracker is the mounted Linear MCP (`save_issue` with `addLabels`, `blockedBy`); the `ready-for-agent` label already exists — confirm with `list_issue_labels` if unsure.
+The tracker is the mounted Linear MCP (`save_issue` with `addLabels`, `blockedBy`). The `ready-for-agent` label exists only in repos where `/skill:setup-matt-pocock-skills` has run -- check with `list_issue_labels`, and create it (or tell the user to run setup) rather than assuming.
 
 ## Process
 

@@ -267,7 +267,7 @@ CSS transitions can be interrupted and retargeted mid-animation. Keyframes resta
 ```css
 /* Interruptible - good for UI */
 .toast {
-  transition: transform 400ms ease;
+  transition: transform 240ms ease;
 }
 
 /* Not interruptible - avoid for dynamic UI */
@@ -318,7 +318,7 @@ The modern CSS way to animate element entry without JavaScript:
 .toast {
   opacity: 1;
   transform: translateY(0);
-  transition: opacity 400ms ease, transform 400ms ease;
+  transition: opacity 240ms ease, transform 240ms ease;
 
   @starting-style {
     opacity: 0;

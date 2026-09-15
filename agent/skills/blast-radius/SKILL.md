@@ -35,7 +35,7 @@ Any safety fact you can't get to step 4, say so. Don't write it up as settled. S
 3. Look where grep stops. Read the source of the library you call, and check its pinned version and any local patch. Work out when things run: microtasks, unmount and teardown, Solid versus React. Follow what a symbol search misses: the JSON an API returns, a DB column, a wire format, another language reading the same bytes, a feature flag, code three hops downstream.
 4. Be honest about each risk. Give it a real chance of happening and a real cost if it does. Keep the risks you confirmed. List the ones you checked and cleared separately. Cite a real `file:line`, a search that finds nothing is still an answer, and never make up a caller or an API.
 5. Prove the one fact. Write a script or test that runs the real code, run it, and paste what happened. If you can't prove it cheaply, mark it unproven. Don't overstate.
-6. For a big or wide change, fan the same question out with the `task` tool to several agents on different model families (`reviewer`, `security-reviewer`, `task`) and merge the answers. Different models catch different real bugs.
+6. For a big or wide change, fan the same question out across model families (`reviewer`, `security-reviewer`, `task`) and merge the answers -- different models catch different real bugs. The lens set and converge format for that fan-out are `skill://diverge-converge`; this step is a one-question instance of it, not a second method.
 
 ## What to hand back
 

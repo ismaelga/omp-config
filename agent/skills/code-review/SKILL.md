@@ -65,7 +65,8 @@ models. Care what they resolve to? See `skill://reviewing-model-pins`.
 
 **The benefit is asymmetric, and this matters here.** On 116 LiveCodeBench tasks, cross-family
 review raised pass rate 71.6% → 89.7% when the reviewer was the *stronger* model, but *dropped* it
-whether each reviewer is the stronger or weaker model is decided by `task.agentModelOverrides` and
+when the reviewer was the *weaker* one. Which reviewer is stronger at dispatch time is decided by
+`task.agentModelOverrides` and
 shifts as pins move, so the direction of that effect is never guaranteed at dispatch time. Treat
 reviewer findings as input to your adjudication either way — the adjudication step below is what
 keeps a reviewer from degrading the diff. For money, auth, migration, or key-custody code, check

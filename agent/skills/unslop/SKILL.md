@@ -1,12 +1,12 @@
 ---
 name: unslop
-description: Cut AI tells from any writing. Must always apply.
+description: "Cut AI tells from prose: documents, commit messages, comments, issue text, anything meant to be read as writing. Not rendered product copy, whose typography (curly quotes, Title Case) belongs to web-interface-guidelines."
 disable-model-invocation: true
 ---
 
 # Unslop
 
-Edit text to remove AI patterns.
+Edit text to remove AI patterns. Scope is prose and documentation, including commits and issue text. Rendered UI copy is exempt: product typography deliberately uses curly quotes and Title Case where straight quotes and sentence case here would be wrong -- that call belongs to `web-interface-guidelines`, not to this skill.
 
 ## Process
 
