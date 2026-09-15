@@ -121,7 +121,19 @@ modelRoles:
   # The antigravity route measured 4/4 on 2026-09-01 and stays refused; the
   # reason is under modelProviderOrder below. Measurement rules and the traps
   # behind these numbers: skills/reviewing-model-pins/.
-  task: ollama-cloud/deepseek-v4.1-flash:low
+  # 2026-09-15, user's call, reversing the 09-14 re-run: deepseek takes too
+  # long in practice. The trivial-turn bench already agreed -- glm-5.3-flash
+  # 9.2-13.7 s wall against deepseek's 12.1-16.7 s (omp bench --profile chat,
+  # 3 runs, 256-token cap, 2026-09-11) -- and the bakeoff wall was a near-tie
+  # (145 s vs 143 s median), so lived experience is the tiebreak the numbers
+  # could not settle. Correctness still favors deepseek on the 09-14 evidence
+  # (9/9 vs 6/8 real attempts, one 503) and this accepts that with eyes open.
+  # :high, not :low -- ollama-cloud's GLM rows clamp every lower tier up to
+  # high (see the smol block for that trap), and the 6/8 score above was
+  # measured at :high, so the pin names the tier that actually resolves.
+  # Revert condition: task subagents shipping broken code where deepseek did
+  # not. Re-run the bakeoff before moving back, not after one bad turn.
+  task: ollama-cloud/glm-5.3-flash:high
   # minimax-m3 evicted from smol 2026-08-28, along with two roles omp has since
   # removed: slowest model measured on this machine (25.4 tok/s, 5569 ms TTFT,
   # agent.db model_perf) and last of 30 on llm-stats coding (34.4, FrontierCode
@@ -224,8 +236,10 @@ modelRoles:
   # from 2026-09-14 04:00 UTC deepseek-v4-pro routes to V4.1-Flash at Flash rates
   # until V4.1-Pro launches (deepseek.com/en/news/deepseek-v4-1-flash, 2026-09-10).
   # The successor landed on ollama-cloud on 2026-09-11, scored 4/4 on that
-  # bakeoff, and as of the 2026-09-14 re-run it holds `task` at :low with 9/9.
-  # It still does not hold `scout`, and the reason is the one thing the re-run
+  # bakeoff, and held `task` at :low with 9/9 in the 2026-09-14 re-run --
+  # until the 2026-09-15 user call moved task back to glm-5.3-flash on
+  # wall-clock grounds (see the task block). It still does not hold `scout`,
+  # and the reason is the one thing the re-run
   # did not overturn: this role reads a lot and answers briefly, so tokens
   # emitted is what the caller waits for. On a trivial chat turn V4.1-Flash
   # emits 2.4K-3.7K against the GLM rows' 0.8K-1.1K, and on the short bakeoff
@@ -240,9 +254,11 @@ modelRoles:
   # Provider, 2026-09-14, user's call: GLM weights go to z.ai first -- the
   # first-party route for models z.ai trains -- and reach ollama-cloud only when
   # zai refuses. Applies to the four glm-5.3-flash pins: scout, smol, vision,
-  # advisor. `task` was the fifth until the 2026-09-14 bakeoff moved it to a
-  # model z.ai does not serve. Weights are identical across these providers, so
-  # the bakeoff decides WHICH model; this decides which door.
+  # advisor. `task` was on zai's glm-5.3-flash weights until 09-14, moved to
+  # deepseek-v4.1-flash on the re-run, and back on the 2026-09-15 user call --
+  # task now names a provider-qualified ollama-cloud selector, so this rule
+  # reaches only the four pins again. Weights are identical across these
+  # providers, so the bakeoff decides WHICH model; this decides which door.
   # Three costs, all accepted.
   # 1. Credit meter: zai lite is 2K per 5 h and 10K per week (read 0/2K and
   #    5/10K on 2026-09-14) where ollama-cloud is flat and uncapped.
@@ -461,9 +477,9 @@ retry:
     # the identical weights on the flat, uncapped provider -- which is also the
     # answer to the two failures this pin makes likely: zai's credit bucket
     # emptying, and its ~4-concurrent rate limit under a fan-out. hop 2 is the
-    # third copy of those same weights. hop 3 is the model that now holds
-    # `task`, probed for image input on the wire (Red/Blue, 2026-09-11) because
-    # this head serves `vision`; it is the only non-GLM link before the tail.
+    # third copy of those same weights. hop 3 is deepseek-v4.1-flash, probed for
+    # image input on the wire (Red/Blue, 2026-09-11) because this head serves
+    # `vision`; it is the only non-GLM link before the tail.
     # This head is load-bearing, not decoration: without it `zai/*` catches the
     # four roles and sends them to ollama-cloud/glm-5.3, which is TEXT-ONLY --
     # precisely the silent blinding the rule above warns about.
@@ -529,8 +545,9 @@ retry:
     # that flag, so a subagent cannot escalate itself on a hard task. Accepted
     # deliberately -- the measurement says escalation is the wrong direction.
     # Revert only against a re-run, not against one bad turn.
-    # `task`'s head since 2026-09-14. hop 1 is the same weights on the other
-    # flat plan -- opencode-go serves this id at 384K output against
+    # `task`'s head until the 2026-09-15 user call; kept for the zai chain's
+    # hop 3 and explicit --model selectors. hop 1 is the same weights on the
+    # other flat plan -- opencode-go serves this id at 384K output against
     # ollama-cloud's 66K, and its DeepSeek region gate lifted on 2026-09-11.
     # Then the GLM siblings, zai first per the provider rule above. Every link
     # takes image input, because subagents read screenshots.
@@ -546,9 +563,10 @@ retry:
       - ollama-cloud/deepseek-v4.1-flash:low
       - openai-codex/gpt-5.6-luna:high
       - anthropic/claude-opus-5:high
-    # Reached as hop 1 above, and by an explicit --model selector. Carries no
-    # zai link on purpose: a turn arrives here because zai refused, so sending
-    # it back is a hop spent on a route already known to be down.
+    # `task`'s head since 2026-09-15; also reached as hop 1 above and by an
+    # explicit --model selector. Carries no zai link on purpose: a turn arrives
+    # here either pinned or because zai refused, so sending it back is a hop
+    # spent on a route already known to be down.
     ollama-cloud/glm-5.3-flash:
       - opencode-go/glm-5.3-flash:high
       - ollama-cloud/deepseek-v4.1-flash:low
