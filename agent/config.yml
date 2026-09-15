@@ -496,6 +496,24 @@ retry:
     # ollama-cloud.kdl:5 gives class "unknown" [minimal, low, medium, high], and
     # the [low, high, max] row at kdl:9 names only deepseek-v4-pro:preview, not
     # this id. Worth knowing before trusting any tier comparison on this route.
+    # :minimal measured 2026-09-15 and rejected -- it is NOT a lower floor.
+    # Same diff problem, n=3/tier, `omp bench <id>:<tier> --profile chat
+    # --prompt <DIFF_SPEC> --runs 3 --max-tokens 65536 --par 6 --json`:
+    #   :minimal  out 18452/21261/23853  mean 21.2K  duration p50 230.7 s
+    #   :low      out  9381/19201/21798  mean 16.8K  duration p50 184.3 s
+    # Read the TOKEN columns, not the durations: per the same-regime rule at
+    # :478 above, wall clock does not transfer across concurrency regimes. Both
+    # tiers here ran inside one --par 6 invocation, so the 230.7 vs 184.3 s is
+    # a valid same-condition pair and nothing more -- do not compare it to the
+    # 142.6 s figure at :490, which was measured under a different harness.
+    # Both echo their own `thinking` back, so this is a real tier and not the
+    # GLM-style ladder collapse warned about at the top of this file. The
+    # ranges overlap, so the honest read is "no reduction", not ":minimal is
+    # worse" -- but it is certainly not the cut it was a candidate for. Volume
+    # is flat minimal->low exactly as correctness is flat low->medium: the
+    # effort knob has a floor and :low sits on it. Reasoning volume on this id
+    # is not tier-addressable, which is the same wall a terser system prompt
+    # hit (see above). Do not re-run this hoping for a cheaper tier.
     # Correctness is flat from :low to :medium and then falls, so nothing here
     # buys anything above the floor. The tiebreaker is the output budget: this
     # id is capped at 65536 on ollama-cloud (see models.yml), and :high's worst
