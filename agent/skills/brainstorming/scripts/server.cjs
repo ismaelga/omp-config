@@ -110,7 +110,6 @@ const TELEMETRY_DISABLE_ENV_VARS = [
   'CLAUDE_CODE_DISABLE_NONESSENTIAL_TRAFFIC'
 ];
 const SUPERPOWERS_TELEMETRY_DISABLED = TELEMETRY_DISABLE_ENV_VARS.some(name => isTruthyEnv(process.env[name]));
-let ownerPid = process.env.BRAINSTORM_OWNER_PID ? Number(process.env.BRAINSTORM_OWNER_PID) : null;
 
 // Per-session secret key. The companion is reachable by any local browser tab
 // and, when bound to a non-loopback host, by any host that can route to it.
@@ -555,8 +554,8 @@ const IDLE_TIMEOUT_MS = (() => {
   const ms = Number(process.env.BRAINSTORM_IDLE_TIMEOUT_MS);
   return Number.isFinite(ms) && ms > 0 ? ms : 4 * 60 * 60 * 1000;
 })();
-// How often the watchdog checks for owner-death / idleness. Configurable mainly
-// so tests can run fast; production default is 60s.
+// How often the idle check runs. Configurable mainly so tests can run fast;
+// production default is 60s.
 const LIFECYCLE_CHECK_MS = (() => {
   const ms = Number(process.env.BRAINSTORM_LIFECYCLE_CHECK_MS);
   return Number.isFinite(ms) && ms > 0 ? ms : 60 * 1000;
@@ -631,30 +630,16 @@ function startServer() {
     server.close(() => process.exit(0));
   }
 
-  function ownerAlive() {
-    if (!ownerPid) return true;
-    try { process.kill(ownerPid, 0); return true; } catch (e) { return e.code === 'EPERM'; }
-  }
+  // The harness that launched us (`hub start`) owns the lifecycle and stops
+  // us with a signal; go through shutdown() so server-info is removed and
+  // server-stopped written, which is what the skill checks for liveness.
+  process.on('SIGTERM', () => shutdown('SIGTERM'));
+  process.on('SIGINT', () => shutdown('SIGINT'));
 
-  // Periodically exit if the owner process died or we've been idle too long.
   const lifecycleCheck = setInterval(() => {
-    if (!ownerAlive()) shutdown('owner process exited');
-    else if (Date.now() - lastActivity > IDLE_TIMEOUT_MS) shutdown('idle timeout');
+    if (Date.now() - lastActivity > IDLE_TIMEOUT_MS) shutdown('idle timeout');
   }, LIFECYCLE_CHECK_MS);
   lifecycleCheck.unref();
-
-  // Validate owner PID at startup. If it's already dead, the PID resolution
-  // was wrong (common on WSL, Tailscale SSH, and cross-user scenarios).
-  // Disable monitoring and rely on the idle timeout instead.
-  if (ownerPid) {
-    try { process.kill(ownerPid, 0); }
-    catch (e) {
-      if (e.code !== 'EPERM') {
-        console.log(JSON.stringify({ type: 'owner-pid-invalid', pid: ownerPid, reason: 'dead at startup' }));
-        ownerPid = null;
-      }
-    }
-  }
 
   // If the preferred port is already taken (e.g. a previous server is still
   // alive), fall back to a random port once instead of failing.

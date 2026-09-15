@@ -31,11 +31,10 @@ problem, and ollama-cloud does no prompt caching, so every lens re-bills its who
 | **Catch misses** (review, audit) | model family | distinct agent files pinned to distinct families |
 
 Same-family critics share blind spots — that is why a `reviewer` + `security-reviewer` pair
-runs different families. Read the pins from `modelRoles` in `agent/config.yml` rather than
-trusting a name written here; at the time of writing `reviewer` resolves through `@critic`
-(`openai-codex/gpt-6-astra:high`) and `security-reviewer` through `@sentinel`
-(`opencode-go/glm-5.3:high`). For generation, aim alone separates the outputs; paying for
-family diversity there buys little.
+runs different families: `reviewer` resolves through the `critic` role and `security-reviewer`
+through `sentinel` (`task.agentModelOverrides` → `modelRoles` in `agent/config.yml`). Read the
+pins there; a model name written here would drift. For generation, aim alone separates the
+outputs; paying for family diversity there buys little.
 
 ## Blind-parallel vs anchored
 

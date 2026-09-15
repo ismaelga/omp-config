@@ -18,8 +18,7 @@ Applies to all files under these 11 skill directories in agent/skills/,
 including their scripts and reference documents:
 
   brainstorming                     (incl. scripts/server.cjs, helper.js,
-                                     start-server.sh, stop-server.sh,
-                                     frame-template.html)
+                                     start-server.sh, frame-template.html)
   code-review                       (modified from requesting-code-review;
                                      incl. code-reviewer.md)
   dispatching-parallel-agents

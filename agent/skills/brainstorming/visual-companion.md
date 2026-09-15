@@ -39,7 +39,7 @@ hub start
   name: "brainstorm"
   application: "bash"
   args: ["agent/skills/brainstorming/scripts/start-server.sh",
-         "--project-dir", "/path/to/project", "--open", "--foreground"]
+         "--project-dir", "/path/to/project", "--open"]
   ready: { log: "server-started", timeout: 30 }
 
 # The startup line is the readiness signal and carries the connection info:
@@ -61,18 +61,18 @@ without repeating it.
 
 **Finding connection info:** The server writes its startup JSON to `$STATE_DIR/server-info`. `read` that file whenever you need the URL and port again. When using `--project-dir`, the session directory is under `<project>/.superpowers/brainstorm/`.
 
-**Note:** Pass the project root as `--project-dir` so mockups persist in `.superpowers/brainstorm/` and survive server restarts. Without it, files go to `/tmp` and get cleaned up. Remind the user to add `.superpowers/` to `.gitignore` if it's not already there.
+**Note:** Pass the project root as `--project-dir` so mockups persist in `.superpowers/brainstorm/` and survive server restarts. Without it, files go to `/tmp` and are left for the OS to reap. Remind the user to add `.superpowers/` to `.gitignore` if it's not already there.
 
-**Launching the server.** `hub` owns the process, so the script runs in
-`--foreground` mode and never backgrounds itself -- no `nohup`, no PID file, no
-platform detection:
+**Launching the server.** `hub` owns the process: the script execs node in the
+foreground and never backgrounds itself -- no `nohup`, no PID file, no
+owner-PID watchdog:
 
 ```
 hub start
   name: "brainstorm"
   application: "bash"
   args: ["agent/skills/brainstorming/scripts/start-server.sh",
-         "--project-dir", "/path/to/project", "--open", "--foreground"]
+         "--project-dir", "/path/to/project", "--open"]
   ready: { log: "server-started", timeout: 30 }
 ```
 
@@ -277,11 +277,11 @@ hub stop
   name: "brainstorm"
 ```
 
-`hub stop` terminates the process tree gracefully. Run
-`scripts/stop-server.sh $SESSION_DIR` only when the server was started outside
-`hub` and there is a PID file to reap.
+`hub stop` sends SIGTERM; the server handles it by removing `server-info` and
+writing `server-stopped`, the same liveness markers the loop checks. There is
+no separate stop script.
 
-If the session used `--project-dir`, mockup files persist in `.superpowers/brainstorm/` for later reference. Only `/tmp` sessions get deleted on stop.
+If the session used `--project-dir`, mockup files persist in `.superpowers/brainstorm/` for later reference. `/tmp` sessions are left for the OS to reap.
 
 ## Reference
 
