@@ -19,6 +19,9 @@ task:
   eager: preferred
   showResolvedModelBadge: true
   enableLsp: true
+  # Bound runaway agents by both request churn and slow provider/tool waits.
+  softRequestBudget: 100
+  maxRuntimeMs: 1200000
   # Canonical keys; `task.isolation.mode` was the legacy spelling that migrates
   # to this one (settings.md migration table). Enabled does NOT isolate spawns --
   # each item still opts in with `isolated: true` -- but with `enabled: false` the
