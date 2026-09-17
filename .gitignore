@@ -33,7 +33,8 @@
 !agent/scripts/*.ts
 !agent/scripts/jev/
 !agent/scripts/jev/*.py
-!agent/scripts/jev/*.ts
+!agent/scripts/jev-ts/
+!agent/scripts/jev-ts/*.ts
 
 # Build droppings anywhere under agent/, not just skills/ — agent/tools/ grows
 # __pycache__ too, and bytecode is regenerable from the tracked .py sources.
