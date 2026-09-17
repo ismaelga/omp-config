@@ -19,16 +19,8 @@ task:
   eager: preferred
   showResolvedModelBadge: true
   enableLsp: true
-  # Bound runaway agents by both request churn and slow provider/tool waits.
   softRequestBudget: 100
   maxRuntimeMs: 1200000
-  # Canonical keys; `task.isolation.mode` was the legacy spelling that migrates
-  # to this one (settings.md migration table). Enabled does NOT isolate spawns --
-  # each item still opts in with `isolated: true` -- but with `enabled: false` the
-  # harness strips that field from the task wire schema entirely (tools/task.md),
-  # so there is no way to ask for isolation when two agents must rewrite one file.
-  # `isolation.backend` stays unset: default `auto` resolves to APFS clonefile
-  # here (/ is /dev/disk3s1s1, apfs), and `task.isolation.apply` defaults true.
   isolation:
     enabled: true
   agentModelOverrides:
@@ -36,316 +28,24 @@ task:
     reviewer: "@critic"
     security-reviewer: "@sentinel"
 modelRoles:
-  # Fable 5.1, on the subscription route. Two traps found wiring it 2026-09-02:
-  # the `anthropic` provider spells it `claude-fable-5-1` (dash). The dot form
-  # `anthropic/claude-fable-5.1` is openrouter's id for the same weights, so
-  # writing it here resolves to `openrouter/anthropic/claude-fable-5.1` (after
-  # trying an unauthenticated `kilo`) and silently moves plan+slow off OAuth
-  # onto metered $10/$50. Verified by resolution, not assumed. Second trap: the
-  # OAuth route carries its client version in a billing line injected as
-  # system[0], not an HTTP header -- `x-anthropic-billing-header:
-  # cc_version=2.1.246.209; cc_entrypoint=claude-desktop` (read out of
-  # logs/http-400-requests/, which is also why provider-quirks.md's
-  # claude-cli/2.1.220 UA is the wrong place to look). Anthropic 400s this model
-  # below 2.1.251, so omp <=18.1.0 could not reach it at all; 18.1.2 raised the
-  # version and the same selector went 400 -> 2/2 clean. Same price, 1M context
-  # and low..max ladder as fable 5. Slower on trivial turns, with all four runs
-  # separating cleanly: TTFT 3056/3454 ms vs 1440/2898, gen 42.8/47.4 tok/s vs
-  # 50.9/54.6 (n=2 each, 128-token chat) -- noise for a role that thinks for
-  # tens of seconds. Planning quality itself is unmeasured: the swap rests on
-  # 5.1 being the vendor's successor at identical cost and limits.
   plan: anthropic/claude-fable-5-1:high
   slow: anthropic/claude-fable-5-1:high
-  # Coding, not speed, decides this role -- `task` writes the code it is given.
-  # Measured bakeoff, not index rank: two problems shaped like this harness's own
-  # code (a unified-diff generator and a glob matcher), scored by EXECUTING the
-  # output against hidden validators -- the diff applied back and required to
-  # reconstruct exactly, with correct hunk arithmetic, context bounds and
-  # minimality against difflib; the matcher run over 48 cases whose expectations
-  # were cross-checked against `git check-ignore`, an implementation nobody here
-  # wrote (41 of 42 testable cases agreed; the one disagreement is git ignoring
-  # children of an ignored directory).
-  # Raw evidence (every scored call, its response text, and the harness that ran
-  # them): docs/research/model-selection/bakeoff-2026-09-11/.
-  # 2026-09-11, think=high, 2 samples per model per problem, 6 workers, read cap
-  # raised to 1500 s after two 700 s "timeouts" turned out to be the cap itself:
-  #   ollama-cloud/glm-5.3-flash        4/4  median 111 s  4.7K-22.6K out tokens
-  #   ollama-cloud/deepseek-v4.1-flash  4/4  median 119 s   24K-37K  out tokens
-  #   ollama-cloud/glm-5.3              2/4  median 193 s  both diff runs failed
-  #     for real -- "too many values to unpack", then a hunk header of 5/6
-  #     against a body of 2/3
-  #   openrouter/google/gemini-3.8-flash 1/4 -- NOT a quality result: 3 of 4 came
-  #     back finish_reason "error", zero usage, empty content from Google AI
-  #     Studio, reproduced at 8K/32K/40K max_tokens and against an explicit
-  #     provider order. Credit was restored this pass ($19.91 left), so the old
-  #     revert condition is now settled on measurement rather than on the gate.
-  # That pass tied two models at 4/4 and broke the tie on verbosity, which
-  # pinned glm-5.3-flash. The re-run below reverses it.
-  #
-  # 2026-09-14 re-run, triggered by the revert condition this comment carried:
-  # "if deepseek-v4.1-flash wins the diff problem twice while glm-5.3-flash
-  # drops one, move it." It fired -- deepseek took diff 3/3, glm-5.3-flash 2/3.
-  # Raw evidence: docs/research/model-selection/bakeoff-2026-09-14/ (harness,
-  # results.jsonl, every response body under raw/).
-  # Same two problems plus a third, because the first two saturate: a
-  # backtracking regex engine (literals, `.`, `* + ?`, alternation, nested and
-  # quantified groups, character classes, escapes), scored by executing it over
-  # 220 generated pattern/string pairs against CPython's own `re.fullmatch`.
-  # The validator rejects an always-True and an always-False function before
-  # any model is scored, so a constant answer cannot pass it.
-  # 3 samples per model per problem, 8 workers, every call on the ollama-cloud
-  # route so this compares models and not providers:
-  #   deepseek-v4.1-flash :low   9/9  median 143 s  median 16.0K out tokens
-  #   deepseek-v4.1-flash :high  7/9  median 201 s  median 34.0K  (one 1500 s
-  #                                   timeout, one malformed hunk header)
-  #   glm-5.3             :high  7/9  median 136 s  median 11.1K
-  #   glm-5.3-flash       :high  6/9  median 145 s  median 14.8K  -- one of the
-  #                                   three misses was an ollama 503, so 6/8 on
-  #                                   real attempts; the genuine failures are
-  #                                   `a/**` directory semantics and hunk
-  #                                   arithmetic (header 1/1 against body 1/0)
-  # Two things moved since 09-11. The verbosity objection that decided the last
-  # pass was measured at :high; at :low the same model answers in 16.0K tokens
-  # against 34.0K -- the same ballpark as glm-5.3-flash's 14.8K -- and the
-  # median wall times land within 2 s of each other. And more effort makes
-  # DeepSeek worse here rather than better: 9/9 at :low against 7/9 at :high,
-  # for 1.4x the wall and 2.1x the tokens.
-  # So the tiebreak that pinned glm-5.3-flash no longer exists, and correctness
-  # is no longer tied either.
-  # :low is therefore pinned explicitly. Bare would let
-  # providers.autoThinkingMaxEffort: max classify this into the tier the
-  # bakeoff shows is worse.
-  # Side effect, not the reason: this is the widest role (8-32 concurrent
-  # subagents), so moving it off zai takes most of the fan-out off a plan
-  # measured at ~4 concurrent -- the zai block under `scout` has those numbers.
-  # Revert condition: n=3 per cell is thin and one glm failure was infra. If a
-  # re-run has glm-5.3-flash taking diff and regex 3/3 while deepseek drops
-  # one, move it back.
-  # The antigravity route measured 4/4 on 2026-09-01 and stays refused; the
-  # reason is under modelProviderOrder below. Measurement rules and the traps
-  # behind these numbers: skills/reviewing-model-pins/.
-  # 2026-09-15, user's call, reversing the 09-14 re-run: deepseek takes too
-  # long in practice. The trivial-turn bench already agreed -- glm-5.3-flash
-  # 9.2-13.7 s wall against deepseek's 12.1-16.7 s (omp bench --profile chat,
-  # 3 runs, 256-token cap, 2026-09-11) -- and the bakeoff wall was a near-tie
-  # (145 s vs 143 s median), so lived experience is the tiebreak the numbers
-  # could not settle. Correctness still favors deepseek on the 09-14 evidence
-  # (9/9 vs 6/8 real attempts, one 503) and this accepts that with eyes open.
-  # :high, not :low -- ollama-cloud's GLM rows clamp every lower tier up to
-  # high (see the smol block for that trap), and the 6/8 score above was
-  # measured at :high, so the pin names the tier that actually resolves.
-  # Revert condition: task subagents shipping broken code where deepseek did
-  # not. Re-run the bakeoff before moving back, not after one bad turn.
   task: ollama-cloud/glm-5.3-flash:high
-  # minimax-m3 evicted from smol 2026-08-28, along with two roles omp has since
-  # removed: slowest model measured on this machine (25.4 tok/s, 5569 ms TTFT,
-  # agent.db model_perf) and last of 30 on llm-stats coding (34.4, FrontierCode
-  # 14.7). Nothing it held needed a weak slow model.
-  # Every glm-5.3-flash reference in this file is pinned :high. Before this pass
-  # 7 of the 12 role/link references were bare and 5 said :high -- two chains
-  # carried both forms for the same model. (Chain heads stay bare: they are keys
-  # naming a model, not requests.) Bare means `auto`, and autoThinkingMaxEffort:
-  # max below lets the classifier bill the top tier: measured 2026-09-01 with
-  # `omp bench --profile chat`, :max emitted 1.8K-3.6K tokens on a trivial turn
-  # against high's ~870, costing 41-69 s wall against 22 s, while TTFT stayed
-  # flat (476-692 ms). Effort buys output volume here, not responsiveness -- a
-  # 69 s worst case on the advisor tripwire was one classifier decision away.
-  # `low` is not a uniform option: ollama-cloud's GLM rows bake a ladder that
-  # starts at high, so `:low` and even `:minimal` there resolve to high (bench
-  # --json reports thinking='high'; clampThinkingLevelForModel falls back to
-  # levels[0] when nothing at or below the request is supported), and the same
-  # holds for ollama-cloud/glm-5.3. zai and openrouter/z-ai do serve `low`.
-  # Their efforts stay unmeasured because `omp bench` cannot reach zai at all --
-  # every run returns 429 [1310] "Weekly/Monthly Limit Exceeded" even at
-  # --par 1, while ordinary session calls on the same model succeed. So :high is
-  # the one tier that both exists everywhere and has numbers behind it.
   smol: zai/glm-5.3-flash:high
-  # gpt-oss:120b is FASTER than the 20b here -- roughly 2.5x the decode rate at
-  # about half the TTFT, on every model_perf read since 2026-09-02, and both are
-  # $0 on the flat plan, so the bigger one is free speed. Constants live in
-  # README's role table: model_perf decays, and these rows move between reads.
   tiny: ollama-cloud/gpt-oss:120b
-  # No `designer` and no `librarian` role, deliberately: omp removed the bundled
-  # designer subagent AND the built-in `designer` role in 18.1.5 ("`modelRoles.
-  # designer` and `@designer` are no longer built in"), and the librarian agent in
-  # 18.1.9 -- both read out of the shipped binary's changelog, 18.1.17. Nothing
-  # dereferences `@designer` or `@librarian` any more: agent/agents/*.md name only
-  # @task, @scout, @critic and @sentinel, and the four skills that still dispatched
-  # the removed agents by name were repointed in the same pass. A pin for either
-  # is config nobody reads, so the kimi-k3 UI-grounding and glm-5.3 extraction
-  # evidence that justified them stays in git history rather than here.
-  # Was openrouter/google/gemini-3.7-flash, for modality breadth: it takes
-  # text+image+video+file+audio where glm-5.3-flash is image-only. Breadth is
-  # worth nothing from a route that refuses the request: with the OpenRouter key
-  # $0.09 past its credit, a request whose estimate combines real output length
-  # with reasoning effort 402s, and a role one estimate away from failing is not
-  # a pin (2026-09-10; the gate is on estimated max cost, so short probes and
-  # even 8000 max_tokens without reasoning still pass). The exit condition
-  # written here also fired, though it is the weaker reason: OpenRouter now bills
-  # 3.7 Flash at $0.75/$3.75, verified live against /api/v1/models and matching
-  # the local catalog exactly, against the $0.375/$1.875 it charged on
-  # 2026-08-28. What ended is OpenRouter's own 50% cut; $0.75/$3.75 is Google's
-  # intro price and holds to 2026-12-31, after which it doubles.
-  # That comment's premise was half wrong too -- the 50% figure it quoted for
-  # `:batch` is the batch API, not a discount on interactive calls.
-  # Credit was restored on 2026-09-11 ($19.91 left) and the gate is gone, so the
-  # question is now live rather than moot -- and the answer is unchanged. No role
-  # here has ever exercised video, audio or file input, so the breadth buys
-  # nothing, and the flat route's image input is probed and working. The gemini row
-  # also could not be scored this pass -- 3 of 4 bakeoff calls came back
-  # finish_reason "error", zero usage, empty content from the Google AI Studio
-  # upstream, which is a reachability result and not a quality one.
-  # Image input on this route is probed, not read off the catalog: a 2x2 red PNG
-  # through api.z.ai's coding endpoint answered "Red" on 2026-09-14, in both the
-  # OpenAI-shaped and Anthropic-shaped bodies. The bare api.z.ai/api/paas/v4
-  # endpoint is NOT the plan route -- it answers 429 [1113] "Insufficient
-  # balance or no resource package" with the same credential, which is a
-  # prepaid-API balance, not the lite subscription omp calls.
   vision: zai/glm-5.3-flash:high
   commit: ollama-cloud/gpt-oss:120b
-  # Tripwire, not reviewer. Advisor cost is uncached INPUT (p1 bench: 4.32M in vs
-  # 18k out, cacheRead=0), so prefill and TTFT decide this, not reasoning rank --
-  # which makes this the role the zai-first rule taxes most.
-  # The tax, measured 2026-09-14, both rows live that day: zai/glm-5.3-flash
-  # 5140 ms TTFT / 32.0 tok/s (n=149, ttft_samples 117) against
-  # ollama-cloud/glm-5.3-flash 2740 ms / 52.6 (n=156). ~1.9x the wait for the
-  # first chunk on identical weights. Read it as an order of magnitude, not a
-  # constant: zai's row sat frozen from 2026-09-06 to 2026-09-14 with nothing
-  # routing to it, so most of its decayed weight is old, and the ollama-cloud
-  # row moved 3671 -> 2740 ms in three days. The rule is the user's and the
-  # route is first-party; the number is the price, and it re-measures itself now
-  # that traffic is flowing again.
-  # Quota does not separate them: zai's week reads 5/10K (2026-09-14).
-  # Cost accepted: this shares zai's 2K five-hour bucket with task, scout, smol
-  # and vision, and neither provider caches prompts, so prefill is uncached on
-  # both sides of the fallback.
   advisor: zai/glm-5.3-flash:high
-  # :xhigh, not :max. Artificial Analysis Intelligence Index v4.3 (read
-  # 2026-09-10) scores Opus 5 max 51 / xhigh 50 / high 48 at first-chunk
-  # latencies of 94.9 s / 30.6 s / 26.0 s: one index point for three times the
-  # wait. The earlier note here read "both measure 63" -- that was the previous
-  # index scale and the tie no longer holds, but the conclusion survives the
-  # rescale. Budget follows the pin: thinkingBudgets.xhigh defaults to 32768
-  # against the 65536 set for max below, and `ultrathink` still reaches max.
-  # Locally opus-5 also beats fable-5-1, the model at the top of that index, on
-  # both axes -- about 1.35x the decode rate at under half the TTFT, holding on
-  # every read from 2026-09-10 through 2026-09-11 (model_perf, both rows current).
   default: anthropic/claude-opus-5:xhigh
-  # deepseek-v4-flash is out of both roles, on measurement and on vendor notice.
-  # Measured 2026-09-10: all four bakeoff calls to ollama-cloud/deepseek-v4-flash
-  # timed out at 420 s having returned no code -- the reasoning spiral the
-  # 2026-09-01 pass warned about, reproduced on the model that was carrying
-  # `scout` at :high. Vendor side, DeepSeek retired V4-Flash into V4.1-Flash, and
-  # from 2026-09-14 04:00 UTC deepseek-v4-pro routes to V4.1-Flash at Flash rates
-  # until V4.1-Pro launches (deepseek.com/en/news/deepseek-v4-1-flash, 2026-09-10).
-  # The successor landed on ollama-cloud on 2026-09-11, scored 4/4 on that
-  # bakeoff, and held `task` at :low with 9/9 in the 2026-09-14 re-run --
-  # until the 2026-09-15 user call moved task back to glm-5.3-flash on
-  # wall-clock grounds (see the task block). It still does not hold `scout`,
-  # and the reason is the one thing the re-run
-  # did not overturn: this role reads a lot and answers briefly, so tokens
-  # emitted is what the caller waits for. On a trivial chat turn V4.1-Flash
-  # emits 2.4K-3.7K against the GLM rows' 0.8K-1.1K, and on the short bakeoff
-  # problems 11.8-15.1K against 3.6-6.1K -- both measured, both still true at
-  # :low. Its TTFT and rate are genuinely better (317 ms p50 / 200.7 tok/s
-  # against 685 ms / 88.7, omp bench --profile chat, 3 runs, 256-token cap,
-  # 2026-09-11) and it still loses the trivial turn on total wall time,
-  # 12.1-16.7 s against 9.2-13.7 s. Rate times volume is what the caller waits
-  # for. The 24K-37K figure this comment used to cite was a :high number and is
-  # retired: see the `task` block for why that tier is the wrong one to judge
-  # this model on.
-  # Provider, 2026-09-14, user's call: GLM weights go to z.ai first -- the
-  # first-party route for models z.ai trains -- and reach ollama-cloud only when
-  # zai refuses. Applies to the four glm-5.3-flash pins: scout, smol, vision,
-  # advisor. `task` was on zai's glm-5.3-flash weights until 09-14, moved to
-  # deepseek-v4.1-flash on the re-run, and back on the 2026-09-15 user call --
-  # task now names a provider-qualified ollama-cloud selector, so this rule
-  # reaches only the four pins again. Weights are identical across these
-  # providers, so the bakeoff decides WHICH model; this decides which door.
-  # Three costs, all accepted.
-  # 1. Credit meter: zai lite is 2K per 5 h and 10K per week (read 0/2K and
-  #    5/10K on 2026-09-14) where ollama-cloud is flat and uncapped.
-  #    retry.usageAwareFallback below spills before that wall; the
-  #    zai/glm-5.3-flash chain catches it after, on identical weights.
-  # 2. Concurrency: this is the sharp one, and it is measured, not inferred.
-  #    16 tiny calls to api.z.ai's coding endpoint, 2026-09-14, no harness in
-  #    the path: par=4 -> 4/4 OK; par=5 -> one 429; par=6 -> 6/6 OK; par=7 ->
-  #    two 429s; par=8 -> 4 of 8 429; par=16 -> 9 of 16 429, every failure
-  #    `{"code":"1302","message":"Rate limit reached for requests"}` in ~0.5 s.
-  #    So the plan absorbs about 4 concurrent requests and degrades from 5 up.
-  #    omp classifies 1302 as RATE_LIMIT_EXCEEDED (packages/ai/src/error/
-  #    rate-limit.ts, read out of the shipped binary), which retries in place
-  #    with a backoff floor -- it is NOT a chain hop, so a wide fan-out pays in
-  #    stalls first and only reaches ollama-cloud once retries are exhausted.
-  #    `scout` still fans out against that ceiling, which is why the revert
-  #    condition below is written down. Deliberately left uncapped anyway
-  #    (user's call, 2026-09-14): providers.maxInFlightRequests is a LOCAL
-  #    semaphore, so capping zai to 4 would queue the overflow instead of
-  #    spilling it, trading 429 retries for serialization. Revert condition: if
-  #    subagent fan-out visibly stalls, the fix is moving `scout` to
-  #    ollama-cloud too, not adding the cap.
-  # 3. Speed: zai is the slower route on both axes; numbers under `advisor`.
   scout: zai/glm-5.3-flash:high
-  # gpt-6-astra, not terra. AA Intelligence Index v4.3 (read 2026-09-11) puts
-  # astra at 53 max against terra high at 34, and both sit on the ChatGPT plan,
-  # so the points are free.
-  # :high, raised from :medium 2026-09-11 (user's call). The tier costs
-  # first-chunk latency -- the same AA table measures astra medium/high/xhigh/max
-  # at 5.8 s / 93 s / 221 s / 335 s -- and the earlier comment rejected :high on
-  # that number alone. What it missed: `critic` backs the `reviewer` agent, which
-  # is dispatched as a background subagent, so first-chunk latency is absorbed by
-  # async execution instead of billed to a waiting human. The 335 s max tier is
-  # still refused; that one is slow enough to outlive the turn that spawned it.
-  # Locally astra is slower per token -- 18.2 tok/s / 5521 ms TTFT (n=97) against
-  # terra's 39.7 / 2349 (n=190) -- which does not matter for a role whose output
-  # is a short verdict.
-  # Revert condition: a review that lands after its findings stopped being
-  # actionable is the failure this tier risks. If that shows up, go back to
-  # :medium rather than splitting the difference at :xhigh.
-  # `omp bench` reports "Payment Required" for every openai-codex model while
-  # ordinary session calls on those same models answer fine (both verified
-  # 2026-09-10). That is a bench-path artifact, the same class as zai's 429s --
-  # not an entitlement loss.
   critic: openai-codex/gpt-6-astra:high
-  # Same weights as the zai pin it replaced, on the provider with room:
-  # opencode-go reads 10% of its 5-hour, 23% of its weekly and 62% of its
-  # monthly allowance (omp usage, 2026-09-14); zai's week, exhausted on
-  # 2026-09-10, has long since reset, so headroom no longer separates them.
-  # Security review is precision-bound and low-volume, so this provider's
-  # slower measured route costs nothing that matters: opencode-go/glm-5.3 reads
-  # 68.5 tok/s over n=82 with 3225 ms TTFT across its 70 TTFT samples
-  # (model_perf, 2026-09-14 -- the pinned model now has its own row, so the
-  # older glm-5.2 proxy this comment used to quote is retired).
-  # It also keeps the third GLM route in play: with scout, smol, vision and
-  # advisor on zai and task, tiny and commit on ollama-cloud, pinning sentinel
-  # to either would queue a reviewer behind the bulk roles it exists to outlive.
   sentinel: opencode-go/glm-5.3:high
 modelProviderOrder:
-  # z.ai first (2026-09-10, user's call, reinstating the 2026-08-27 rule): it is
-  # the first-party flat route for GLM weights, and its quota came back on the
-  # clock exactly as predicted: 0/2K five-hour and 0/10K weekly credits (omp
-  # usage, 2026-09-11), against 10K/10K the day before.
-  # Ahead of anthropic rather than second behind it, because the position is
-  # inert for claude either way: zai serves no claude weights, so a bare claude
-  # selector still resolves to anthropic no matter which of the two leads.
-  # openrouter stays last, but no longer because it is broken -- the key was
-  # topped up on 2026-09-11 and reads $19.91 remaining, and the 8000-token
-  # reasoning request that 402'd the day before now answers 200 in 2.1 s. It is
-  # last because it is the one metered key in the list, and metered spend has to
-  # buy something the flat plans cannot. Nothing in this pass needed it to.
-  # This order only decides bare selectors -- every GLM pin above is
-  # provider-qualified.
   - zai
   - anthropic
   - ollama-cloud
   - opencode-go
   - openrouter
-  # google-antigravity is deliberately absent since 2026-09-01, and this is a
-  # refusal rather than a broken hop: its Additional Terms Sec 6 make third-party
-  # clients on that OAuth grounds for account termination -- the stake is the
-  # Google account, not a quota -- and Sec 3/5 keep consumer prompts, code and
-  # responses for Google to improve its models. It measured 4/4 on the `task`
-  # bakeoff above, which is exactly why the reason is written down.
 contextPromotion:
   enabled: false
 theme:
@@ -375,22 +75,7 @@ terminal:
 tui:
   textSizing: false
 advisor:
-  # Re-enabled 2026-08-28. The 2026-08-13 A/B did not condemn this -- `spawns=0`
-  # counts task-tool calls, and the advisor is not a spawn. All seven heavy runs
-  # kept __advisor.watchdog.jsonl, and the notes were real: t2 caught lots.pop()
-  # needing to be lots.shift(), t4 caught two dangling refs that would have thrown,
-  # p1 caught saleCostUsd used where applySale was required. It never changed a
-  # score because minimal already scored 1.00 everywhere the advisor spoke -- you
-  # cannot measure a safety net on tasks nobody falls off.
-  #
-  # The volume complaint in WATCHDOG.md (584 notes / 19 sessions, ~31 interruptions,
-  # measured 2026-08-12) predates the file written to fix it. The bench one day
-  # later shows 0-8 notes per task. That fix held; re-enable on top of it.
   enabled: true
-  # off, not 1. syncBacklog blocks the PRIMARY up to 30s whenever the advisor is
-  # N deltas behind -- the likely bulk of heavy's 527s vs minimal's 270s on p1.
-  # A tripwire may arrive late; a `blocker` still triggers a turn once it catches
-  # up (advisor-watchdog.md). This buys the safety net at zero primary tax.
   syncBacklog: "off"
 steeringMode: one-at-a-time
 interruptMode: immediate
@@ -435,125 +120,10 @@ providers:
     - google
     - mojeek
 retry:
-  # Proactive spill, 2026-09-14. `fallbackChains` below is REACTIVE: it needs a
-  # failure first, and z.ai's quota wall arrives as a 429 the session has to eat
-  # before it moves. This preflights the coding-plan usage report instead and
-  # switches while the plan still has credit. Mechanism, read out of the shipped
-  # binary rather than assumed: the preflight calls getModelUsageHealth(provider)
-  # per request, and on state `reserve` (remaining < usageReservePct) or
-  # `depleted` it walks this role's chain keys, skipping any candidate whose own
-  # usage reads reserve/depleted, and requiring configured auth, a compatible
-  # thinking ceiling and a context that fits. `unknown` fails open on BOTH ends:
-  # it never switches away from a provider it cannot read, and it accepts a
-  # candidate it cannot read -- which is exactly the ollama-cloud case, since
-  # that provider reports no limits at all (`omp usage`, 2026-09-14).
-  # So zai (credit-metered, reported) spills to ollama-cloud (flat, unreported)
-  # before the wall instead of after it.
   usageAwareFallback: true
-  # `auto`, not the `confirm` default: `confirm` only asks where there is a
-  # confirmation UI, and subagents have none -- they auto-apply already. The
-  # prompt would therefore land only on the main turn, to ask whether to move to
-  # identical weights on a flat provider. That is not a decision worth a
-  # keystroke. `fail-closed` is the opposite trade and is refused: it turns a
-  # spent plan into a hard error while a working route sits in the chain.
   usageReservePolicy: auto
-  # 10% is the default and stays: the reserve exists so an interactive turn is
-  # not cut off mid-tool-call, and zai lite's week is 10K credits, so 10% is
-  # 1K credits of runway.
   usageReservePct: 10
   fallbackChains:
-    # Reachability first, price second, as of 2026-09-11. Both of the previous
-    # pass's degraded providers recovered on the same day: z.ai's lite plan reads
-    # 0/2K five-hour and 0/10K weekly credits (omp usage), and the OpenRouter key
-    # was topped up to $19.91 remaining, with the 8000-token reasoning shape that
-    # 402'd on 2026-09-10 now answering 200. The chains below still keep metered
-    # openrouter off every hop, because every role here is served by a flat plan
-    # and a restored balance is not a reason to spend it.
-    # Rules that outlive any one outage: same weights on the cheaper provider
-    # first; every link reachable from a role that sends images must accept image
-    # input, or a retry silently blinds it; the tail must not downgrade the role
-    # that overflowed into it; exhausted or metered routes last.
-    #
-    # Heads for the roles pinned in modelRoles above.
-    # zai/glm-5.3-flash carries scout, smol, vision and advisor since
-    # 2026-09-14, so every link must accept image input AND write code. hop 1 is
-    # the identical weights on the flat, uncapped provider -- which is also the
-    # answer to the two failures this pin makes likely: zai's credit bucket
-    # emptying, and its ~4-concurrent rate limit under a fan-out. hop 2 is the
-    # third copy of those same weights. hop 3 is deepseek-v4.1-flash, probed for
-    # image input on the wire (Red/Blue, 2026-09-11) because this head serves
-    # `vision`; it is the only non-GLM link before the tail.
-    # This head is load-bearing, not decoration: without it `zai/*` catches the
-    # four roles and sends them to ollama-cloud/glm-5.3, which is TEXT-ONLY --
-    # precisely the silent blinding the rule above warns about.
-    # deepseek at :low, not :high -- its verbosity is reasoning, not answer. On
-    # the bakeoff diff problem the answer is ~1K tokens at every tier while
-    # reasoning runs 14-30K, so a terser prompt cannot reach it (measured
-    # 2026-09-11; a terse system prompt left the answer at ~1K and moved total
-    # tokens 18K/40K across two samples -- noise). The effort tier does reach it.
-    # Measured on the diff problem, all 2026-09-11, all 4/4 correct:
-    #   :low  n=4, par-4 today      19.1 / 19.1 / 23.9 / 24.8K out, median 111 s
-    #   :high n=2, par-4 today      33.6 / 39.9K out,              median 155 s
-    #   :high n=4, archived bakeoff 24.0 / 27.7 / 32.1 / 36.9K out, 6 workers
-    # Token counts do not depend on concurrency, so the tiers are comparable
-    # across those regimes: one inversion in 24 pairs. Wall clock does depend on
-    # it, so the 111 s vs 155 s figure is same-condition (par-4) only. Across
-    # regimes the wall times move the other way -- archived 6-worker high runs
-    # median 118 s against today's par-4 high 155 s -- which is day-to-day route
-    # variance, not a concurrency effect worth reading into. It does mean the
-    # route was slower today, so the same-condition :low figure is conservative
-    # rather than flattered.
-    # Both as a link and as `task`'s pinned tier, :low is the measured choice,
-    # and the 2026-09-14 re-run settled the correctness half the 09-11 numbers
-    # could not. Three problems x 3 samples per tier, execution-scored:
-    #   :low    9/9  median 142.6 s  median 16.0K out  worst 22.4K
-    #   :medium 9/9  median 146.7 s  median 25.8K out  worst 49.2K
-    #   :high   7/9  median 200.8 s  median 34.0K out  worst 61.1K
-    # The tiers are real, not aliases: `omp bench <id>:<tier> --json` echoes the
-    # resolved level, and minimal/low/medium/high each survive round-trip while
-    # :max silently resolves to high (2026-09-14). That matches the catalog --
-    # ollama-cloud.kdl:5 gives class "unknown" [minimal, low, medium, high], and
-    # the [low, high, max] row at kdl:9 names only deepseek-v4-pro:preview, not
-    # this id. Worth knowing before trusting any tier comparison on this route.
-    # :minimal measured 2026-09-15 and rejected -- it is NOT a lower floor.
-    # Same diff problem, n=3/tier, `omp bench <id>:<tier> --profile chat
-    # --prompt <DIFF_SPEC> --runs 3 --max-tokens 65536 --par 6 --json`:
-    #   :minimal  out 18452/21261/23853  mean 21.2K  duration p50 230.7 s
-    #   :low      out  9381/19201/21798  mean 16.8K  duration p50 184.3 s
-    # Read the TOKEN columns, not the durations: per the same-regime rule at
-    # :478 above, wall clock does not transfer across concurrency regimes. Both
-    # tiers here ran inside one --par 6 invocation, so the 230.7 vs 184.3 s is
-    # a valid same-condition pair and nothing more -- do not compare it to the
-    # 142.6 s figure at :490, which was measured under a different harness.
-    # Both echo their own `thinking` back, so this is a real tier and not the
-    # GLM-style ladder collapse warned about at the top of this file. The
-    # ranges overlap, so the honest read is "no reduction", not ":minimal is
-    # worse" -- but it is certainly not the cut it was a candidate for. Volume
-    # is flat minimal->low exactly as correctness is flat low->medium: the
-    # effort knob has a floor and :low sits on it. Reasoning volume on this id
-    # is not tier-addressable, which is the same wall a terser system prompt
-    # hit (see above). Do not re-run this hoping for a cheaper tier.
-    # Correctness is flat from :low to :medium and then falls, so nothing here
-    # buys anything above the floor. The tiebreaker is the output budget: this
-    # id is capped at 65536 on ollama-cloud (see models.yml), and :high's worst
-    # run spent 93% of it, :medium's 75%, :low's 34%. Cloud rows set
-    # omitMaxOutputTokens, so that ceiling is not a wire cut -- it is the
-    # budgeting number, and the real cost is that reasoning tokens occupy the
-    # subagent's own window. A task harder than these three -- the case for
-    # more thinking -- is where the upper tiers enter that pressure and the
-    # floor still has room. :high's two failures were one malformed hunk header
-    # after 42.8K tokens and one 1500 s timeout, neither a truncation.
-    # Note this pin is a hard fix, not a floor: applyAutoThinkingLevel returns
-    # early unless the session is in auto mode, and any explicit suffix clears
-    # that flag, so a subagent cannot escalate itself on a hard task. Accepted
-    # deliberately -- the measurement says escalation is the wrong direction.
-    # Revert only against a re-run, not against one bad turn.
-    # `task`'s head until the 2026-09-15 user call; kept for the zai chain's
-    # hop 3 and explicit --model selectors. hop 1 is the same weights on the
-    # other flat plan -- opencode-go serves this id at 384K output against
-    # ollama-cloud's 66K, and its DeepSeek region gate lifted on 2026-09-11.
-    # Then the GLM siblings, zai first per the provider rule above. Every link
-    # takes image input, because subagents read screenshots.
     ollama-cloud/deepseek-v4.1-flash:
       - opencode-go/deepseek-v4.1-flash:low
       - ollama-cloud/glm-5.3-flash:high
@@ -566,18 +136,11 @@ retry:
       - ollama-cloud/deepseek-v4.1-flash:low
       - openai-codex/gpt-5.6-luna:high
       - anthropic/claude-opus-5:high
-    # `task`'s head since 2026-09-15; also reached as hop 1 above and by an
-    # explicit --model selector. Carries no zai link on purpose: a turn arrives
-    # here either pinned or because zai refused, so sending it back is a hop
-    # spent on a route already known to be down.
     ollama-cloud/glm-5.3-flash:
       - opencode-go/glm-5.3-flash:high
       - ollama-cloud/deepseek-v4.1-flash:low
       - openai-codex/gpt-5.6-luna:high
       - anthropic/claude-opus-5:high
-    # glm-5.3 carries no role since the librarian agent was removed upstream. The
-    # head stays for the same reason openrouter/* does: an explicit --model
-    # selection still needs somewhere to land.
     ollama-cloud/glm-5.3:
       - opencode-go/glm-5.3:high
       - zai/glm-5.3:high
@@ -603,15 +166,6 @@ retry:
       - openai-codex/gpt-5.6-terra:high
       - ollama-cloud/glm-5.3:high
       - opencode-go/glm-5.3:high
-    #
-    # Provider-level heads. deepseek is back in the chains as of 2026-09-11, on
-    # two findings that both reversed: ollama-cloud now serves V4.1-Flash (4/4 on
-    # the bakeoff, against 0/4 for the V4-Flash it replaces), and opencode-go's
-    # DeepSeek region gate has lifted -- deepseek-v4.1-flash answered OK through
-    # the session path where the ids 403'd "requires explicit opt in" on
-    # 2026-09-01, which matches DeepSeek naming OpenCode an official partner in
-    # the V4.1-Flash announcement. openrouter/deepseek/* stays behind the credit
-    # gate and so stays off every chain.
     ollama-cloud/*:
       - opencode-go/*
       - openai-codex/gpt-5.6-luna:high
@@ -635,8 +189,6 @@ retry:
       - openai-codex/gpt-6-astra:high
       - anthropic/claude-opus-5:high
       - ollama-cloud/glm-5.3:high
-    # The openrouter head survives so an explicit --model selector still has
-    # somewhere to land while the key is empty; its links point off openrouter.
     openrouter/*:
       - ollama-cloud/glm-5.3:high
       - opencode-go/glm-5.3:high
@@ -666,7 +218,7 @@ checkpoint:
 commands:
   enableClaudeUser: true
 defaultThinkingLevel: auto
-hideThinkingBlock: true
+hideThinkingBlock: false
 dev:
   autoqaConsent: granted
 bash:
