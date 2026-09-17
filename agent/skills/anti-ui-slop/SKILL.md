@@ -1,6 +1,6 @@
 ---
 name: anti-ui-slop
-description: "Stop shipping generic UI. Ground the interface in UIZZE's corpus of real web and iOS screens, pin a design contract, cover every required state, then run a hard finish gate. Use when designing, implementing, redesigning, or pre-ship reviewing a web or iOS interface."
+description: "Execution and finish for a web or iOS interface: ground it in UIZZE's corpus of real screens, pin a design contract, cover every required state, run a hard pre-ship gate. Use when implementing, redesigning, or pre-ship reviewing an interface whose direction is already set; `frontend-design` sets the visual direction."
 license: MIT
 metadata:
   version: "1.2.13"

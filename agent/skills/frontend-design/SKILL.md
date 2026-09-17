@@ -1,6 +1,6 @@
 ---
 name: frontend-design
-description: Guidance for distinctive, intentional visual design when building new UI or reshaping an existing one. Helps with aesthetic direction, typography, and making choices that don't read as templated defaults.
+description: Visual direction for new or reshaped UI — aesthetic identity, palette, typography, layout choices that don't read as templated defaults. Use when deciding what an interface looks like; `anti-ui-slop` covers grounding, state coverage, and the pre-ship execution gate.
 license: Complete terms in LICENSE.txt
 ---
 

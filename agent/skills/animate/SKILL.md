@@ -5,7 +5,7 @@ description: "Build an animation from scratch, deciding in order: whether it sho
 
 # Building Animations
 
-A construction skill. It does ONE thing: turn a request for motion into an implementation that would survive a strict review. It does not audit a codebase, critique a diff (that's `review-animations`), or build the surrounding interface (that's `anti-ui-slop` or `emil-design-eng`).
+A construction skill. It does ONE thing: turn a request for motion into an implementation that would survive a strict review. It does not audit a codebase, critique a diff (that's `review-animations`), or build the surrounding interface (that's `anti-ui-slop`).
 
 ## Operating Posture
 

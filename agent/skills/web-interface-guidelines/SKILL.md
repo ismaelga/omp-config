@@ -10,7 +10,8 @@ Read `GUIDELINES.md` in this directory, then review the files named by the user
 against every rule in it.
 
 This is the compliance half of UI quality. It will not choose a typeface, a
-palette or a layout — `frontend-design` does that, `emil-design-eng` does motion.
+palette or a layout — `frontend-design` does that; `animate` builds motion and
+`review-animations` judges it.
 What this catches is the detail that separates shipped software from a demo:
 missing `aria-label`, `outline-none` with no focus replacement, `transition: all`,
 straight quotes and `...` where `…` belongs, number columns without

@@ -25,7 +25,7 @@ two answers is worse than one:
   -> `animate` (and its `RECIPES.md` for the standard components).
 - Judging motion that already exists -> `review-animations`.
 - Slow-motion inspection of a live animation, frame stepping, touch-device checks ->
-  `emil-design-eng`, which carries the `eval` browser recipes for all three.
+  `review-animations`, whose Guidelines carry the browser recipes for all three.
 - Accessibility, focus order, hit areas, reduced motion, forms, i18n ->
   `web-interface-guidelines`.
 - Typography scale, wrapping, tabular numbers -> `frontend-design`.
