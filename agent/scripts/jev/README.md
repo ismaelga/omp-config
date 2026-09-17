@@ -9,6 +9,7 @@ python3 ~/.omp/agent/scripts/jev guard  --op push --target origin [--content ...
 python3 ~/.omp/agent/scripts/jev screen --source <url|tool> --content "<external content>"
 python3 ~/.omp/agent/scripts/jev stuck  --goal "<goal>" --actions "<one per line>"
 python3 ~/.omp/agent/scripts/jev ask    --state '<json>' --questions '<json>'
+`ask` question types: `noul` (yes/no), `choice`, `score`, `bounding_box`.
 ```
 
 Exit codes (all subcommands): `0` clear/proceed, `1` flagged/stuck —

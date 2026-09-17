@@ -33,7 +33,13 @@ def evaluate(state, questions: dict, retries: int = 1) -> dict:
             with urllib.request.urlopen(req, timeout=30) as resp:
                 return json.load(resp)["answers"]
         except urllib.error.HTTPError as e:
-            raise e  # auth/quota/exhaustion: retrying is pointless
+            # auth/quota/validation: retrying is pointless. Surface the body —
+            # FastAPI 422s carry per-field detail that names the exact bad key.
+            try:
+                detail = e.read().decode()[:300]
+            except Exception:
+                detail = ""
+            raise RuntimeError(f"HTTP {e.code}: {detail or e.reason}") from e
         except (urllib.error.URLError, TimeoutError, json.JSONDecodeError, KeyError) as e:
             last_err = e
             if attempt < retries:
