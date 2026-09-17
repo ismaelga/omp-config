@@ -24,7 +24,6 @@ DEFAULT_AGENTS = {
 MCP_SERVERS = {
     "linear": "Linear issue tracker: projects, issues, cycles, comments, releases, diffs, documents.",
     "sentry": "Sentry error tracking: production issues, events, stack traces, release health.",
-    "kpk": "Documentation Q&A and search for KPK docs.",
     "voyager": "MCP server voyager.",
     "cloudflare": "Cloudflare MCP server.",
     "slack": "Slack MCP server.",
