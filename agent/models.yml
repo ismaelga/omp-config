@@ -55,9 +55,11 @@ providers:
       #   omp --profile <fresh> models ollama-cloud --json
       # Today it still returns maxTokens 8192 for this id against 65536 for
       # every sibling (v4-flash, v4-pro, v3.2), contextWindow 1048576. The cap
-      # function has not learned the id in three days. It matters more now than
-      # when it was written: `task` runs here, and an 8192 budget sits under
-      # the tier's own measured floor.
+      # function has not learned the id in three days. `task` no longer runs
+      # here by default (moved back to glm-5.3-flash:high 2026-09-15, one day
+      # after the previous recheck), but deepseek-v4.1-flash:low remains a
+      # fallback target in both glm-5.3-flash chains, so an 8192 budget can
+      # still sit under task-role work reaching it via fallback.
       deepseek-v4.1-flash:
         maxTokens: 65536
   openai-codex:
