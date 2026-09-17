@@ -29,6 +29,7 @@
 !agent/skills/**
 !agent/scripts/
 !agent/scripts/*.sh
+!agent/scripts/*.py
 
 # Build droppings anywhere under agent/, not just skills/ — agent/tools/ grows
 # __pycache__ too, and bytecode is regenerable from the tracked .py sources.
