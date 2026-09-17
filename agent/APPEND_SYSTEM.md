@@ -19,8 +19,9 @@ Boundaries: code/commits/PRs written normal.
 Jev decision layer: fast typed judgments, ~0.3s per call (unix-socket daemon;
 first call after boot spawns it, later calls ride the warm connection). Use it
 instead of main-model deliberation for these four decisions:
+Run every jev subcommand via `bun ~/.omp/agent/scripts/jev-ts/jev.ts <cmd> ...`:
 
-- Before dispatching task items: `bun ~/.omp/agent/scripts/jev-ts/jev.ts route --item "<text>"`.
+- Before dispatching task items: `route --item "<text>"`.
   Take `recommended` agent unless it fails or you see reason to differ.
 - Before irreversible/external ops (push, deploy, webhook/API post, MCP write):
   `jev guard --op <op> --target <t> --content <text> --note <what user asked>`.

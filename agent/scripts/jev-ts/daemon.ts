@@ -8,61 +8,74 @@ import { dispatch, type CmdName, type CmdInput } from "./core";
 
 const SOCKET_PATH = join(homedir(), ".omp", "jev.sock");
 
-// A previous daemon's socket file can outlive the process; if bind fails on
-// a stale file, remove it and bind once more before giving up.
+// Line-delimited JSON request: {"cmd": "...", "input": {...}}\n
+const handlers = {
+  async data(socket: Bun.Socket, data: Buffer) {
+    const reply = async (line: string): Promise<string> => {
+      try {
+        const req = JSON.parse(line) as { cmd: CmdName; input: CmdInput };
+        const result = await dispatch(req.cmd, req.input);
+        return JSON.stringify(result) + "\n";
+      } catch (e) {
+        return JSON.stringify({ stdout: JSON.stringify({ error: `jev daemon: bad request: ${e}` }), exit: 2 }) + "\n";
+      }
+    };
+    for (const line of new TextDecoder().decode(data).split("\n")) {
+      if (!line.trim()) continue;
+      socket.write(await reply(line));
+    }
+  },
+  error(_socket: Bun.Socket, err: Error) {
+    console.error(`jev daemon socket error: ${err}`);
+  },
+};
+
+// Bind fails when a socket file exists. It is either a live daemon's socket
+// (never sweep it — that would orphan a serving daemon) or a stale file from
+// a crashed process. Probe: a connect that answers means a daemon is live
+// and this process should exit quietly; a failed connect means the file is
+// dead, safe to unlink and rebind. This is the second line of defense —
+// the client's O_EXCL lockfile prevents the spawn race in the first place.
+function bindOrExit(staleNote: string): void {
+  Bun.listen({ unix: SOCKET_PATH, socket: handlers });
+  console.log(`jev daemon listening on ${SOCKET_PATH}${staleNote}`);
+}
+
+async function probeLive(): Promise<boolean> {
+  const { promise, resolve } = Promise.withResolvers<boolean>();
+  Bun.connect({
+    unix: SOCKET_PATH,
+    socket: {
+      // connect succeeding is itself the liveness proof — the file has a
+      // live listener behind it. Don't wait for a reply: the daemon only
+      // answers request lines, and a probe that waited on data would
+      // deadlock (nothing to answer).
+      open(s) {
+        s.end();
+        resolve(true);
+      },
+      drain() {
+        // Bun requires a data or drain handler; connect probes send nothing.
+      },
+      connectError() {
+        resolve(false); // nothing listening behind the file
+      },
+      error() {
+        resolve(false);
+      },
+    },
+  }).catch(() => resolve(false));
+  return promise;
+}
 try {
-  Bun.listen({
-    unix: SOCKET_PATH,
-    socket: {
-      async data(socket, data) {
-        // Line-delimited JSON request: {"cmd": "...", "input": {...}}\n
-        const reply = async (line: string): Promise<string> => {
-          try {
-            const req = JSON.parse(line) as { cmd: CmdName; input: CmdInput };
-            const result = await dispatch(req.cmd, req.input);
-            return JSON.stringify(result) + "\n";
-          } catch (e) {
-            return JSON.stringify({ stdout: JSON.stringify({ error: `jev daemon: bad request: ${e}` }), exit: 2 }) + "\n";
-          }
-        };
-        for (const line of new TextDecoder().decode(data).split("\n")) {
-          if (!line.trim()) continue;
-          socket.write(await reply(line));
-        }
-      },
-      error(_socket, err) {
-        console.error(`jev daemon socket error: ${err}`);
-      },
-    },
-  });
-  console.log(`jev daemon listening on ${SOCKET_PATH}`);
-} catch (e) {
-  // EADDRINUSE on a stale socket file: sweep and retry once
+  bindOrExit("");
+} catch {
+  if (await probeLive()) {
+    console.log("jev daemon: another daemon already serving, exiting");
+    process.exit(0);
+  }
   rmSync(SOCKET_PATH, { force: true });
-  Bun.listen({
-    unix: SOCKET_PATH,
-    socket: {
-      async data(socket, data) {
-        const reply = async (line: string): Promise<string> => {
-          try {
-            const req = JSON.parse(line) as { cmd: CmdName; input: CmdInput };
-            const result = await dispatch(req.cmd, req.input);
-            return JSON.stringify(result) + "\n";
-          } catch (e) {
-            return JSON.stringify({ stdout: JSON.stringify({ error: `jev daemon: bad request: ${e}` }), exit: 2 }) + "\n";
-          }
-        };
-        for (const line of new TextDecoder().decode(data).split("\n")) {
-          if (!line.trim()) continue;
-          socket.write(await reply(line));
-        }
-      },
-      error(_socket, err) {
-        console.error(`jev daemon socket error: ${err}`);
-      },
-    },
-  });
-  console.log(`jev daemon listening on ${SOCKET_PATH} (after stale-socket sweep: ${e})`);
+  bindOrExit(" (after stale-socket sweep)");
 }
 
 const shutdown = () => {
