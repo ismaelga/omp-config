@@ -4,16 +4,25 @@
 import { rmSync } from "node:fs";
 import { join } from "node:path";
 import { homedir } from "node:os";
-import { dispatch, type CmdName, type CmdInput } from "./core";
+import { dispatch, codeFingerprint, type CmdName, type CmdInput } from "./core";
 
 const SOCKET_PATH = join(homedir(), ".omp", "jev.sock");
+// What this daemon actually booted from; a client whose fingerprint differs
+// is talking to code this process no longer is.
+const FINGERPRINT = codeFingerprint();
 
 // Line-delimited JSON request: {"cmd": "...", "input": {...}}\n
 const handlers = {
   async data(socket: Bun.Socket, data: Buffer) {
     const reply = async (line: string): Promise<string> => {
       try {
-        const req = JSON.parse(line) as { cmd: CmdName; input: CmdInput };
+        const req = JSON.parse(line) as { cmd: CmdName; input: CmdInput; code_hash?: string };
+        // Stale daemon: answer stale, then exit through the normal shutdown
+        // path (socket + lock swept) so the client's respawn binds cleanly.
+        if (typeof req.code_hash === "string" && req.code_hash !== FINGERPRINT) {
+          setTimeout(shutdown, 100); // let the reply flush first
+          return JSON.stringify({ stdout: JSON.stringify({ stale: true }), exit: 3, stale: true });
+        }
         const result = await dispatch(req.cmd, req.input);
         return JSON.stringify(result) + "\n";
       } catch (e) {
@@ -22,7 +31,7 @@ const handlers = {
     };
     for (const line of new TextDecoder().decode(data).split("\n")) {
       if (!line.trim()) continue;
-      socket.write(await reply(line));
+      socket.write((await reply(line)) + "\n");
     }
   },
   error(_socket: Bun.Socket, err: Error) {

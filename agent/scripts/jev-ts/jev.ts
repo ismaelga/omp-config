@@ -7,12 +7,17 @@ import { closeSync, existsSync, openSync, unlinkSync } from "node:fs";
 import { spawn } from "node:child_process";
 import { homedir } from "node:os";
 import { join } from "node:path";
-import { dispatch, type CmdName, type CmdInput, type CmdResult } from "./core";
+import { dispatch, codeFingerprint, type CmdName, type CmdInput, type CmdResult } from "./core";
 
 const SOCKET_PATH = join(homedir(), ".omp", "jev.sock");
 const HERE = import.meta.dir;
 
-function trySocket(cmd: CmdName, input: CmdInput): Promise<CmdResult | null> {
+// The fingerprint rides on every request; a daemon booted from older code
+// answers stale (exit 3) and shuts itself down — one retry then hits a
+// freshly spawned daemon. Without it, code edits silently keep serving the
+// old behavior (measured 2026-09-17: two rounds of "verified" route changes
+// that were answered by a pre-edit daemon).
+function trySocket(cmd: CmdName, input: CmdInput, fingerprint: string): Promise<CmdResult | null> {
   if (!existsSync(SOCKET_PATH)) return Promise.resolve(null);
   const { promise, resolve } = Promise.withResolvers<CmdResult | null>();
   let buf = "";
@@ -49,7 +54,7 @@ function trySocket(cmd: CmdName, input: CmdInput): Promise<CmdResult | null> {
     },
   }).then(
     (socket) => {
-      socket.write(JSON.stringify({ cmd, input }) + "\n");
+      socket.write(JSON.stringify({ cmd, input, code_hash: fingerprint }) + "\n");
     },
     () => done(null),
   );
@@ -78,8 +83,9 @@ function spawnDaemon(): void {
   child.unref();
 }
 
-// All flags are single words (--item, --op, --threshold, ...): strip the
-// leading dashes and take the next argv slot as the value.
+// Flags are dash-prefixed words (--item, --op, --human-gate, ...): strip the
+// leading dashes, map hyphenated names to their field (human-gate →
+// human_gate), take the next argv slot as the value.
 function parseArgs(): { cmd: string; input: Record<string, unknown> } {
   const argv = Bun.argv.slice(2);
   const cmd = argv[0];
@@ -88,11 +94,14 @@ function parseArgs(): { cmd: string; input: Record<string, unknown> } {
     const a = argv[i];
     if (!a.startsWith("--")) continue;
     const key = a.slice(2);
+    // --human-gate maps to human_gate: both the value and the bare-flag
+    // (boolean true) forms must land on the field cmdRoute reads.
+    const field = key === "human-gate" ? "human_gate" : key;
     const next = argv[i + 1];
     if (next === undefined || next.startsWith("--")) {
-      input[key] = true;
+      input[field] = true;
     } else {
-      input[key] = key === "catalog" ? next.split(",") : next;
+      input[field] = key === "catalog" ? next.split(",") : next;
       i++;
     }
   }
@@ -107,7 +116,15 @@ async function main(): Promise<number> {
     return 2;
   }
 
-  let result = await trySocket(cmd as CmdName, input as CmdInput);
+  const fingerprint = codeFingerprint();
+  let result = await trySocket(cmd as CmdName, input as CmdInput, fingerprint);
+  if (result?.stale) {
+    // Daemon answered stale and is exiting; give the respawn a beat to bind,
+    // then retry once on the fresh daemon (or fall through to direct dispatch).
+    spawnDaemon();
+    await new Promise((r) => setTimeout(r, 300));
+    result = await trySocket(cmd as CmdName, input as CmdInput, fingerprint);
+  }
   if (!result) {
     spawnDaemon(); // next call gets the fast path
     result = await dispatch(cmd as CmdName, input as CmdInput);

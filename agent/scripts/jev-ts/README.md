@@ -6,7 +6,8 @@ warm TLS connection to the API: ~0.3s per call vs ~1.3s fresh-connection CLI.
 
 ```
 bun ~/.omp/agent/scripts/jev-ts/jev.ts route  --item "<task text>"     # agent/skill/MCP picks + recommended
-bun ~/.omp/agent/scripts/jev-ts/jev.ts guard  --op push --target origin [--content ...] [--note ...]
+bun ~/.omp/agent/scripts/jev-ts/jev.ts route  --item "<task text>" --human-gate "<human step>"  # blocking step needs a human
+bun ~/.omp/agent/scripts/jev-ts/jev.ts guard  --op push --target origin [--content ...] [--note ...] [--stage preflight|execute]
 bun ~/.omp/agent/scripts/jev-ts/jev.ts screen --source <url|tool> --content "<external content>"
 bun ~/.omp/agent/scripts/jev-ts/jev.ts stuck  --goal "<goal>" --actions "<one per line>"
 bun ~/.omp/agent/scripts/jev-ts/jev.ts ask    --state '<json>' --questions '<json>'
@@ -17,6 +18,14 @@ bun ~/.omp/agent/scripts/jev-ts/jev.ts ask    --state '<json>' --questions '<jso
 Exit codes (all subcommands): `0` clear/proceed, `1` flagged/stuck —
 act on it, `2` API failure. Guard is fail-closed (2 treated as 1);
 route/screen/stuck degrade to advisory fallbacks.
+
+`route --human-gate`: the item's blocking step needs a human (wallet
+signature, passphrase, console). `recommended` is always "none"; the
+`delegable_share` score (0–1, asked only with this flag) says whether the
+software half is worth delegating. `guard --stage`: metadata only —
+identical verdict either way; `preflight` marks a planning-time check
+(recorded, not stopping), `execute` the real op. Stage is echoed in output
+and the decision log.
 
 Every verdict appends to `~/.omp/logs/jev.jsonl` — the tuning corpus.
 Guard/screen content transits api.typesafe.ai (user decision 2026-09-17).

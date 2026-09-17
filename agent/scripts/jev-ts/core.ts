@@ -193,6 +193,26 @@ export function logDecision(cmd: string, record: Record<string, unknown>): void 
   }
 }
 
+// --- Code fingerprint -----------------------------------------------------
+// The daemon serves whatever core.ts+daemon.ts contained when it booted;
+// edits after boot are invisible to it (bit us twice on 2026-09-17: route
+// changes were "tested live" against a daemon running the old code). Both
+// daemon and client compute this; a mismatch means the daemon is stale.
+// Hashes only the files the daemon executes — jev.ts is client-only.
+export function codeFingerprint(): string {
+  try {
+    const dir = new URL(".", import.meta.url).pathname;
+    const hasher = new Bun.CryptoHasher("sha256");
+    for (const f of ["core.ts", "daemon.ts"]) {
+      hasher.update(f);
+      hasher.update(readFileSync(join(dir, f)));
+    }
+    return hasher.digest("hex");
+  } catch {
+    return "unknown";
+  }
+}
+
 function truncated(obj: unknown): unknown {
   if (Array.isArray(obj)) return obj.map(truncated);
   if (obj && typeof obj === "object") return Object.fromEntries(Object.entries(obj as Record<string, unknown>).map(([k, v]) => [k, truncated(v)]));
@@ -202,7 +222,7 @@ function truncated(obj: unknown): unknown {
 
 // --- Command bodies (shared by daemon and direct client) ---------------
 
-export type CmdResult = { stdout: string; exit: number };
+export type CmdResult = { stdout: string; exit: number; stale?: boolean };
 
 const GUARD_THRESHOLD_DEFAULT = 0.5;
 const SCREEN_THRESHOLD_DEFAULT = 0.5;
@@ -214,7 +234,7 @@ function threshold(flagValue: string | null, env: string, def: number): number {
   return v ? parseFloat(v) : def;
 }
 
-export async function cmdRoute(input: { item: string; catalog?: string[] }): Promise<CmdResult> {
+export async function cmdRoute(input: { item: string; catalog?: string[]; human_gate?: string }): Promise<CmdResult> {
   let catalogs: Record<string, Record<string, string>> = {
     agents: loadAgentCatalog(),
     skills: loadSkillCatalog(),
@@ -224,7 +244,14 @@ export async function cmdRoute(input: { item: string; catalog?: string[] }): Pro
   if (!Object.keys(catalogs).length)
     return { stdout: JSON.stringify({ error: "no catalogs selected or found", recommended: "task" }), exit: 0 };
 
-  const state = { task: input.item, catalogs };
+  // human_gate (e.g. --human-gate "ledger signature"): the item's blocking
+  // step needs a human, which no subagent can perform. The model's ranking
+  // is kept for diagnosis but the recommendation must never dispatch a
+  // subagent to sign, swipe, or attach hardware — route answers "none" and
+  // names what to do instead: delegate only the software half, if any.
+  const humanGate = typeof input.human_gate === "string" ? input.human_gate.trim() : input.human_gate ? "human step" : "";
+
+  const state = { task: input.item, catalogs, human_gate: humanGate };
   const questions: Record<string, unknown> = {};
   for (const [cat, entries] of Object.entries(catalogs)) {
     if (!Object.keys(entries).length) continue;
@@ -242,13 +269,26 @@ export async function cmdRoute(input: { item: string; catalog?: string[] }): Pro
     type: "noul",
     instructions: "Does this task touch secrets, credentials, authentication, or other security-sensitive material?",
   };
+  // Asked only under --human-gate: its wording presumes a human-gated
+  // step, so a plain route call must neither pay the question nor see
+  // a meaningless score.
+  if (humanGate) {
+    questions.delegable_share = {
+      type: "noul",
+      instructions: "Ignoring the human-gated step, what share of the remaining work (research, code edits, config, verification) could a software agent complete unaided?",
+      criteria: {
+        true: "Most non-human work is delegable: an agent could do it end to end without the human step",
+        false: "Little or nothing is delegable: the human step blocks or dominates the rest, or every remaining action needs the human",
+      },
+    };
+  }
 
   let answers: Record<string, Answer>;
   try {
     answers = await evaluate(state, questions);
   } catch (e) {
     // advisory: never block dispatch on classifier failure
-    return { stdout: JSON.stringify({ error: `jev route failed: ${e}`, recommended: "task" }), exit: 0 };
+    return { stdout: JSON.stringify({ error: `jev route failed: ${e}`, recommended: humanGate ? "none" : "task" }), exit: 0 };
   }
 
   const result: Record<string, unknown> = {};
@@ -261,19 +301,37 @@ export async function cmdRoute(input: { item: string; catalog?: string[] }): Pro
   }
   result.needs_isolation = answers.needs_isolation?.noul;
   result.security_sensitive = answers.security_sensitive?.noul;
+  const delegableShare = typeof answers.delegable_share?.noul === "number" ? answers.delegable_share.noul : 0;
 
-  // Machine-side recommendation: escalation rule lives here, not in callers.
-  const ag = (result.agents ?? {}) as { best?: string; confidence?: number };
-  const best = ag.best;
-  const conf = typeof ag.confidence === "number" ? ag.confidence : 0;
-  result.recommended = conf >= 0.7 && best !== "none" ? best : "task";
+  if (humanGate) {
+    // Human-gated items: recommend "none", let the delegable-share score
+    // tell the caller whether a software half is worth splitting off.
+    result.human_gate = humanGate;
+    result.recommended = "none";
+    result.delegable_share = delegableShare;
+    result.recommendation_note = delegableShare >= 0.5
+      ? "human-gated: delegate only the software half, the human step stays with you"
+      : "human-gated: do it yourself, delegable share too small to bother";
+  } else {
+    // Machine-side recommendation: escalation rule lives here, not in callers.
+    const ag = (result.agents ?? {}) as { best?: string; confidence?: number };
+    const best = ag.best;
+    const conf = typeof ag.confidence === "number" ? ag.confidence : 0;
+    result.recommended = conf >= 0.7 && best !== "none" ? best : "task";
+  }
 
   const stdout = JSON.stringify(result);
-  logDecision("route", { item: input.item, result });
+  logDecision("route", { item: input.item, human_gate: humanGate || undefined, result });
   return { stdout, exit: 0 };
 }
 
-export async function cmdGuard(input: { op: string; target?: string; paths?: string; content?: string; note?: string; threshold?: string }): Promise<CmdResult> {
+export async function cmdGuard(input: { op: string; target?: string; paths?: string; content?: string; note?: string; threshold?: string; stage?: string }): Promise<CmdResult> {
+  // stage is METADATA ONLY (preflight|execute): cmdGuard is stateless, the
+  // verdict is identical either way — the different contract (preflight
+  // flags are recorded, execute flags stop) lives in the caller's prompt,
+  // not here. It is echoed in output and logged so the decision trail can
+  // separate planning-time from execution-time judgments.
+  const stage = typeof input.stage === "string" ? input.stage.trim() : "";
   const th = threshold(input.threshold ?? null, "JEV_GUARD_THRESHOLD", GUARD_THRESHOLD_DEFAULT);
   const state = {
     operation: input.op,
@@ -314,8 +372,8 @@ export async function cmdGuard(input: { op: string; target?: string; paths?: str
     answers = await evaluate(state, questions);
   } catch (e) {
     // fail-closed: unreachable classifier = flagged
-    const stdout = JSON.stringify({ verdict: "flagged", reason: `jev guard failed (fail-closed): ${e}` });
-    logDecision("guard", { op: input.op, target: input.target, verdict: "flagged", error: String(e) });
+    const stdout = JSON.stringify({ verdict: "flagged", reason: `jev guard failed (fail-closed): ${e}`, ...(stage ? { stage } : {}) });
+    logDecision("guard", { op: input.op, target: input.target, paths: input.paths, stage: stage || undefined, verdict: "flagged", error: String(e) });
     return { stdout, exit: 2 };
   }
 
@@ -323,8 +381,8 @@ export async function cmdGuard(input: { op: string; target?: string; paths?: str
   const hazards = Object.fromEntries(Object.entries(answers).map(([k, a]) => [k, Math.round(noulOf(a, 1.0) * 1000) / 1000]));
   const flagged = Object.entries(hazards).filter(([, p]) => p >= th).map(([k]) => k).sort();
   const verdict = flagged.length ? "flagged" : "clear";
-  const stdout = JSON.stringify({ verdict, hazards, flagged });
-  logDecision("guard", { op: input.op, target: input.target, paths: input.paths, verdict, hazards });
+  const stdout = JSON.stringify({ verdict, hazards, flagged, ...(stage ? { stage } : {}) });
+  logDecision("guard", { op: input.op, target: input.target, paths: input.paths, stage: stage || undefined, verdict, hazards });
   return { stdout, exit: flagged.length ? 1 : 0 };
 }
 
@@ -428,8 +486,8 @@ export async function cmdAsk(input: { state: string; questions: string }): Promi
 
 export type CmdName = "route" | "guard" | "screen" | "stuck" | "ask";
 
-type RouteInput = { item: string; catalog?: string[] };
-type GuardInput = { op: string; target?: string; paths?: string; content?: string; note?: string; threshold?: string };
+type RouteInput = { item: string; catalog?: string[]; human_gate?: string };
+type GuardInput = { op: string; target?: string; paths?: string; content?: string; note?: string; threshold?: string; stage?: string };
 type ScreenInput = { source: string; content: string; threshold?: string };
 type StuckInput = { goal: string; actions: string; threshold?: string };
 type AskInput = { state: string; questions: string };
