@@ -22,15 +22,15 @@ GitBook site at https://docs.kpk.io — fully agent-readable over plain HTTP. Th
 
 ## Parallel fetch
 
-Broad questions hit many candidate pages; HTTP reads serialize in the `read` tool. Use the shipped script:
+Broad questions hit many candidate pages. Use the shipped script (absolute path — works from any cwd):
 
 ```bash
-python3 skills/kpk-docs/kpk_docs.py index 'nav|price-feed'   # find candidate URLs
-python3 skills/kpk-docs/kpk_docs.py fetch <url1> <url2> ...   # parallel page reads
-python3 skills/kpk-docs/kpk_docs.py ask <page-url> "<question>"  # ask endpoint
+python3 ~/.omp/agent/skills/kpk-docs/kpk_docs.py index 'nav|price-feed'   # find candidate URLs
+python3 ~/.omp/agent/skills/kpk-docs/kpk_docs.py fetch <url1> <url2> ...   # parallel page reads
+python3 ~/.omp/agent/skills/kpk-docs/kpk_docs.py ask <page-url> "<question>"  # ask endpoint
 ```
 
-Measured: llms.txt + 43 candidate pages in ~3.2s via parallel fetch.
+Measured: llms.txt + 43 candidate pages in ~3.2s with parallel fetch.
 
 ## Gotchas
 
