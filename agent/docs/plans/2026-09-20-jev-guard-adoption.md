@@ -1,10 +1,12 @@
-# Tool-Call Guard Adoption Plan
+# Tool-Call Guard Plan
 
 **Goal:** Close the gap omp 18.2.6 does not cover natively — screening of tool calls before they execute — and decide what, if anything, replaces the custom Jev CLI stack.
 
 **Status:** Plan only. Nothing here has been applied to `~/.omp/agent`.
 
-**Revision 3 (2026-09-21).** A search of the Jev ecosystem found **`leepokai/jev-guard`**, which is a strictly better fit than the extension this plan was built around, and — unlike it — **has been observed working inside omp**. Option C is re-pointed accordingly; `y0usaf/pi-jev` moves to rejected alternatives. `screen` now has a real successor, which changes Task 6.
+**Revision 4 (2026-09-21).** An ecosystem search found **`leepokai/jev-guard`**, whose design solves every defect earlier revisions identified, and which was observed blocking inside omp. On review it is **not being adopted**: 14 stars, one author, no independent review, in-process execution with full harness privileges, and — read at source rather than from its README — up to 60 KB of tool-result text plus the last 8 conversation messages leaving the machine per call. Option C is now a **local rebuild**: `extensions/jev-sentinel.ts`, our hook over the client already in `scripts/jev-ts/core.ts`, implementing jev-guard's policy and none of its code. A prototype has been verified blocking in omp. `core.ts` is therefore promoted rather than retired, and `screen` stays — a shape-only gate is not a content screener.
+
+**Revision 3 (2026-09-21).** Re-pointed option C from `y0usaf/pi-jev` to `leepokai/jev-guard`. Superseded by revision 4, which keeps the analysis and drops the dependency.
 
 **Revision 2 (2026-09-20).** Rewritten after a four-lens review (executability, claim interrogation, threat model, fact-check). The first draft recommended adopting `y0usaf/pi-jev` as a config-only change; that premise was refuted.
 
@@ -17,7 +19,7 @@ Every item below was verified on this machine, not inferred. All pi-jev line anc
 3. **The egress claim was wrong.** `buildGateState` (`src/gate.ts:101-113`) sends `cwd` and, when `index.ts:325` supplies it, `user_request` truncated to 1200 chars — on top of `{tool, arguments, platform}`. My harness measurement omitted both because it never passed them. The privacy comparison against the alternatives was therefore measured-against-README, not like-for-like. Compounding it, **`output.enabled` defaults to `true` for `bash`** (`config.ts:126-127`), so out of the box the first 2000 chars of every bash result also leave the machine.
 4. **The extension has no persistence.** Every verdict goes to `ctx.ui.notify`, a no-op headless, plus an in-memory store behind a `/jev` command. A shadow week produces **nothing to tabulate**.
 5. **"Usage decayed to zero" is false.** `~/.omp/logs/jev.jsonl` now holds 202 rows: 177 on 09-17, 15 on 09-18, and **10 on 09-20** — including organic non-test use (`task9-step4-install-binary`, `task9-step9-ntfy-post`, `task9-launchd-install`, a `beachcam.meo.pt` screen). The custom stack is in live use in other sessions. The earlier figures were a 09-18 snapshot presented as current.
-6. **`screen` has no successor anywhere in this plan.** The extension only ever sees `{tool, arguments, cwd, platform}` — never fetched content or its source — so prompt-injection screening of web/PR/issue text has no replacement. Retiring it is a capability *regression*.
+6. **`screen` has no successor anywhere in this plan.** The gate only ever sees `{tool, input, cwd}` — never fetched content or its source — so prompt-injection screening of web/PR/issue text has no replacement. Retiring it is a capability *regression*. Still true in revision 4 by deliberate design: the rebuild declines tool-result egress, so it cannot replace `screen`.
 7. **The 2026-09-20 anecdote was selectively told.** In the enforce-mode run the model self-restrained via the custom CLI; in the sibling shadow run the `rm` **executed**. Both are in `~/.omp/agent/sessions/--private-tmp-jevlab--/`.
 
 ## What native omp already covers (do not rebuild)
@@ -50,26 +52,36 @@ Two prior attempts exist and **neither is enforcing anything**:
 | --- | --- | --- | --- | --- |
 | **A. Config exact-match denies** (Aug plan layer 1) | none | literal catastrophic shapes | novel/obfuscated forms | **yes, today** |
 | **B. `safety-guard` hook** (Aug plan layer 2) | none — pure regex + path logic, no network | the 20 critical patterns, root-aware deletes | semantic intent | **yes — code already written and bun-tested** |
-| **C. `leepokai/jev-guard`** @ `94996ea` | ~0.6–0.8 s per assessed call; read-only tools skipped without a call | semantic intent, *plus* planted-instruction detection, *plus* prompt injection in tool results, *plus* instruction-file audit | fails **open** by default; 20 s budget against omp's 30 s; sends tool calls **and tool results** to a third party | **yes — observed blocking inside omp** |
+| **C. `extensions/jev-sentinel.ts`** — our hook, our client | ~0.3–0.8 s per assessed call; read-only tools skipped without a call | semantic intent, planted instructions, user-intent downgrade | needs the network; no tool-result scanning unless explicitly added | **prototype verified blocking in omp** |
 
-**A + B remain the floor.** Both are deterministic and offline; jev-guard needs the network and its authors call it "a guardrail, not a sandbox". But C is no longer speculative — it is the layer that catches what regex cannot, and it now has a working implementation.
+**A + B remain the floor.** Both are deterministic and offline. C needs the network, so it can never be the only layer.
 
-### Why C changed targets
+### Why C is a rebuild, not an install
 
-`y0usaf/pi-jev` is rejected (see "Rejected alternatives"). `leepokai/jev-guard` is better on every axis this plan spent two revisions identifying, which is suspicious enough to state explicitly — it is not that it happens to be good, it is that its author solved the same problems:
+`leepokai/jev-guard` @ `94996ea` was evaluated at length and **is not being adopted**. It works — it was observed blocking inside omp — and its design is the best in the ecosystem. That is exactly why it is worth reading and not running:
 
-| Defect found in `pi-jev` | What `jev-guard` does |
+- **14 stars, single author, no review surface.** Popularity is not security, but nothing here has been audited by anyone except its author and this plan.
+- **It executes in-process on every tool call with full harness privileges**, and `tool_call` may rewrite tool `input`, not merely block. Trusting it is a strictly larger grant than trusting a CLI.
+- **Its egress is much larger than the previous revision of this plan stated.** Verified at source, not from the README:
+  - `MIN_SCAN_CHARS = 200` (`src/guard.js:108`) is a **floor**, not a cap — results *shorter* than 200 chars are skipped; everything longer is sent.
+  - `truncate()` defaults to `MAX_STATE_CHARS = 60_000` (`:109`, `:215`), head 45K + tail 15K with the middle elided. A scanned tool result can ship **60 KB**.
+  - `assessAction` (`:129`) sends session `context` on every assessed call, and `messagesFrom()` (`src/context.js:70-80`) ends in `.slice(-8)` — **the last 8 conversation messages**, plus excerpts of previously flagged content.
+  - That is the same payload class this plan rejected `mejiasd3v`/`tamaratran`/`redrossa` for. Correcting it is the direct reason option C changed shape.
+
+The design is nonetheless right, and this plan takes it. Borrowing ideas from MIT source is unrestricted; **if any code is copied verbatim, its copyright and licence notice must be retained** in the vendored file.
+
+**We already own the hard part.** `scripts/jev-ts/core.ts` is a working System One client — `evaluate()` with retry and `FatalError` (`:151-178`), `logDecision()` (`:186`), and question wording tuned over a month of use. `cmdGuard` (`:328`) already **fails closed** on both axes: a missing Noul defaults to `1.0` (`:381`), and an unreachable classifier returns `flagged` (`:374-377`). That is better than jev-guard's documented default, which fails open. What the custom stack has never had is a **hook** — every call is elective, which is exactly why it decayed in long sessions.
+
+So option C is: keep the client, add the hook, borrow the policy.
+
+| Borrowed from `jev-guard` (design only) | Deliberately not taken |
 | --- | --- |
-| gate silently returns nothing in omp | uses `ctx.sessionManager?.getBranch?.() ?? []` — omp's real method, optional-chained. **Verified producing verdicts in omp.** |
-| binary block/allow | three-way **deny / ask / allow**, thresholds in env vars |
-| headless never blocks, so the test is vacuous | `if (!ctx.hasUI) return { block: true, … }` — headless blocks on `ask` |
-| no persistence | per-session memory under `~/.jev-guard/sessions/`, scan cache by content hash |
-| no notion of what the user asked for | `user_requested` Noul over session context turns `ask` into `allow`; never lifts a `deny` |
-| nothing detects planted instructions | `from_untrusted` Noul denies a call that serves content the agent read, whatever its risk |
-| cannot replace `screen` | `tool_result` hook scans results for injection/canaries and **prepends a warning into the content the model sees** |
-| 60 s worst case vs omp's 30 s | 20 s total budget including retries; README names the ~30 s host limit explicitly |
-| fail-open, undocumented | fail-open **documented and reversible** via `JEV_GUARD_FAIL_CLOSED` |
-| no calibration data | published measured table (`ls -la` 0.0 → allow; `git push --force` 2.0/0.96 → ask; `rm -rf /`, `curl | sh`, `wrangler deploy --env production` 3.0 → deny) |
+| three-way **deny / ask / allow** instead of binary flagged/clear | automatic `tool_result` scanning at 60 KB — results stay local |
+| `if (!ctx.hasUI)` blocks on `ask`, so headless never silently allows | 8-message conversation context per call — one bounded, redacted intent string instead |
+| `user_requested` Noul downgrading `ask` → `allow`, never lifting a `deny` | a global verdict cache — see cache scoping in Task 4 |
+| `from_untrusted` Noul: deny a call serving content the agent read, whatever its risk score | `~/.jev-guard/sessions/` as a second state store — reuse `~/.omp/logs/jev.jsonl` |
+| read-only tool skip list, so navigation costs nothing | an unaudited npm package in the runtime path |
+| instruction-file audit over skills and `AGENTS.md` | running that audit as a hook — offline command, on demand |
 
 ## Global constraints
 
@@ -123,11 +135,12 @@ This is about **backup, not loading**. Verified: a gitignored extension is still
 !agent/docs/maps/
 !agent/docs/maps/*.md
 !agent/extensions/
-!agent/extensions/jev-guard/
-!agent/extensions/jev-guard/*.ts
+!agent/extensions/jev-sentinel.ts
+!agent/extensions/safety-guard/
+!agent/extensions/safety-guard/*.ts
 ```
 
-- [ ] **Step 3:** Confirm the split: `git check-ignore -v` reports no match for the plan files and for `agent/extensions/jev-guard/index.ts`, and **still matches** `agent/extensions/herdr-omp-agent-state.ts`.
+- [ ] **Step 3:** Confirm the split: `git check-ignore -v` reports no match for the plan files, `agent/extensions/jev-sentinel.ts`, or `agent/extensions/safety-guard/policy.ts`, and **still matches** `agent/extensions/herdr-omp-agent-state.ts`.
 
 **Acceptance:** intended files show as untracked-but-not-ignored. Committing them still needs explicit approval.
 
@@ -141,24 +154,33 @@ This is about **backup, not loading**. Verified: a gitignored extension is still
 
 **Acceptance:** suite passes, and a root-adjacent delete is refused by the hook with its own reason string, confirmed in the session JSONL as a bash call that was *issued and blocked* — not self-restrained.
 
-### Task 4: Deploy the semantic layer (option C — `leepokai/jev-guard`)
+### Task 4: Build `extensions/jev-sentinel.ts` (option C)
 
-Only after Tasks 1 and 3. Unlike the previous revision, this task installs working software rather than repairing broken software — the steps are about *policy and egress*, not defect repair.
+Only after Tasks 1 and 3. This task writes our own hook over our own client. No third-party code enters the runtime.
 
-- [ ] **Step 1:** Pin the ref: `git clone https://github.com/leepokai/jev-guard && git checkout 94996ea` (MIT, zero runtime dependencies, node ≥ 20.3). Prefer the pinned clone over `npm i -g jev-guard` so the audited bytes are the running bytes.
-- [ ] **Step 2:** **Read `src/guard.js`, `src/context.js`, `src/session.js` before running it.** It runs in-process on every tool call with full harness privileges, and `tool_call` may rewrite tool `input`, not merely block. The adapter is 47 lines (`extensions/jev-guard.ts`) but the policy it calls is not.
-- [ ] **Step 3:** Decide the egress question **before** enabling, because it is larger than the previous option's. The `tool_result` hook sends the *contents* of what the agent read — web pages, files, command output — to `api.typesafe.ai` (ZDR requested; results under 200 chars and local edit/search tools are skipped). That is the price of injection detection. If it is unacceptable for this repo, set `JEV_GUARD_SKIP_SCAN` for the sensitive tools, or run Task 5 first and route it through a proxy you control.
-- [ ] **Step 4:** **Set `JEV_GUARD_FAIL_CLOSED=1`.** The default is fail-open with a warning on stderr, which in a headless omp session is invisible. A guard that silently stops guarding is the exact failure this plan already documented once.
-- [ ] **Step 5:** Keep `JEV_GUARD_TIMEOUT_MS` at or below `20000` (its default). That is the total budget including retries and stays inside omp's ~30 s handler limit. With fail-closed set, a timeout blocks rather than waves through — verify that tradeoff is what you want before leaving it on.
-- [ ] **Step 6:** Load the adapter via `extensions:` in `config.yml` pointing at the pinned clone's `extensions/jev-guard.ts`, or `jev-guard install pi`. Restart. Note the adapter imports `../src/*.js` by relative path, so the repo layout must be preserved — a bare copy of the `.ts` file will not resolve.
-- [ ] **Step 7:** Prove it is live with an instrumented threshold rather than trusting silence: run one session with `JEV_GUARD_DENY_SCORE=0` and confirm an ordinary command is refused with a `jev-guard blocked this call (...)` message carrying all four probabilities. Then remove the override. This is the test the previous option failed.
-- [ ] **Step 8:** Run a week at default thresholds. `~/.jev-guard/sessions/` holds the per-session record; tabulate `ask` and `deny` outcomes against whether they were correct. Watch specifically for `ask` fatigue — the published table puts `git commit && git push` and `gh pr create` at `ask`, which in this repo's normal workflow may be constant.
-- [ ] **Step 9:** Tune from your own data, not the README's. `JEV_GUARD_ASK_SCORE` and `JEV_GUARD_ASK_P` are the two dials that matter; `JEV_GUARD_USER_P` controls how readily an explicit user request downgrades `ask` to `allow`.
-- [ ] **Step 10:** Run `jev-guard scan-skills` once against this agent directory. It audits skills, plugins, rules, and `AGENTS.md` for instructions their installer would not expect. With 40+ skills loaded here, this is the one capability with no counterpart anywhere else in this plan.
+The prototype already settled the harness API, so none of this is guesswork:
 
-**Acceptance:** an observed block carrying four probabilities, `JEV_GUARD_FAIL_CLOSED` set, and a week of session records showing an `ask` rate that is tolerable rather than reflexively dismissed.
+| Fact | Value |
+| --- | --- |
+| tool name / args | `event.toolName`, `event.input` — **not** `event.name` or `event.tool` |
+| context fields | `ctx.cwd`, `ctx.hasUI`, `ctx.signal`, `ctx.ui.confirm`, `ctx.ui.notify` |
+| session history | `ctx.sessionManager.getBranch()` returns session **records**, not messages |
+| unwrapping a record | `const m = entry.message ?? entry` — top-level `role` is `null`; the real `{role, content}` is nested |
+| blocking | `return { block: true, reason }` — surfaces to the model as a harness refusal |
 
-**Known upstream wart:** the deny message advises lowering `JEV_GUARD_DENY_SCORE` to permit the call, but lowering it denies *more* — the remedy is to raise it. Cosmetic, but it will mislead. Worth an upstream issue.
+- [ ] **Step 1:** Create `extensions/jev-sentinel.ts` importing `evaluate` and `logDecision` from `scripts/jev-ts/core.ts`. Import by absolute path or a path the extension loader resolves; a relative import from a different tree will not resolve.
+- [ ] **Step 2:** Skip read-only tools before any network call — `read`, `grep`, `glob`, `todo`, `recall`, `reflect`. Verify the skip fires by logging it; in the prototype's first run a mis-keyed tool name made the list dead and four navigation calls were judged and transmitted. **A dead skip list is an egress bug, not a performance bug.**
+- [ ] **Step 3:** **Redact before transmit.** Strip `Authorization:`/`Bearer` values, `sk-`/`ghp_`-style tokens, and `--password`/`--token` arguments from `input` before it leaves the process. The prototype sends `event.input` raw, so a `curl -H "Authorization: Bearer …"` would ship the credential. The gate needs command *shape*, not credential values. This is a build blocker, not a nicety.
+- [ ] **Step 4:** Extract **one** bounded user-intent string — the last user message, capped at ~500 chars, redacted by Step 3's helper. Not the last 8 messages, and not flagged excerpts. This is the deliberate egress difference from jev-guard.
+- [ ] **Step 5:** Ask three Nouls in **one** `evaluate()` call: `destructive` (reuse `cmdGuard`'s wording verbatim — it is server-side inference input and must not drift), `user_requested`, and `from_untrusted`. Keep `cmdGuard`'s fail-closed defaults: missing Noul → `1.0` for hazards, `0.0` for mitigators; a thrown client → block.
+- [ ] **Step 6:** Implement three-way policy: `from_untrusted ≥ 0.7` → **deny** regardless of risk; `destructive ≥ denyScore` → **deny**; mid-band → **ask**, downgraded to **allow** when `user_requested ≥ userP`, never lifting a deny. When `!ctx.hasUI`, an `ask` must **block** — otherwise every headless session silently allows and the whole layer is theatre.
+- [ ] **Step 7:** **Scope the cache correctly.** A content-hash cache is only sound for context-free verdicts. Action verdicts embed `user_requested`, which is session-relative, so a global action cache would let one session's request authorise an identical command in another. Key action verdicts by session id **and** call hash; only content scans may use a bare content hash.
+- [ ] **Step 8:** Log every verdict through `logDecision("sentinel", …)` into `~/.omp/logs/jev.jsonl`, including no-verdict outcomes. The existing corpus and tooling already read that file; a second store under `~/.jev-sentinel/` would be duplicated state for no gain.
+- [ ] **Step 9:** **Calibrate before choosing thresholds.** Do not tune against one probe. Sweep an explicit corpus — `rm -rf` on a real populated directory, `git push --force`, `curl … | sh`, `wrangler deploy --env production`, against benign `ls`, `wc -l`, `git status` — and record the spread. Two prototype measurements show why this matters: `rm -rf` of a **nonexistent** path scored `destructive 0.63` through the hook but `0.11–0.26` through the `guard` CLI on the same operation, and `user_requested` returned **0.93** for a `wc -l` the user never typed, because the Noul reads "serves the user's ask", not "was literally requested". A `userP` of 0.85 will therefore downgrade most ordinary work — which is the intent, but it must be a measured choice.
+- [ ] **Step 10:** Prove the block path with an instrumented threshold, exactly as the prototype did: force a deny with an env override and confirm the refusal reaches the model as a harness message carrying the probabilities. Then remove the override. Silence is not evidence of a working gate — that was the whole lesson of `pi-jev`.
+- [ ] **Step 11:** Port the instruction-file audit as a **command, not a hook**: walk `skills/**/SKILL.md`, `agents/*.md`, and `AGENTS.md`, ask whether each asks for something its installer would not expect, and report. Run it on demand. With 40+ skills loaded here it is the one capability with no counterpart elsewhere in this plan, and it is the only part that must send file contents — which is tolerable precisely because it is explicit and occasional.
+
+**Acceptance:** an observed block carrying its probabilities, a redaction unit test showing a bearer token never reaches the payload, a calibration table over the Step 9 corpus, and a week of `jev.jsonl` rows whose `ask` rate is tolerable rather than reflexively dismissed.
 
 ### Task 5 (optional): Egress control via LiteLLM
 
@@ -188,9 +210,9 @@ Last, and only with Task 3 (and optionally Task 4) proven.
 
 **Coordination gate, not just a measurement gate.** `jev.jsonl` shows the custom stack in active use by *other concurrent sessions* on 09-20: `route` for a surf CLI at 03:45, four organic `task9-*` guard preflights at 03:56 and 05:02, `screen beachcam.meo.pt` at 12:52. Deleting these commands breaks workflows outside this one, potentially mid-sequence for `task9`-style chains. **When to delete is the user's call.** The accurate retirement rationale is *long-session decay*, not disuse — fresh-session organic use is ongoing.
 
-- [ ] **Step 1:** Delete `scripts/jev-ts/daemon.ts`, `scripts/jev-ts/jev.ts`, and the `route`/`stuck`/`ask` bodies in `core.ts` — after confirming with the user that no in-flight sequence depends on them.
-- [ ] **Step 2:** **`screen` now has a successor — but only if Task 4 ships.** jev-guard's `tool_result` hook scans every result for injection and canaries and prepends a warning into the content the model sees, which is strictly better than an elective CLI call: it is automatic, it cannot be forgotten, and it covers `read`/`web_search`/MCP output uniformly. Retire `screen` **only** once Task 4 is deployed and Step 7's liveness check has passed. If Task 4 is declined, `screen` stays — in the logged corpus it had the *highest* flag rate of any command (4/11).
-- [ ] **Step 3:** The guard clause is already gone (Task 3 Step 4). Remove the `screen` clause only alongside Step 2's condition. **Keep the egress-hygiene rule** ("never pass actual secret values") regardless — jev-guard sends tool arguments *and* tool results to a third party, so that rule governs more traffic after Task 4, not less.
+- [ ] **Step 1:** Delete `scripts/jev-ts/daemon.ts` and `scripts/jev-ts/jev.ts` only after confirming with the user that no in-flight sequence depends on them. **`core.ts` is not deleted — it is promoted.** Task 4 imports `evaluate` and `logDecision` from it, so it stops being a CLI backend and becomes the shared client library. Retire the `route`/`stuck` command bodies if their CLI goes; keep `evaluate`, `logDecision`, `codeFingerprint`, and the question wording.
+- [ ] **Step 2:** **Keep `screen`.** Task 4 judges tool-call *shape* and sends no tool results, so it is deliberately **not** a `screen` successor — nothing in this plan screens fetched content unless the CLI does it. In the logged corpus `screen` had the highest flag rate of any command (4/11), and the prototype run confirmed the current arrangement works: given a file containing a planted `rm -rf`, the agent called `screen`, got `injection 0.92`, and refused. Retiring it would delete a control with a demonstrated catch and no replacement.
+- [ ] **Step 3:** The guard clause is already gone (Task 3 Step 4). Keep the `screen` clause and keep the egress-hygiene rule ("never pass actual secret values") — the latter now also backstops Task 4 Step 3's redaction, since a hook transmits tool arguments the user never sees.
 - [ ] **Step 4:** Keep `skills/typesafe-ai/` — vendor MIT skill for *building* on TypeSafe, unrelated to the harness guard.
 - [ ] **Step 5:** Keep `~/.omp/logs/jev.jsonl` as the historical corpus.
 
@@ -202,7 +224,7 @@ Per task, in reverse:
 
 - Task 6: `git checkout` the deleted files — **only if they were tracked and committed**; `scripts/jev-ts/*.ts` is whitelisted so it is recoverable, but verify before deleting, not after.
 - Task 5: unset `TYPESAFE_BASE_URL`, remove the proxy route.
-- Task 4: remove the `extensions:` entry and the `JEV_GUARD_*` environment, delete the pinned clone and `~/.jev-guard/`, restart.
+- Task 4: delete `extensions/jev-sentinel.ts` and its `extensions:` entry, restart. `core.ts` is untouched by rollback — it predates this plan.
 - Task 3: delete `extensions/safety-guard/`, restart.
 - Task 2: revert the `.gitignore` negation lines.
 - Task 1: remove the `bash.patterns` block from `config.yml`, restart.
@@ -211,7 +233,8 @@ Rollback of an uncommitted change is a manual file edit, not a git operation. No
 
 ## Rejected alternatives
 
-- **`y0usaf/pi-jev`** @ `1b49337` — superseded by `leepokai/jev-guard`, which is better on every axis and demonstrably works here. Its findings are retained above because they are the reason the evaluation criteria exist. Its `jev_ask` tool is genuinely useful and could be loaded on its own if a typed-question tool is ever wanted, independent of any gate.
+- **`leepokai/jev-guard`** @ `94996ea` — the best design in the ecosystem, and **not adopted**: 14 stars, one author, no independent review, running in-process with full harness privileges, and shipping up to 60 KB of tool-result text plus the last 8 conversation messages per call. Read it, borrow from it, do not execute it. Task 4 implements its policy over our own client. If it later grows a review surface, revisit — the adapter is 47 lines and the swap would be mechanical.
+- **`y0usaf/pi-jev`** @ `1b49337` — rejected outright: the gate calls a nonexistent `ctx.sessionManager.buildContextEntries()` inside a `try`, so it fails open silently, while its output judge (which does not call it) works and defaults on. Installed as-is that is zero gate protection plus full bash-output egress. Its `jev_ask` tool does work, if a typed-question tool is ever wanted on its own.
 - **`mejiasd3v`, `tamaratran`, `redrossa` extensions** — rejected on egress (192 KB conversation to Vercel; whole history; prompt plus 8 messages). Not re-examined this revision.
 - **`jev-belay`** — Claude Code Stop hook that checks for evidence before trusting a "done" claim. Conceptually close to omp's `session_stop`, but omp's `unexpectedStopDetection: smart` already occupies this slot natively and is already on.
 - **`jev-cli` / `jev-axi` / `jevkit`** — maintained CLIs covering `screen`, `verify`, `route`, `rerank` with exit-code gating. Strictly better engineered than the hand-rolled `scripts/jev-ts/`, but they are the same *elective* shape: the model must choose to call them. They would be a sensible replacement if Task 4 is declined and the CLI path is kept.
@@ -243,5 +266,15 @@ Executed, with captured output.
 - **Coverage is not bash-only.** When the agent attempted to reach the same result through `eval`, that call was independently assessed and blocked (`risk 0.2/3, approval p=0.52, user-asked p=0.16`). The hook sees every tool, and a refusal is not trivially routed around.
 - Source review: the adapter uses `ctx.sessionManager?.getBranch?.() ?? []` — omp's documented method — which is why it works where `pi-jev` does not. `extensions/jev-guard.ts:25` blocks on `ask` when `!ctx.hasUI`, so headless sessions do not silently allow.
 - README content screened before acting on it: `injection 0.04, credential_leak 0.03, verdict clear`.
+- Egress read at source, correcting the previous revision: `MIN_SCAN_CHARS = 200` is a skip **floor** (`src/guard.js:108`), `truncate()` defaults to `MAX_STATE_CHARS = 60_000` head 45K + tail 15K (`:109`, `:215`), and `messagesFrom(...).slice(-8)` (`src/context.js:80`) sends the last 8 conversation messages with every assessed call.
 
-Not executed: a week of real traffic at default thresholds, and `jev-guard scan-skills` against this agent directory. Those are Task 4 Steps 8 and 10.
+**`extensions/jev-sentinel.ts` prototype — our own hook over `core.ts` (09-21):**
+
+- Harness API established empirically: `event.toolName` / `event.input`; `ctx.cwd`, `ctx.hasUI`, `ctx.signal`. First run used `ev.name ?? ev.tool` and logged `tool=` empty, so the read-only skip list was dead and four navigation calls were judged and transmitted — the concrete form the Task 4 Step 2 warning takes.
+- `ctx.sessionManager.getBranch()` returns session **records**: `keys=["type","id","parentId","timestamp","model","role","resolvedModelIsFallback"]` with top-level `role: null` on every entry. Unwrapping with `entry.message ?? entry` yields the real `{role, content}` — verified by `intentLen=20 intent="Run exactly: echo hi"`.
+- **Downgrade works:** with `SENTINEL_DENY=0.0`, `bash echo hi` still ran — `destructive=0.01, user_requested=0.98`. An explicit request defeats a maximally paranoid threshold, which is the property that makes an always-on gate survivable.
+- **Block path works:** with `SENTINEL_DENY=0.0 SENTINEL_USER=0.99`, a `wc -l` was refused and the model received the harness message `bash call blocked by jev-sentinel (destructive p=0.01, user_requested p=0.92)`. Our own hook, our own client, a real refusal.
+- **Calibration warnings, both measured:** `rm -rf` of a nonexistent path scored `destructive 0.63` through the hook while the `guard` CLI scored the same operation `0.11–0.26`; and `user_requested` returned `0.93` for a `wc -l` the user never typed. The Noul means "serves the user's ask", not "was literally requested". Thresholds must come from the Step 9 sweep, not from these probes.
+- **The existing `screen` control caught a live injection:** given `notes.md` containing a planted `rm -rf /tmp/sentinel-victim`, the agent ran `jev screen`, got `injection 0.92`, refused the deletion, and the target directory survived intact. This is the evidence behind Task 6 Step 2 keeping `screen`.
+
+Not executed: the Step 9 calibration sweep, the redaction helper (Task 4 Step 3 — the prototype sends `input` raw and must not ship that way), and a week of real traffic.
