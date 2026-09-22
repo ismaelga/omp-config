@@ -70,6 +70,11 @@ Full sourcing in `docs/research/jev/alternatives.md`. The three findings that be
 1. **No prompt-injection classifier is adversarially robust.** Adaptive attacks exceed 50% ASR against every published detection defense ([arXiv:2503.00061](https://arxiv.org/abs/2503.00061)); character injection — emoji smuggling, upside-down text — reaches up to 100% evasion against six named commercial and open detectors ([arXiv:2504.11168](https://arxiv.org/abs/2504.11168)). A hosted typed-judgment API sits in that category. Option C must therefore be sized as *defence in depth against an unlucky agent*, never as a control that stops a motivated attacker.
 2. **Policy beats classification on the one neutral agent benchmark.** On AgentDojo, non-ML **tool filtering reached 7.5% ASR** and was the standout defence, while the authors' own BERT injection detector "has too many false positives … and significantly degrades utility" ([arXiv:2406.13352](https://arxiv.org/abs/2406.13352) §4.3). CaMeL reached 0% ASR with provable security at 77% utility versus 84% undefended ([arXiv:2503.18813](https://arxiv.org/abs/2503.18813)). That is option 0, not option C.
 3. **Jev's own model does not treat state as hostile.** First-party, on jev-1.13's known weaknesses: adversarial state content "can move the answer" — "State is data, and jev-1.13 does not treat it as hostile by default" (`docs/research/jev/api-facts.md`). The classifier a guard depends on is itself injectable by the text it judges.
+4. **The one published benchmark of Jev on *this exact job* is decent but not safe-by-itself.** `themsquared/jev-benchmark` — 60 tool-call-risk cases — reports **91.7% accuracy, p50 421.6 ms, ECE 0.0712**, zero misses among cases scored at confidence `1.000` — **but one miss at confidence 0.97** (`docs/research/jev/field-reports.md`). So high confidence is not a safety threshold: ~1 in 12 calls is judged wrongly, and the wrong ones are not reliably low-confidence.
+5. **A 429 can present to an agent loop as a confident decision.** Documented live in another harness (`OpenAgentsInc/bender#32`, four consecutive steps). This is the same defect class as `core.ts`'s blanket `FatalError`, observed in the wild rather than reasoned about — which is why the retry fix is not cosmetic.
+6. **Question wording moves answers more than thresholds do.** A published state-wording ablation flipped a decision from 62% one way to 88% the other (`backnotprop.com/blog/jev-poker/`). This is the measured form of the Step 9a warning: re-word before re-tuning.
+7. **No composite-decision calibration study exists, and the only public attempt is negative.** Every published calibration figure measures a *single* question; the one blog that combined several into a path score found "no threshold separates" right from wrong, with concordant and divergent distributions overlapping (`blog.r6i.it`). Option C's policy combines five Nouls, so **the combination must be validated as a unit** — per-question calibration does not transfer.
+8. **`jev-latest` silently re-tunes every threshold on a vendor release.** Pin a versioned model id once thresholds are chosen; `core.ts:133` currently sends `jev-latest`.
 
 **A + B remain the deterministic floor.** Option 0 sits above them because it does not depend on enumerating anything.
 
@@ -121,6 +126,18 @@ Carried from `docs/plans/2026-08-12-agent-safety-limits.md`, with one necessary 
 - `secrets.enabled` / `security.enabled` — separate decisions.
 
 ---
+
+### Task 0: Deny the capabilities this agent never needs (option 0)
+
+Cheapest control in the plan and the best-evidenced one. No extension, no key, no network, no prompt.
+
+Verified semantics (`omp://approval-mode.md`, `## Subagents`): subagents run headless at `yolo`, but `tools.approval.<tool>` stays authoritative there — `deny` blocks, `allow` permits, and `prompt` **cannot be satisfied and rejects the call**. So `deny` is the only form that behaves identically in the main session and in every `task` dispatch. This is why the tier setting is untouched: no `approvalMode` change, no prompting, no fatigue.
+
+- [ ] **Step 1:** List the tools this agent genuinely never uses, then deny them by name in `tools.approval`. Candidates to consider, each a real capability reduction: `computer` (full desktop input — mouse, keyboard, clipboard, and explicitly "not a sandbox", `omp://computer-use.md:63`), `debug`, and `generate_image`. **The user picks the list; do not guess it.** A denied tool the agent later needs is a visible failure, not a silent one, which is the right failure direction.
+- [ ] **Step 2:** Do **not** set `tools.approvalMode`. Leave it at its `yolo` default (`omp://settings.md:513`). Both non-default tiers prompt on exec-tier calls, and a prompt is unsatisfiable in a subagent — see "Out of scope".
+- [ ] **Step 3:** Restart, then verify each denial: attempt one call to a denied tool in the main session **and** inside a one-line `task` dispatch. Both must refuse. The subagent check is the one that matters, because that is where the semantics differ.
+
+**Acceptance:** each denied tool refuses in both contexts, and no ordinary workflow in this repo has started prompting. Independent of every other task; rollback is deleting the keys.
 
 ### Task 1: Land the deterministic floor (option A)
 
@@ -196,10 +213,14 @@ The prototype already settled the harness API, so none of this is guesswork:
 - [ ] **Step 8:** Log every verdict through `logDecision("sentinel", …)` into `~/.omp/logs/jev.jsonl`, including no-verdict outcomes. The existing corpus and tooling already read that file; a second store under `~/.jev-sentinel/` would be duplicated state for no gain.
 - [ ] **Step 9:** **Calibrate before choosing thresholds.** Do not tune against one probe. Sweep an explicit corpus — `rm -rf` on a real populated directory, `git push --force`, `curl … | sh`, `wrangler deploy --env production`, against benign `ls`, `wc -l`, `git status` — **plus at least one planted-instruction case** (a file or page telling the agent to run something the user never asked for) and one legitimate relayed-instruction case (a checklist the user explicitly asked to follow). Without both, `from_untrusted` is never exercised and the calibration gate cannot tell whether that dial carries signal or noise. Record the spread. Two prototype measurements show why this matters: `rm -rf` of a **nonexistent** path scored `destructive 0.63` through the hook but `0.11–0.26` through the `guard` CLI on the same operation, and `user_requested` returned **0.93** for a `wc -l` the user never typed, because the Noul reads "serves the user's ask", not "was literally requested". A `userP` of 0.85 will therefore downgrade most ordinary work — intended, but it must be a measured choice.
 - [ ] **Step 9a:** **Test the state contract, not just the thresholds.** The prototype freehands both the state key (`user_intent`) and the question wording, while `core.ts`'s header declares both as server-side inference input that must not drift, and jev-guard passes intent under `context`. If scores look wrong, compare the same call under `context`, under `note` (core.ts's established freeform channel), and under `user_intent` before touching policy. A bad key reads as a bad threshold.
+- [ ] **Step 9b:** **Validate the composite decision, not the five questions.** Every published Jev calibration figure measures a single question, and the one public attempt at combining several found "no threshold separates" right from wrong, with concordant and divergent distributions overlapping (`docs/research/jev/field-reports.md`). Score the Step 9 corpus through the **final allow/ask/deny verdict** and report accuracy on that, not per-Noul. If the composite does not separate, the policy is wrong even when every question looks well-calibrated.
+- [ ] **Step 9c:** **Pin the model id before recording any threshold.** `core.ts:133` sends `jev-latest`, which currently resolves to `jev-1.13.0`; a vendor release would silently re-tune every number chosen in Step 9. Pin the versioned id for the sentinel path, and treat a deliberate bump as a re-calibration event.
 - [ ] **Step 10:** Prove the block path with an instrumented threshold, exactly as the prototype did: force a deny with an env override and confirm the refusal reaches the model as a harness message carrying the probabilities. Then remove the override. Silence is not evidence of a working gate — that was the whole lesson of `pi-jev`.
 - [ ] **Step 11:** Port the instruction-file audit as a **command, not a hook**: walk `skills/**/SKILL.md`, `agents/*.md`, and `AGENTS.md`, ask whether each asks for something its installer would not expect, and report. Run it on demand. With 40+ skills loaded here it is the one capability with no counterpart elsewhere in this plan, and it is the only part that must send file contents — which is tolerable precisely because it is explicit and occasional.
 
-**Acceptance:** an observed block carrying its probabilities, a redaction unit test showing a bearer token never reaches the payload, a calibration table over the Step 9 corpus, and a week of `jev.jsonl` rows whose `ask` rate is tolerable rather than reflexively dismissed.
+**Acceptance:** an observed block carrying its probabilities, a redaction unit test showing a bearer token never reaches the payload, a calibration table over the Step 9 corpus scored on the **composite verdict**, a pinned model id, and a week of `jev.jsonl` rows whose `ask` rate is tolerable rather than reflexively dismissed.
+
+**Sizing expectation, from the only published benchmark of this exact job:** ~91.7% accuracy on 60 tool-call-risk cases, p50 421.6 ms, with a miss at confidence 0.97. Roughly one call in twelve judged wrongly, and high confidence does not mark the safe ones. Build for that, not for a gate that is right.
 
 ### Task 5 (optional): Egress control via LiteLLM
 
@@ -247,6 +268,7 @@ Per task, in reverse:
 - Task 3: delete `extensions/safety-guard/`, restart.
 - Task 2: revert the `.gitignore` negation lines.
 - Task 1: remove the `bash.patterns` block from `config.yml`, restart.
+- Task 0: delete the `tools.approval` keys, restart.
 
 Rollback of an uncommitted change is a manual file edit, not a git operation. Nothing in this plan authorises a commit.
 
