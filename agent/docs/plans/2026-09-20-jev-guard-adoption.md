@@ -4,6 +4,8 @@
 
 **Status:** Plan only. Nothing here has been applied to `~/.omp/agent`.
 
+**Revision 5 (2026-09-22).** Five parallel research agents surveyed the Jev ecosystem, first-party API docs, field reports, applied patterns, and competing guardrail approaches; findings in `docs/research/jev/`. Three things changed here. A **new option 0** — native per-tool `deny` — sits above everything, because policy-level tool filtering is the best-evidenced defence in the literature while no classifier is adversarially robust. Option **C is demoted to optional** defence-in-depth and can no longer be described as stopping an attacker. And the client itself has a **bug**: `core.ts` classifies every HTTP status as fatal, including `429`/`529`, which both first-party SDKs retry — so a TypeSafe overload currently surfaces as a fake hazard that halts work.
+
 **Revision 4 (2026-09-21).** An ecosystem search found **`leepokai/jev-guard`**, whose design solves every defect earlier revisions identified, and which was observed blocking inside omp. On review it is **not being adopted**: 14 stars, one author, no independent review, in-process execution with full harness privileges, and — read at source rather than from its README — up to 60 KB of tool-result text plus the last 8 conversation messages leaving the machine per call. Option C is now a **local rebuild**: `extensions/jev-sentinel.ts`, our hook over the client already in `scripts/jev-ts/core.ts`, implementing jev-guard's policy and none of its code. A prototype has been verified blocking in omp. `core.ts` is therefore promoted rather than retired, and `screen` stays — a shape-only gate is not a content screener.
 
 **Revision 3 (2026-09-21).** Re-pointed option C from `y0usaf/pi-jev` to `leepokai/jev-guard`. Superseded by revision 4, which keeps the analysis and drops the dependency.
@@ -46,15 +48,30 @@ Two prior attempts exist and **neither is enforcing anything**:
 - `docs/plans/2026-08-12-agent-safety-limits.md` — 827 lines, two-layer design, code marked bun-tested 61 pass / 0 fail. Never deployed: `extensions/` holds only `herdr-omp-agent-state.ts`.
 - `scripts/jev-ts/` (743 LOC) plus the `<!-- jev-begin -->` block at `APPEND_SYSTEM.md:18-53`. Working, in organic use, but invoked only when the model elects to.
 
-## Options, re-ranked after review
+## Options, re-ranked after the 2026-09-22 evidence review
 
 | Option | Latency | Catches | Fails | Ready? |
 | --- | --- | --- | --- | --- |
+| **0. Native per-tool deny** — `tools.approval: {<tool>: deny}` | none | removes a capability outright, before any pattern matching | only as good as the list of capabilities you are willing to lose | **yes, today — one config key** |
 | **A. Config exact-match denies** (Aug plan layer 1) | none | literal catastrophic shapes | novel/obfuscated forms | **yes, today** |
 | **B. `safety-guard` hook** (Aug plan layer 2) | none — pure regex + path logic, no network | the 20 critical patterns, root-aware deletes | semantic intent | **yes — code already written and bun-tested** |
-| **C. `extensions/jev-sentinel.ts`** — our hook, our client | ~0.3–0.8 s per assessed call; read-only tools skipped without a call | destructive / exfiltrating / off-scope intent, with a user-intent downgrade; planted instructions only if Step 5a's provenance channel is built | needs the network; sees no tool results, so it screens no fetched content | **prototype verified blocking in omp** |
+| **C. `extensions/jev-sentinel.ts`** — our hook, our client | ~0.3–0.8 s per assessed call; read-only tools skipped without a call | destructive / exfiltrating / off-scope intent, with a user-intent downgrade; planted instructions only if Step 5a's provenance channel is built | needs the network; sees no tool results, so it screens no fetched content; **not adversarially robust** | **prototype verified blocking in omp** |
 
-**A + B remain the floor.** Both are deterministic and offline. C needs the network, so it can never be the only layer.
+**Option 0 is the deny half of a setting this plan already half-rejected, and the half it rejected is still rejected.** The *prompting* form — `tools.approvalMode: write` — stays out of scope for the August plan's reason, now with a second and better one: in a headless subagent, `prompt` cannot be satisfied and the call is **rejected** (`omp://approval-mode.md:162`), so it would break every `task` dispatch. The *per-tool deny* form is a different mechanism and was never considered here: `tools.approval` takes `allow`/`deny`/`prompt` keyed by tool name (`omp://settings.md:514`), and `deny` needs no attention, no prompt, and no interaction — it removes the capability outright. Note also that `tools.approvalMode` defaults to `yolo` (`omp://settings.md:513`) and this repo's `config.yml` does not set it, so every tier is auto-approved today.
+
+This matters because **policy-level tool filtering is the best-evidenced defence in the literature** and is not the same thing as prompting. The honest limit: a deny list over *whole tools* is coarse. We want `bash` to keep existing, so option 0 cannot express "no destructive bash" — that is what A and B are for. Its real use here is narrow and worth doing anyway: deny the capabilities this agent genuinely never needs.
+
+**Order of work is therefore 0 → A → B → C**, with C genuinely optional.
+
+### What the evidence review changed
+
+Full sourcing in `docs/research/jev/alternatives.md`. The three findings that bear on this plan:
+
+1. **No prompt-injection classifier is adversarially robust.** Adaptive attacks exceed 50% ASR against every published detection defense ([arXiv:2503.00061](https://arxiv.org/abs/2503.00061)); character injection — emoji smuggling, upside-down text — reaches up to 100% evasion against six named commercial and open detectors ([arXiv:2504.11168](https://arxiv.org/abs/2504.11168)). A hosted typed-judgment API sits in that category. Option C must therefore be sized as *defence in depth against an unlucky agent*, never as a control that stops a motivated attacker.
+2. **Policy beats classification on the one neutral agent benchmark.** On AgentDojo, non-ML **tool filtering reached 7.5% ASR** and was the standout defence, while the authors' own BERT injection detector "has too many false positives … and significantly degrades utility" ([arXiv:2406.13352](https://arxiv.org/abs/2406.13352) §4.3). CaMeL reached 0% ASR with provable security at 77% utility versus 84% undefended ([arXiv:2503.18813](https://arxiv.org/abs/2503.18813)). That is option 0, not option C.
+3. **Jev's own model does not treat state as hostile.** First-party, on jev-1.13's known weaknesses: adversarial state content "can move the answer" — "State is data, and jev-1.13 does not treat it as hostile by default" (`docs/research/jev/api-facts.md`). The classifier a guard depends on is itself injectable by the text it judges.
+
+**A + B remain the deterministic floor.** Option 0 sits above them because it does not depend on enumerating anything.
 
 ### Why C is a rebuild, not an install
 
@@ -98,7 +115,7 @@ Carried from `docs/plans/2026-08-12-agent-safety-limits.md`, with one necessary 
 
 ## Out of scope
 
-- `tools.approvalMode: write` — prompts on every exec-tier call including every subagent spawn. Rejected in the Aug plan for the same reason.
+- `tools.approvalMode: write` / `always-ask` — prompts on every exec-tier call, and a headless subagent cannot satisfy a `prompt`, so the call is rejected outright (`omp://approval-mode.md:162`). That breaks `task` dispatch. The **per-tool `deny`** form is in scope and is now option 0; the prompting form is not.
 - Per-turn **main model** routing. `redrossa/pi-model-router` rates as a likely drop-in from source reading — a static rating; no third-party extension has been observed working live, and the one that was tested turned out to be inert. Effort routing, the half that pays, is already native and on.
 - Skill relevance ranking. Upstream PRs #12364/#12373 remain open and unmerged; revisit when they land.
 - `secrets.enabled` / `security.enabled` — separate decisions.
