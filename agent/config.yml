@@ -246,7 +246,7 @@ checkpoint:
 commands:
   enableClaudeUser: true
 defaultThinkingLevel: auto
-hideThinkingBlock: false
+hideThinkingBlock: true
 dev:
   autoqaConsent: granted
 bash:
