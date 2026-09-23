@@ -215,7 +215,7 @@ retry:
       - opencode-go/glm-5.3:high
     openai-codex/gpt-5.6-sol:
       - openai-codex/gpt-6-astra:high
-      - anthropic/claude-opus-5:high
+      - anthropic/claude-opus-5-5:high
       - ollama-cloud/glm-5.3:high
     openrouter/*:
       - ollama-cloud/glm-5.3:high
