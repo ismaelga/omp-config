@@ -23,6 +23,8 @@
 !agent/agents/*.md
 !agent/commands/
 !agent/commands/*.md
+!agent/rules/
+!agent/rules/*.md
 !agent/tools/
 !agent/tools/**
 !agent/skills/
