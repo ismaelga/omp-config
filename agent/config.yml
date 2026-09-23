@@ -66,6 +66,11 @@ modelRoles:
   # so this pin was a guaranteed dead first hop. ollama-cloud/glm-5.3 answers now
   # and measures 62.1 tok/s (n=188, updated today).
   sentinel: ollama-cloud/glm-5.3:high
+  # Pinned 2026-09-23: jev-latest floats, and the TTSR judge flags at p >= 0.7,
+  # so a vendor release would silently move every judged rule's cutoff. The API
+  # accepts jev-1.13.0 (probed: jev-latest and jev-preview both answer as it);
+  # it rejects the short form jev-1.13. Bump by hand after re-probing the rules.
+  judge: typesafe/jev-1.13.0
 modelProviderOrder:
   # ollama-cloud ahead of zai 2026-09-22: zai's weekly quota is exhausted and it
   # is 2.4x slower on the shared glm-5.3-flash weights (numbers under smol).

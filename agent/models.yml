@@ -96,3 +96,21 @@ providers:
       # so re-derive from the diff, not from that cache.
       gpt-6-astra:
         contextWindow: 872000
+  typesafe:
+    # 2026-09-23: adds the versioned id so config.yml can pin modelRoles.judge.
+    # The bundled typesafe rows are only jev-latest and jev-preview, and a role
+    # naming an id outside the catalog is ignored: the journal kept reporting
+    # jev-latest. The API itself accepts jev-1.13.0 (probed; it rejects the short
+    # form jev-1.13). A `models` list makes this a full custom provider, which
+    # requires baseUrl/apiKey/api; baseUrl is the documented root under which
+    # the api calls {baseUrl}/v1/systemone, identical to the built-in, so the
+    # bundled rows are untouched (a new id appends).
+    baseUrl: https://api.typesafe.ai
+    apiKey: TYPESAFE_API_KEY
+    api: typesafe
+    models:
+      - id: jev-1.13.0
+        name: Jev 1.13.0 (pinned)
+        input: [text]
+        # Same list price as the bundled jev-latest row (usage stats read this).
+        cost: { input: 0.042, output: 0, cacheRead: 0, cacheWrite: 0 }

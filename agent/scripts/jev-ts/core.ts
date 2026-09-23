@@ -135,7 +135,9 @@ export function loadMcpCatalog(): Record<string, string> {
 // --- System One client -------------------------------------------------
 
 const API_URL = "https://api.typesafe.ai/v1/systemone";
-const MODEL = "jev-latest";
+// Pinned, not jev-latest: guard (0.5) and route (0.7) thresholds were set
+// against this version. The API rejects the short form jev-1.13.
+const MODEL = "jev-1.13.0";
 
 // System One answer envelope: every question type returns a `type` tag plus
 // type-specific numeric fields (noul / score / probabilities…).
@@ -171,8 +173,8 @@ const BUDGET_MS = 15_000;
 const ATTEMPT_MS = 8_000;
 const MAX_RETRIES = 2;
 
-// `model` is the versioned id that answered: jev-latest floats, so this is
-// where a vendor release that moves every threshold becomes visible.
+// `model` is the versioned id that answered; after a MODEL bump, the log is
+// where a shift in every threshold first becomes visible.
 export type Evaluation = { answers: Record<string, Answer>; meta: { model?: string; ms: number } };
 
 export async function evaluate(state: unknown, questions: Record<string, unknown>): Promise<Evaluation> {
