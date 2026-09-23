@@ -34,14 +34,16 @@ Write one clear paragraph. If you're unsure about the intent, ask the user befor
 
 ## Step 3, Spawn Reviewers
 
-Launch all reviewers in **one `task` tool call** — a single `tasks[]` batch of four items. They run in parallel; results auto-deliver. The `task` tool has no per-item `model` field, so model diversity comes from the agent each item runs on. Each of those four agents is pinned to a different model family:
+Launch all reviewers in **one `task` tool call** — a single `tasks[]` batch of four items. They run in parallel; results auto-deliver. The `task` tool has no per-item `model` field, so model diversity comes from the agent each item runs on. Each of those four agents is meant to be pinned to a different model family:
 
 | Reviewer | Agent | Model family |
 |----------|-------|--------------|
 | Reviewer A | `reviewer` | OpenAI (`@critic`, gpt-6-astra) |
 | Reviewer B | `security-reviewer` | GLM (`@sentinel`, glm-5.3) |
-| Reviewer C | `interrogator` | Anthropic (`@plan`, claude-fable-5-1) |
-| Reviewer D | `task` | DeepSeek (`@task`, deepseek-v4.1-flash) |
+| Reviewer C | `interrogator` | Anthropic (`@plan`, claude-opus-5-5) |
+| Reviewer D | `task` | GLM (`@task`, glm-5.3-flash) — same family as B |
+
+DeepSeek, which D used to carry, is off every pin and chain since 2026-09-23 (costs more than glm-5.3). Until `@task` or another agent is pinned to a fourth family, D duplicates B's family — see the rule below.
 
 Reviewer C is pinned by `model: "@plan"` in `agent/agents/interrogator.md`, which is the shape to copy if you want a differently-pinned arm. The other three are built-ins: their pins live in `task.agentModelOverrides` and `modelRoles` in `config.yml`, and `omp agents unpack` materializes them as files if you need to read them.
 

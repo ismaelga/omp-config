@@ -5,7 +5,7 @@ description: >-
   fixed prompt, rubric, and code-quality lens, and returns evidence-cited findings only:
   file:line, why it is a problem, and what would fix it. Never edits, never rewrites the code,
   never praises. Its value to the panel is that it runs on a Claude family model, so its
-  misses and hits are independent of the OpenAI, GLM, and DeepSeek arms.
+  misses and hits are independent of the OpenAI and GLM arms.
 tools: [read, grep, glob, lsp]
 model: "@plan"
 thinkingLevel: xhigh

@@ -1,12 +1,18 @@
-# Override-only block: ollama-cloud and openai-codex are built-in providers
-# (authenticated from a stored /login credential; env fallback for the former is
-# OLLAMA_CLOUD_API_KEY -- OLLAMA_API_KEY belongs to the local ollama engine).
+# Override-only block: openai-codex is a built-in provider (authenticated from
+# a stored /login credential).
 # Do not redeclare baseUrl/api/models here -- that replaces curated catalog
 # metadata (context windows, output caps, thinking levels) with hand-written
 # guesses.
 #
 # Purpose of this file: correct catalog metadata the bundled rows get wrong.
-# Two entries remain: one astra context window and one ollama-cloud output cap.
+# One correction remains: astra's context window. The typesafe block adds a
+# pinned id rather than correcting one.
+#
+# Removed 2026-09-23: the ollama-cloud deepseek-v4.1-flash output cap (65536).
+# DeepSeek is off every fallback chain -- it costs more than glm-5.3 -- so no
+# route reached the row it clamped. If it returns: discovery on omp 18.2.9
+# reports maxTokens 384000 (vendor number), sibling ollama-cloud DeepSeek rows
+# carry 65536, and nothing was measured past 11469 output tokens on that route.
 #
 # Removed 2026-09-11: the luna and terra price corrections this file was
 # originally created for. The bundled catalog now carries $0.20/$1.20 and
@@ -31,39 +37,6 @@
 # in fact 1M (a higher long-context billing tier starts above 512K, which is
 # probably where 524K came from), so both were 1M -> 1M no-ops.
 providers:
-  ollama-cloud:
-    modelOverrides:
-      # Discovery landed this row on 2026-09-11 (the day after DeepSeek shipped
-      # V4.1-Flash) with maxTokens 8192, which is a guess: every sibling DeepSeek
-      # row on this provider carries 65536 -- isOllamaCloudOutputCapped pins
-      # DeepSeek V4 Pro/Flash to min(contextWindow, OLLAMA_CLOUD_MAX_OUTPUT_TOKENS)
-      # -- and the vendor advertises 384K. Measured on the wire the same day:
-      # "count 1 to 4000, one per line" returned all 4000 lines, eval_count 11469,
-      # done_reason "stop", so the route serves well past 8192. 65536 matches the
-      # provider's own ceiling rather than the vendor's larger number, which is the
-      # value omp would have assigned had the id been recognised.
-      # Cloud rows also set omitMaxOutputTokens, so this skews budgeting rather than
-      # truncating the wire -- which is exactly why a wrong cap survives unnoticed.
-      # This matters here because the model is verbose: at the pinned :low tier
-      # bakeoff answers ran 9.2-22.4K output tokens, and 61.1K at :high
-      # (2026-09-14, three problems x 3 samples).
-      # Re-checked 2026-09-22 on omp 18.2.9, and the original rationale is DEAD:
-      # discovery now returns maxTokens 384000 for this id, not 8192. Method is
-      # the documented diff, not a throwaway profile -- a fresh profile carries no
-      # credentials, so it discovers nothing and prints an empty table that reads
-      # like a missing row. Move this file aside, run `omp models ollama-cloud
-      # --json`, restore it. So the override no longer corrects a guess upward; it
-      # now clamps the catalog DOWN, from the vendor's advertised 384K to the
-      # 65536 every sibling row (v4-flash, v4-pro) still carries. It is kept at
-      # 65536 because that is the ollama-cloud ceiling and the siblings agree,
-      # and because nothing here measured output past 11469 tokens -- 384000 is a
-      # vendor number, not an observation on this route. Delete the override the
-      # moment a call on this provider is seen returning more than 65536 tokens.
-      # `task` does not run here by default (glm-5.3-flash:high since 2026-09-15),
-      # but deepseek-v4.1-flash:low is still a fallback target in both
-      # glm-5.3-flash chains, so this budget sits under work reaching it that way.
-      deepseek-v4.1-flash:
-        maxTokens: 65536
   openai-codex:
     modelOverrides:
       # gpt-6-astra: catalog pins contextWindow 272000, so omp compacts at a
