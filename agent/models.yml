@@ -47,19 +47,21 @@ providers:
       # This matters here because the model is verbose: at the pinned :low tier
       # bakeoff answers ran 9.2-22.4K output tokens, and 61.1K at :high
       # (2026-09-14, three problems x 3 samples).
-      # Re-verified 2026-09-14 on omp 18.1.21 and still load-bearing. Discovery
-      # is not cached -- models.db is 0 bytes, models.dev carries no ollama
-      # provider at all, and the bundled ollama-cloud KDL rows hold thinking
-      # policy but no limits -- so the pre-override number can only be read by
-      # running discovery without this file. A throwaway profile does that:
-      #   omp --profile <fresh> models ollama-cloud --json
-      # Today it still returns maxTokens 8192 for this id against 65536 for
-      # every sibling (v4-flash, v4-pro, v3.2), contextWindow 1048576. The cap
-      # function has not learned the id in three days. `task` no longer runs
-      # here by default (moved back to glm-5.3-flash:high 2026-09-15, one day
-      # after the previous recheck), but deepseek-v4.1-flash:low remains a
-      # fallback target in both glm-5.3-flash chains, so an 8192 budget can
-      # still sit under task-role work reaching it via fallback.
+      # Re-checked 2026-09-22 on omp 18.2.9, and the original rationale is DEAD:
+      # discovery now returns maxTokens 384000 for this id, not 8192. Method is
+      # the documented diff, not a throwaway profile -- a fresh profile carries no
+      # credentials, so it discovers nothing and prints an empty table that reads
+      # like a missing row. Move this file aside, run `omp models ollama-cloud
+      # --json`, restore it. So the override no longer corrects a guess upward; it
+      # now clamps the catalog DOWN, from the vendor's advertised 384K to the
+      # 65536 every sibling row (v4-flash, v4-pro) still carries. It is kept at
+      # 65536 because that is the ollama-cloud ceiling and the siblings agree,
+      # and because nothing here measured output past 11469 tokens -- 384000 is a
+      # vendor number, not an observation on this route. Delete the override the
+      # moment a call on this provider is seen returning more than 65536 tokens.
+      # `task` does not run here by default (glm-5.3-flash:high since 2026-09-15),
+      # but deepseek-v4.1-flash:low is still a fallback target in both
+      # glm-5.3-flash chains, so this budget sits under work reaching it that way.
       deepseek-v4.1-flash:
         maxTokens: 65536
   openai-codex:
@@ -83,9 +85,14 @@ providers:
       # this plan. If it refuses, the turn fails `context_window_exceeded` and,
       # with contextPromotion disabled, falls back to compaction -- one wasted
       # request per overflow, recoverable. Revert to 272000 if that shows up.
-      # Re-verified 2026-09-14 on omp 18.1.21: the bundled catalog still pins
-      # 272000 and the string 872000 does not occur anywhere in the binary, so
-      # the 872000 that `omp models --json` reports can only be this override.
-      # Same recheck method as the row above -- discovery in a fresh profile.
+      # Re-checked 2026-09-22 on omp 18.2.9 and still load-bearing: with this file
+      # moved aside, `omp models openai-codex --json` reports contextWindow 272000
+      # for gpt-6-astra, so the 872000 omp otherwise shows can only come from here.
+      # One sub-claim from 2026-09-14 is now false and is not evidence any more:
+      # `strings` finds 872000 in the binary twice today. It never proved much --
+      # the catalog value is what matters, and the diff above measures that
+      # directly. The plan-side source (~/.codex/models_cache.json) is stale at
+      # 2026-09-09 / client_version 0.153.4 against an installed codex-cli 0.142.5,
+      # so re-derive from the diff, not from that cache.
       gpt-6-astra:
         contextWindow: 872000

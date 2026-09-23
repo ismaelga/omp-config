@@ -28,22 +28,50 @@ task:
     reviewer: "@critic"
     security-reviewer: "@sentinel"
 modelRoles:
-  plan: anthropic/claude-fable-5-1:high
-  slow: anthropic/claude-fable-5-1:high
+  # 2026-09-22: Opus 5.5 shipped today and outranks both incumbents at the SAME
+  # effort tier on Artificial Analysis (read 2026-09-22, Max Effort both sides):
+  # Intelligence Index 58 vs Fable 5.1's 53 and Opus 5's 51; Terminal-Bench 4.0
+  # 60% vs 52% / 49%; AutomationBench 70% vs 59% / 57%. It is also cheaper
+  # ($4/$20 vs $10/$50), but these route through the Anthropic plan, so the
+  # ordering is what moved the pin, not the price. Cost of the swap: it emits
+  # ~1.5x the tokens per task at max effort (119k vs 78k), and verbosity is a
+  # latency cost -- which is why plan/slow sit at :high, not :max.
+  plan: anthropic/claude-opus-5-5:high
+  slow: anthropic/claude-opus-5-5:high
   task: ollama-cloud/glm-5.3-flash:high
-  smol: zai/glm-5.3-flash:high
+  # 2026-09-22: moved off zai. `omp usage` reports the zai weekly credit quota
+  # 100% used, so every zai pin was already walking its chain. Independent of the
+  # quota cycle, model_perf measures ollama-cloud/glm-5.3-flash at 86.5 tok/s and
+  # 1991 ms TTFT (n=245, updated today) against zai/glm-5.3-flash at 36.5 tok/s
+  # and 9911 ms (n=242, updated 2026-09-21) -- same weights, 5x the wait. TTFT is
+  # the criterion for smol and a human is sitting on it.
+  smol: ollama-cloud/glm-5.3-flash:high
   tiny: ollama-cloud/gpt-oss:120b
-  vision: zai/glm-5.3-flash:high
+  # Image input probed on THIS route 2026-09-22, not read off the catalog:
+  # 64x64 solid red -> "Red", solid blue -> "Blue" via ollama.com/api/chat.
+  vision: ollama-cloud/glm-5.3-flash:high
   commit: ollama-cloud/gpt-oss:120b
-  advisor: zai/glm-5.3-flash:high
-  default: anthropic/claude-opus-5:xhigh
-  scout: zai/glm-5.3-flash:high
+  advisor: ollama-cloud/glm-5.3-flash:high
+  default: anthropic/claude-opus-5-5:xhigh
+  scout: ollama-cloud/glm-5.3-flash:high
+  # GPT-6 Astra stays. Sol and Luna shipped 2026-09-22 at half the 5.6 price, but
+  # AA (max effort, read 2026-09-22) puts Sol at 48 and Luna at 37 against Astra's
+  # 53 -- Luna scores 13% on Terminal-Bench 4.0. Cheaper tokens do not buy a
+  # critic. They are also unreachable: omp 18.2.9 carries no openai-codex row for
+  # either id (`omp models find gpt-6-sol` returns openrouter rows only), and the
+  # openrouter key has $0.04 left of 210 credits. Re-check after an omp update
+  # ships the plan-side rows; the vendor says both are live in Codex.
   critic: openai-codex/gpt-6-astra:high
-  sentinel: opencode-go/glm-5.3:high
+  # 2026-09-22: opencode-go reads 100% of its monthly limit used (resets in ~6d),
+  # so this pin was a guaranteed dead first hop. ollama-cloud/glm-5.3 answers now
+  # and measures 62.1 tok/s (n=188, updated today).
+  sentinel: ollama-cloud/glm-5.3:high
 modelProviderOrder:
-  - zai
-  - anthropic
+  # ollama-cloud ahead of zai 2026-09-22: zai's weekly quota is exhausted and it
+  # is 2.4x slower on the shared glm-5.3-flash weights (numbers under smol).
   - ollama-cloud
+  - anthropic
+  - zai
   - opencode-go
   - openrouter
 contextPromotion:
@@ -129,18 +157,18 @@ retry:
       - ollama-cloud/glm-5.3-flash:high
       - zai/glm-5.3-flash:high
       - openai-codex/gpt-5.6-luna:high
-      - anthropic/claude-opus-5:high
+      - anthropic/claude-opus-5-5:high
     zai/glm-5.3-flash:
       - ollama-cloud/glm-5.3-flash:high
       - opencode-go/glm-5.3-flash:high
       - ollama-cloud/deepseek-v4.1-flash:low
       - openai-codex/gpt-5.6-luna:high
-      - anthropic/claude-opus-5:high
+      - anthropic/claude-opus-5-5:high
     ollama-cloud/glm-5.3-flash:
       - opencode-go/glm-5.3-flash:high
       - ollama-cloud/deepseek-v4.1-flash:low
       - openai-codex/gpt-5.6-luna:high
-      - anthropic/claude-opus-5:high
+      - anthropic/claude-opus-5-5:high
     ollama-cloud/glm-5.3:
       - opencode-go/glm-5.3:high
       - zai/glm-5.3:high
@@ -151,16 +179,16 @@ retry:
       - openai-codex/gpt-5.6-terra:high
     openai-codex/gpt-6-astra:
       - openai-codex/gpt-5.6-terra:high
-      - anthropic/claude-opus-5:high
+      - anthropic/claude-opus-5-5:high
       - ollama-cloud/glm-5.3:high
     ollama-cloud/gpt-oss:120b:
       - ollama-cloud/glm-5.3-flash:high
       - opencode-go/glm-5.3-flash:high
       - openai-codex/gpt-5.6-luna:high
-    anthropic/claude-fable-5-1:
+    anthropic/claude-opus-5-5:
       - openai-codex/gpt-6-astra:high
       - openai-codex/gpt-5.6-sol:high
-      - anthropic/claude-opus-5:xhigh
+      - ollama-cloud/glm-5.3:high
     anthropic/*:
       - openai-codex/gpt-5.6-sol:high
       - openai-codex/gpt-5.6-terra:high
@@ -196,7 +224,7 @@ retry:
     default:
       - ollama-cloud/glm-5.3:high
       - openai-codex/gpt-5.6-sol:high
-      - anthropic/claude-opus-5:high
+      - anthropic/claude-opus-5-5:high
 mnemopi:
   dbPath: ""
   scoping: per-project
