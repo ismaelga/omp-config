@@ -29,7 +29,7 @@ else
   if [ -n "${PI_EVAL_LOCAL_ROOTS:-}" ] && command -v python3 >/dev/null 2>&1; then
     out=$(python3 -c 'import json,os,sys; print(json.loads(os.environ["PI_EVAL_LOCAL_ROOTS"])["local"])' 2>/dev/null || true)
   fi
-  if [ -z "$out" ]; then
+  if [ -z "${out:-}" ]; then
     root=$(git rev-parse --show-toplevel 2>/dev/null || pwd)
     out="$root/.superpowers/sdd"
   fi
