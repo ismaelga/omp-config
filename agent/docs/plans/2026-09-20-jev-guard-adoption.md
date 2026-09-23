@@ -2,7 +2,15 @@
 
 **Goal:** Close the gap omp 18.2.6 does not cover natively — screening of tool calls before they execute — and decide what, if anything, replaces the custom Jev CLI stack.
 
-**Status:** Task 1 applied (a narrowed version), the client bug fixed, and three judged TTSR rules added (2026-09-23). Task 0 was declined. Tasks 2–6 not started.
+**Status:** Task 1 applied (a narrowed version, widened in revision 7), a regex interrupt net over bash and eval, the client bug fixed, and three judged TTSR rules added (2026-09-23). Task 0 was declined. Tasks 2–6 not started.
+
+**Revision 7 (2026-09-23).** Five follow-ups, verified live on omp 18.2.11:
+
+- **Force push: `--force-with-lease` now passes, by user decision.** Revision 6's premise — "force pushes are run by hand" — was wrong. A 21-day scan of 54,311 bash/eval calls found agents ran `git push --force-with-lease` 18 times after rebasing kpk feature branches, and the `git push --force*` glob would have denied 16 of them. Rules are now `git push --force`, `git push --force *`, `git push -f`, `git push -f *`. Live: bare `--force` and `-f` refused, the lease push ran.
+- **rm denies widened.** An `echo` stand-in probe of the matcher showed quotes and repeated spaces normalize (`"$HOME"` hits `$HOME`), but a trailing `/`, a `sudo`/`env`/`/bin/` prefix, `-Rf`, a redirect suffix, and `/*` all miss. Added the six trailing-slash exact forms; `jq length` = 19.
+- **Interrupt net: `agent/rules/destructive-commands.md`.** Regex TTSR rule scoped `tool:bash, tool:eval` for the shapes the exact denies miss, and for `eval`, which `bash.patterns` never sees. Offline: 53/53 cases. On 54,693 historical calls it hit 7 times — 6 tests or quoted text, and 1 `rm -rf "$HOME"` with HOME reassigned to scratch, which the exact deny also blocks. Live: `git push --force` through eval and `git push origin main --force` through bash were both interrupted before execution; the remote ref did not move. Limit: `ttsr.repeatMode` is global `once`, so the rule fires once per session — a net, not a wall.
+- **Evidence rule prefiltered** on success words: a reply without one makes no judge call (verified: no `model_usage` entry with purpose `ttsr`).
+- **Judge pinned to `jev-1.13.0`** in `modelRoles.judge`, plus a `models.yml` row, because a role naming an id outside the catalog is ignored silently — the journal kept reporting `jev-latest` until the row existed. Client `core.ts` pinned too. Verified: session `model_usage` and `jev.jsonl` both report `jev-1.13.0`.
 
 **Revision 6 (2026-09-23).** Applied and verified live on omp 18.2.11:
 
