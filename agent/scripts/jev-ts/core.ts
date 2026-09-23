@@ -97,6 +97,11 @@ export function loadSkillCatalog(): Record<string, string> {
     } catch {
       continue;
     }
+    // disable-model-invocation skills are hidden from the model by omp, so a
+    // route pick naming one is advice nobody can follow (was the single most
+    // frequent skill pick in the log, 2026-09-23: `implement`, 22 of 124).
+    const fmBlock = text.match(/^---\n([\s\S]*?)\n---/)?.[1] ?? "";
+    if (/^disable-model-invocation:\s*true\s*$/m.test(fmBlock)) continue;
     const fm = frontmatter(text);
     if (!fm.name) continue;
     catalog[fm.name] = fm.description ?? `skill ${fm.name}`;
@@ -144,35 +149,66 @@ function noulOf(a: Answer, missing: number): number {
   return typeof v === "number" ? v : missing;
 }
 
-// HTTP status errors (auth/quota/validation): retrying is pointless, so
-// evaluate() rethrows these immediately instead of falling into the retry loop.
+// Statuses both first-party SDKs retry: 408, 429, and every 5xx (529 is the
+// documented "overloaded"). The rest — 400/401/403/404/422 — are caller
+// errors, and retrying them is pointless.
 export class FatalError extends Error {}
 
-export async function evaluate(state: unknown, questions: Record<string, unknown>, retries = 1): Promise<Record<string, Answer>> {
+// Server-requested backoff, SDK precedence: retry-after-ms, then Retry-After
+// seconds. The HTTP-date form is ignored; exponential backoff covers it.
+function retryAfterMs(h: Headers): number | undefined {
+  const ms = Number(h.get("retry-after-ms"));
+  if (ms > 0) return ms;
+  const s = Number(h.get("retry-after"));
+  return s > 0 ? s * 1000 : undefined;
+}
+
+// Every attempt and backoff draws from one budget that settles inside the
+// client's 20 s socket wait (jev.ts); stacking per-attempt timeouts instead
+// would let a daemon-side retry outlive the client, which then re-runs the
+// same call in-process.
+const BUDGET_MS = 15_000;
+const ATTEMPT_MS = 8_000;
+const MAX_RETRIES = 2;
+
+// `model` is the versioned id that answered: jev-latest floats, so this is
+// where a vendor release that moves every threshold becomes visible.
+export type Evaluation = { answers: Record<string, Answer>; meta: { model?: string; ms: number } };
+
+export async function evaluate(state: unknown, questions: Record<string, unknown>): Promise<Evaluation> {
   const key = process.env.TYPESAFE_API_KEY;
   if (!key) throw new Error("TYPESAFE_API_KEY not set");
+  const start = Date.now();
+  const deadline = start + BUDGET_MS;
   let lastErr: unknown = null;
-  for (let attempt = 0; attempt <= retries; attempt++) {
+  for (let attempt = 0; attempt <= MAX_RETRIES; attempt++) {
+    let wait = 500 * 2 ** attempt;
     try {
       const resp = await fetch(API_URL, {
         method: "POST",
         headers: { Authorization: `Bearer ${key}`, "Content-Type": "application/json" },
         body: JSON.stringify({ state, model: MODEL, questions }),
+        signal: AbortSignal.timeout(Math.max(100, Math.min(ATTEMPT_MS, deadline - Date.now()))),
       });
-      // auth/quota/validation: retrying is pointless. Surface the body —
-      // FastAPI 422s carry per-field detail that names the exact bad key.
       if (!resp.ok) {
-        const body = (await resp.text()).slice(0, 300);
-        throw new FatalError(`HTTP ${resp.status}: ${body || resp.statusText}`);
+        // Surface the body: FastAPI 422s carry per-field detail naming the bad key.
+        const msg = `HTTP ${resp.status}: ${(await resp.text()).slice(0, 300) || resp.statusText}`;
+        if (!(resp.status === 408 || resp.status === 429 || resp.status >= 500)) throw new FatalError(msg);
+        lastErr = new Error(msg);
+        wait = retryAfterMs(resp.headers) ?? wait;
+      } else {
+        const json: unknown = await resp.json();
+        if (typeof json !== "object" || json === null || !("answers" in json) || !isAnswerMap(json.answers))
+          throw new Error("malformed answer envelope");
+        const model = "model" in json && typeof json.model === "string" ? json.model : undefined;
+        return { answers: json.answers, meta: { model, ms: Date.now() - start } };
       }
-      const json: unknown = await resp.json();
-      if (!isAnswerMap((json as Record<string, unknown>)?.answers)) throw new Error("malformed answer envelope");
-      return (json as Record<string, unknown>).answers as Record<string, Answer>;
     } catch (e) {
       if (e instanceof FatalError) throw e;
       lastErr = e;
-      if (attempt < retries) await Bun.sleep(1000);
     }
+    if (attempt === MAX_RETRIES || Date.now() + wait >= deadline) break;
+    await Bun.sleep(wait);
   }
   throw lastErr;
 }
@@ -283,21 +319,28 @@ export async function cmdRoute(input: { item: string; catalog?: string[]; human_
     };
   }
 
-  let answers: Record<string, Answer>;
+  let ev: Evaluation;
   try {
-    answers = await evaluate(state, questions);
+    ev = await evaluate(state, questions);
   } catch (e) {
     // advisory: never block dispatch on classifier failure
     return { stdout: JSON.stringify({ error: `jev route failed: ${e}`, recommended: humanGate ? "none" : "task" }), exit: 0 };
   }
+  const { answers } = ev;
 
   const result: Record<string, unknown> = {};
+  let agentBest: string | undefined;
+  let agentP = 0;
   for (const [cat, entries] of Object.entries(catalogs)) {
     const a = answers[`pick_${cat}`];
     if (!a) continue;
     const probs = (a.probabilities ?? {}) as Record<string, number>;
     const ranked = Object.entries(probs).filter(([k]) => k in entries).sort((x, y) => y[1] - x[1]);
     result[cat] = { best: a.choice, confidence: a.confidence, top3: ranked.slice(0, 3).map(([name, p]) => ({ name, p: Math.round(p * 1000) / 1000 })) };
+    if (cat === "agents" && typeof a.choice === "string") {
+      agentBest = a.choice;
+      agentP = probs[a.choice] ?? 0;
+    }
   }
   result.needs_isolation = answers.needs_isolation?.noul;
   result.security_sensitive = answers.security_sensitive?.noul;
@@ -314,14 +357,14 @@ export async function cmdRoute(input: { item: string; catalog?: string[]; human_
       : "human-gated: do it yourself, delegable share too small to bother";
   } else {
     // Machine-side recommendation: escalation rule lives here, not in callers.
-    const ag = (result.agents ?? {}) as { best?: string; confidence?: number };
-    const best = ag.best;
-    const conf = typeof ag.confidence === "number" ? ag.confidence : 0;
-    result.recommended = conf >= 0.7 && best !== "none" ? best : "task";
+    // Threshold the pick's probability, not `confidence`: confidence measures
+    // how peaked the whole distribution is, so over six options a 0.63 pick
+    // reads as 0.55 (2026-09-23, a read-only investigation scored scout 0.63).
+    result.recommended = agentP >= 0.7 && agentBest && agentBest !== "none" ? agentBest : "task";
   }
 
   const stdout = JSON.stringify(result);
-  logDecision("route", { item: input.item, human_gate: humanGate || undefined, result });
+  logDecision("route", { item: input.item, human_gate: humanGate || undefined, result, ...ev.meta });
   return { stdout, exit: 0 };
 }
 
@@ -367,22 +410,23 @@ export async function cmdGuard(input: { op: string; target?: string; paths?: str
     },
   };
 
-  let answers: Record<string, Answer>;
+  let ev: Evaluation;
   try {
-    answers = await evaluate(state, questions);
+    ev = await evaluate(state, questions);
   } catch (e) {
     // fail-closed: unreachable classifier = flagged
     const stdout = JSON.stringify({ verdict: "flagged", reason: `jev guard failed (fail-closed): ${e}`, ...(stage ? { stage } : {}) });
-    logDecision("guard", { op: input.op, target: input.target, paths: input.paths, stage: stage || undefined, verdict: "flagged", error: String(e) });
+    logDecision("guard", { op: input.op, target: input.target, paths: input.paths, note: input.note, stage: stage || undefined, verdict: "flagged", error: String(e) });
     return { stdout, exit: 2 };
   }
+  const { answers } = ev;
 
   // guard default on missing noul is 1.0 (fail-closed); screen/stuck default 0.0
   const hazards = Object.fromEntries(Object.entries(answers).map(([k, a]) => [k, Math.round(noulOf(a, 1.0) * 1000) / 1000]));
   const flagged = Object.entries(hazards).filter(([, p]) => p >= th).map(([k]) => k).sort();
   const verdict = flagged.length ? "flagged" : "clear";
   const stdout = JSON.stringify({ verdict, hazards, flagged, ...(stage ? { stage } : {}) });
-  logDecision("guard", { op: input.op, target: input.target, paths: input.paths, stage: stage || undefined, verdict, hazards });
+  logDecision("guard", { op: input.op, target: input.target, paths: input.paths, note: input.note, stage: stage || undefined, verdict, hazards, ...ev.meta });
   return { stdout, exit: flagged.length ? 1 : 0 };
 }
 
@@ -408,18 +452,19 @@ export async function cmdScreen(input: { source: string; content: string; thresh
     },
   };
 
-  let answers: Record<string, Answer>;
+  let ev: Evaluation;
   try {
-    answers = await evaluate(state, questions);
+    ev = await evaluate(state, questions);
   } catch (e) {
     // advisory: content already in context either way
     return { stdout: JSON.stringify({ error: `jev screen failed: ${e}`, verdict: "unknown", recommended: "treat as untrusted, quote-don't-obey" }), exit: 0 };
   }
+  const { answers } = ev;
   const hazards = Object.fromEntries(Object.entries(answers).map(([k, a]) => [k, Math.round(noulOf(a, 0.0) * 1000) / 1000]));
   const flagged = Object.entries(hazards).filter(([, p]) => p >= th).map(([k]) => k).sort();
   const verdict = flagged.length ? "flagged" : "clear";
   const stdout = JSON.stringify({ verdict, hazards, flagged });
-  logDecision("screen", { source: input.source, verdict, hazards });
+  logDecision("screen", { source: input.source, chars: input.content.length, verdict, hazards, ...ev.meta });
   return { stdout, exit: flagged.length ? 1 : 0 };
 }
 
@@ -445,12 +490,13 @@ export async function cmdStuck(input: { goal: string; actions: string; threshold
     },
   };
 
-  let answers: Record<string, Answer>;
+  let ev: Evaluation;
   try {
-    answers = await evaluate(state, questions);
+    ev = await evaluate(state, questions);
   } catch (e) {
     return { stdout: JSON.stringify({ error: `jev stuck failed: ${e}`, is_stuck: null, recommended: "keep working" }), exit: 0 };
   }
+  const { answers } = ev;
 
   const verdicts = Object.fromEntries(Object.entries(answers).map(([k, a]) => [k, Math.round(noulOf(a, 0.0) * 1000) / 1000]));
   const stuck = (verdicts.is_stuck ?? 0) >= th || (verdicts.needs_escalation ?? 0) >= th;
@@ -460,7 +506,7 @@ export async function cmdStuck(input: { goal: string; actions: string; threshold
     recommended: stuck ? "stop, summarize what was tried, ask user for direction" : "keep working",
   };
   const stdout = JSON.stringify(result);
-  logDecision("stuck", { goal: input.goal, result });
+  logDecision("stuck", { goal: input.goal, actions: input.actions, result, ...ev.meta });
   return { stdout, exit: stuck ? 1 : 0 };
 }
 
@@ -473,14 +519,15 @@ export async function cmdAsk(input: { state: string; questions: string }): Promi
   } catch (e) {
     return { stdout: JSON.stringify({ error: `jev ask: --state/--questions must be valid JSON: ${e}` }), exit: 2 };
   }
-  let answers: Record<string, Answer>;
+  let ev: Evaluation;
   try {
-    answers = await evaluate(state, questions);
+    ev = await evaluate(state, questions);
   } catch (e) {
     return { stdout: JSON.stringify({ error: `jev ask failed: ${e}` }), exit: 2 };
   }
+  const { answers } = ev;
   const stdout = JSON.stringify(answers);
-  logDecision("ask", { state, answers });
+  logDecision("ask", { state, answers, ...ev.meta });
   return { stdout, exit: 0 };
 }
 

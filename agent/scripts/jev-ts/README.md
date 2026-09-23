@@ -40,17 +40,21 @@ jev.ts (client) ──unix socket──> daemon.ts ──keep-alive──> api.t
 ```
 
 - **core.ts**: catalogs (agents/skills/MCP loaded live from disk —
-  `agents/*.md` + builtins, `skills/*/SKILL.md` with symlink follow,
-  `mcp.json`), System One client (one retry on network errors, none on
-  HTTP status), decision log, and the five command bodies. Question
-  wording is inference input: copied verbatim from the Python original,
-  do not rephrase casually.
+  `agents/*.md` + builtins, `skills/*/SKILL.md` with symlink follow and
+  `disable-model-invocation` skills dropped, `mcp.json`), System One client
+  (SDK retry policy: 408/429/5xx and network errors, up to 2 retries,
+  honoring `Retry-After`, all inside a 15 s budget; 4xx fatal), decision
+  log (answering model id + latency per row), and the five command bodies.
+  Question wording is inference input: copied verbatim from the Python
+  original, do not rephrase casually.
 - **daemon.ts**: `Bun.listen` unix socket at `~/.omp/jev.sock`,
-  line-delimited JSON request/response. Bind failure sweeps a stale
+  line-delimited JSON request/response, buffered per connection (requests
+  span several reads past ~8 KB). Bind failure sweeps a stale
   socket file and retries once. Clears its spawn lock once listening.
 - **jev.ts**: client. Socket fast path → direct in-process fallback
   (fresh connection) → lazy daemon spawn guarded by `O_CREAT|O_EXCL`
-  lockfile so concurrent cold clients spawn exactly one daemon.
+  lockfile so concurrent cold clients spawn exactly one daemon; a lock
+  older than 30 s is a spawn that died before binding and is swept.
 
 Latency measured 2026-09-17: direct 1.3s (0.07s boot + 0.44s TLS +
 inference); daemon warm 0.27–0.33s. Cold start costs one direct call.

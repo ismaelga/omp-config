@@ -12,26 +12,39 @@ const SOCKET_PATH = join(homedir(), ".omp", "jev.sock");
 const FINGERPRINT = codeFingerprint();
 
 // Line-delimited JSON request: {"cmd": "...", "input": {...}}\n
+// A request larger than one socket read (~8 KB: screen/guard --content)
+// arrives in several data events, and a chunk edge can split a UTF-8
+// sequence. So bytes are buffered per connection and only complete lines
+// parse — per-chunk parsing answered "bad request" to every request over
+// 8 KB (measured 2026-09-23: 8000 chars passed, 8200 failed).
+type Conn = { buf: string; dec: TextDecoder };
+
+const reply = async (line: string): Promise<string> => {
+  try {
+    const req = JSON.parse(line) as { cmd: CmdName; input: CmdInput; code_hash?: string };
+    // Stale daemon: answer stale, then exit through the normal shutdown
+    // path (socket + lock swept) so the client's respawn binds cleanly.
+    if (typeof req.code_hash === "string" && req.code_hash !== FINGERPRINT) {
+      setTimeout(shutdown, 100); // let the reply flush first
+      return JSON.stringify({ stdout: JSON.stringify({ stale: true }), exit: 3, stale: true });
+    }
+    return JSON.stringify(await dispatch(req.cmd, req.input));
+  } catch (e) {
+    return JSON.stringify({ stdout: JSON.stringify({ error: `jev daemon: bad request: ${e}` }), exit: 2 });
+  }
+};
+
 const handlers = {
-  async data(socket: Bun.Socket, data: Buffer) {
-    const reply = async (line: string): Promise<string> => {
-      try {
-        const req = JSON.parse(line) as { cmd: CmdName; input: CmdInput; code_hash?: string };
-        // Stale daemon: answer stale, then exit through the normal shutdown
-        // path (socket + lock swept) so the client's respawn binds cleanly.
-        if (typeof req.code_hash === "string" && req.code_hash !== FINGERPRINT) {
-          setTimeout(shutdown, 100); // let the reply flush first
-          return JSON.stringify({ stdout: JSON.stringify({ stale: true }), exit: 3, stale: true });
-        }
-        const result = await dispatch(req.cmd, req.input);
-        return JSON.stringify(result) + "\n";
-      } catch (e) {
-        return JSON.stringify({ stdout: JSON.stringify({ error: `jev daemon: bad request: ${e}` }), exit: 2 }) + "\n";
-      }
-    };
-    for (const line of new TextDecoder().decode(data).split("\n")) {
-      if (!line.trim()) continue;
-      socket.write((await reply(line)) + "\n");
+  open(socket: Bun.Socket<Conn>) {
+    socket.data = { buf: "", dec: new TextDecoder() };
+  },
+  async data(socket: Bun.Socket<Conn>, data: Buffer) {
+    const conn = socket.data;
+    conn.buf += conn.dec.decode(data, { stream: true });
+    for (let nl = conn.buf.indexOf("\n"); nl !== -1; nl = conn.buf.indexOf("\n")) {
+      const line = conn.buf.slice(0, nl);
+      conn.buf = conn.buf.slice(nl + 1);
+      if (line.trim()) socket.write((await reply(line)) + "\n");
     }
   },
   error(_socket: Bun.Socket, err: Error) {

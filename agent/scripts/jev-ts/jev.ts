@@ -3,7 +3,7 @@
 // Fallback: run the command in-process (fresh connection), and if the
 // socket is missing, spawn the daemon detached first so the next call
 // is fast.
-import { closeSync, existsSync, openSync, unlinkSync } from "node:fs";
+import { closeSync, existsSync, openSync, statSync, unlinkSync } from "node:fs";
 import { spawn } from "node:child_process";
 import { homedir } from "node:os";
 import { join } from "node:path";
@@ -21,18 +21,31 @@ function trySocket(cmd: CmdName, input: CmdInput, fingerprint: string): Promise<
   if (!existsSync(SOCKET_PATH)) return Promise.resolve(null);
   const { promise, resolve } = Promise.withResolvers<CmdResult | null>();
   let buf = "";
+  const dec = new TextDecoder();
   let settled = false;
   const done = (r: CmdResult | null) => {
     if (settled) return;
     settled = true;
     resolve(r);
   };
+  // socket.write takes only what the kernel buffer holds (a few hundred KB
+  // at most) and returns the byte count; the rest must go out on `drain`.
+  // Writing once dropped the tail of large requests, so the daemon never saw
+  // the newline and the call stalled to the timeout (300 KB, 2026-09-23).
+  let pending = Buffer.from(JSON.stringify({ cmd, input, code_hash: fingerprint }) + "\n");
+  const flush = (s: Bun.Socket) => {
+    while (pending.length) {
+      const n = s.write(pending);
+      if (n <= 0) return;
+      pending = pending.subarray(n);
+    }
+  };
 
   Bun.connect({
     unix: SOCKET_PATH,
     socket: {
       data(_s, data) {
-        buf += new TextDecoder().decode(data);
+        buf += dec.decode(data, { stream: true });
         const nl = buf.indexOf("\n");
         if (nl !== -1) {
           try {
@@ -42,9 +55,11 @@ function trySocket(cmd: CmdName, input: CmdInput, fingerprint: string): Promise<
           }
         }
       },
+      drain: flush,
       error() {
-        // dead socket: clear the stale file so we don't retry forever
-        try { unlinkSync(SOCKET_PATH); } catch { /* racing another client */ }
+        // Mid-connection failure on a socket that did connect: a daemon is
+        // listening, so the file must stay — unlinking it orphans that
+        // daemon, and the next spawn starts a second one beside it.
         done(null);
       },
       connectError() {
@@ -53,28 +68,34 @@ function trySocket(cmd: CmdName, input: CmdInput, fingerprint: string): Promise<
       },
     },
   }).then(
-    (socket) => {
-      socket.write(JSON.stringify({ cmd, input, code_hash: fingerprint }) + "\n");
-    },
+    flush,
     () => done(null),
   );
-  // daemon hangs -> don't block the decision on it
-  setTimeout(() => done(null), 10_000);
+  // daemon hangs -> don't block the decision on it. Longer than evaluate()'s
+  // 15 s budget (core.ts), so a daemon mid-retry is not abandoned and re-run.
+  setTimeout(() => done(null), 20_000);
   return promise;
 }
 
 // Lazy daemon spawn is racy: every fallback client would start its own
 // daemon, and the second bind sweeps the first daemon's socket. Lockfile
 // single-flight via O_CREAT|O_EXCL — exactly one client wins the spawn.
+// The daemon deletes the lock once listening, so a lock that outlives any
+// real boot belongs to a spawn that died first; without the sweep, every
+// later call ran the 1.3 s direct path and never spawned again.
+const LOCK_STALE_MS = 30_000;
+
 function spawnDaemon(): void {
   const lockPath = SOCKET_PATH + ".lock";
   try {
     closeSync(openSync(lockPath, "wx"));
   } catch {
-    // someone else is already spawning (or the daemon died holding the
-    // lock): either way, don't spawn a second one now. A future call that
-    // finds no socket and a lock older than the daemon lifetime retries.
-    return;
+    try {
+      if (Date.now() - statSync(lockPath).mtimeMs > LOCK_STALE_MS) unlinkSync(lockPath);
+    } catch {
+      // lock vanished between open and stat: its daemon just bound
+    }
+    return; // someone is spawning now, or the sweep lets the next call spawn
   }
   const child = spawn("bun", [join(HERE, "daemon.ts")], {
     detached: true,
