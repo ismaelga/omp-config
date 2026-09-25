@@ -28,55 +28,24 @@ task:
     reviewer: "@critic"
     security-reviewer: "@sentinel"
 modelRoles:
-  # 2026-09-22: Opus 5.5 shipped today and outranks both incumbents at the SAME
-  # effort tier on Artificial Analysis (read 2026-09-22, Max Effort both sides):
-  # Intelligence Index 58 vs Fable 5.1's 53 and Opus 5's 51; Terminal-Bench 4.0
-  # 60% vs 52% / 49%; AutomationBench 70% vs 59% / 57%. It is also cheaper
-  # ($4/$20 vs $10/$50), but these route through the Anthropic plan, so the
-  # ordering is what moved the pin, not the price. Cost of the swap: it emits
-  # ~1.5x the tokens per task at max effort (119k vs 78k), and verbosity is a
-  # latency cost -- which is why plan/slow sit at :high, not :max.
   plan: anthropic/claude-opus-5-5:high
   slow: anthropic/claude-opus-5-5:high
-  task: ollama-cloud/glm-5.3-flash:high
-  # 2026-09-22: moved off zai. `omp usage` reports the zai weekly credit quota
-  # 100% used, so every zai pin was already walking its chain. Independent of the
-  # quota cycle, model_perf measures ollama-cloud/glm-5.3-flash at 86.5 tok/s and
-  # 1991 ms TTFT (n=245, updated today) against zai/glm-5.3-flash at 36.5 tok/s
-  # and 9911 ms (n=242, updated 2026-09-21) -- same weights, 5x the wait. TTFT is
-  # the criterion for smol and a human is sitting on it.
-  smol: ollama-cloud/glm-5.3-flash:high
+  smol: zai/glm-5.3-flash:high
   tiny: ollama-cloud/gpt-oss:120b
-  # Image input probed on THIS route 2026-09-22, not read off the catalog:
-  # 64x64 solid red -> "Red", solid blue -> "Blue" via ollama.com/api/chat.
-  vision: ollama-cloud/glm-5.3-flash:high
+  vision: zai/glm-5.3-flash:high
   commit: ollama-cloud/gpt-oss:120b
-  advisor: ollama-cloud/glm-5.3-flash:high
+  advisor: zai/glm-5.3-flash:high
   default: anthropic/claude-opus-5-5:xhigh
-  scout: ollama-cloud/glm-5.3-flash:high
-  # GPT-6 Astra stays. Sol and Luna shipped 2026-09-22 at half the 5.6 price, but
-  # AA (max effort, read 2026-09-22) puts Sol at 48 and Luna at 37 against Astra's
-  # 53 -- Luna scores 13% on Terminal-Bench 4.0. Cheaper tokens do not buy a
-  # critic. They are also unreachable: omp 18.2.9 carries no openai-codex row for
-  # either id (`omp models find gpt-6-sol` returns openrouter rows only), and the
-  # openrouter key has $0.04 left of 210 credits. Re-check after an omp update
-  # ships the plan-side rows; the vendor says both are live in Codex.
+  scout: zai/glm-5.3-flash:high
   critic: openai-codex/gpt-6-astra:high
-  # 2026-09-22: opencode-go reads 100% of its monthly limit used (resets in ~6d),
-  # so this pin was a guaranteed dead first hop. ollama-cloud/glm-5.3 answers now
-  # and measures 62.1 tok/s (n=188, updated today).
-  sentinel: ollama-cloud/glm-5.3:high
-  # Pinned 2026-09-23: jev-latest floats, and the TTSR judge flags at p >= 0.7,
-  # so a vendor release would silently move every judged rule's cutoff. The API
-  # accepts jev-1.13.0 (probed: jev-latest and jev-preview both answer as it);
-  # it rejects the short form jev-1.13. Bump by hand after re-probing the rules.
+  sentinel: zai/glm-5.3:high
   judge: typesafe/jev-1.13.0
+  web: web/public
+  task: zai/glm-5.3-flash:high
 modelProviderOrder:
-  # ollama-cloud ahead of zai 2026-09-22: zai's weekly quota is exhausted and it
-  # is 2.4x slower on the shared glm-5.3-flash weights (numbers under smol).
-  - ollama-cloud
-  - anthropic
   - zai
+  - anthropic
+  - ollama-cloud
   - opencode-go
   - openrouter
 contextPromotion:
@@ -113,7 +82,6 @@ advisor:
 steeringMode: one-at-a-time
 interruptMode: immediate
 stt:
-  modelName: parakeet
   submitTrigger: never
   enabled: false
 share:
@@ -121,50 +89,30 @@ share:
 magicKeywords:
   enabled: true
 providers:
-  memoryModel: online
   fireworksTier: standard
-  tinyModel: online
   kimiApiFormat: auto
   autoThinkingMaxEffort: max
   ollama-cloud:
     maxConcurrency: 8
-  webSearchOrder:
-    - public
-    - perplexity
-    - gemini
-    - anthropic
-    - codex
-    - xai
-    - zai
-    - exa
-    - tinyfish
-    - jina
-    - kagi
-    - tavily
-    - firecrawl
-    - brave
-    - kimi
-    - parallel
-    - synthetic
-    - searxng
-    - startpage
-    - duckduckgo
-    - ecosia
-    - google
-    - mojeek
 retry:
   usageAwareFallback: true
   usageReservePolicy: auto
   usageReservePct: 10
   fallbackChains:
-    # 2026-09-23: no DeepSeek link on any chain -- it costs more than glm-5.3 on
-    # these plans. Its head chain went with it; nothing pins deepseek any more.
-    zai/glm-5.3-flash:
-      - ollama-cloud/glm-5.3-flash:high
-      - opencode-go/glm-5.3-flash:high
-      - openai-codex/gpt-5.6-luna:high
-      - anthropic/claude-opus-5-5:high
+    # 2026-09-24, roles moved zai-primary (ollama-cloud hit its monthly wall,
+    # ref fbcfe476): no fallback off zai. omp 18.3.0 consults the owning chain
+    # on the FIRST retryable 429, so a transient type=1302 request-rate burst
+    # (67 hits in session logs -- the parallel-batch error) hops providers
+    # instead of riding the built-in 30s rate-limit backoff. Empty chain =
+    # backoff-only: 1302 waits 30s and retries; 1308/1310 quota waits exceed
+    # retry.maxDelayMs (5 min) and fail the turn fast, which beats silently
+    # burning anthropic opus -- and every hop in the old chain was 429/402-dead
+    # on 2026-09-24 anyway. No providers.zai.maxConcurrency exists in 18.3.0
+    # (the provider semaphore map wires ollama-cloud only), so parallel width
+    # is capped at dispatch time, not in config.
+    zai/*: []
     ollama-cloud/glm-5.3-flash:
+      - zai/glm-5.3-flash:high
       - opencode-go/glm-5.3-flash:high
       - openai-codex/gpt-5.6-luna:high
       - anthropic/claude-opus-5-5:high
@@ -200,10 +148,6 @@ retry:
     opencode-go/*:
       - ollama-cloud/glm-5.3:high
       - openai-codex/gpt-5.6-luna:high
-    zai/*:
-      - ollama-cloud/glm-5.3:high
-      - opencode-go/glm-5.3:high
-      - openai-codex/gpt-5.6-luna:high
     openai-codex/gpt-5.6-luna:
       - ollama-cloud/glm-5.3-flash:high
       - opencode-go/glm-5.3-flash:high
@@ -224,6 +168,34 @@ retry:
       - ollama-cloud/glm-5.3:high
       - openai-codex/gpt-5.6-sol:high
       - anthropic/claude-opus-5-5:high
+    web:
+      - web/perplexity
+      - google/gemini-2.5-flash
+      - anthropic/claude-haiku-4-5
+      - openai-codex/gpt-5.6-luna
+      - xai/grok-4.5
+      - web/zai
+      - web/exa
+      - web/tinyfish
+      - web/jina
+      - web/kagi
+      - web/tavily
+      - web/firecrawl
+      - web/brave
+      - web/kimi
+      - web/parallel
+      - web/synthetic
+      - web/searxng
+      - web/startpage
+      - web/duckduckgo
+      - web/ecosia
+      - web/google
+      - web/mojeek
+      - google-antigravity/gemini-2.5-flash
+      - openai-codex/gpt-5.6
+      - openai-codex/gpt-5.5
+      - xai-oauth/grok-4.5
+      - web/ollama
 mnemopi:
   dbPath: ""
   scoping: per-project
@@ -251,40 +223,26 @@ dev:
 bash:
   autoBackground:
     enabled: true
-  # 2026-09-23 (docs/plans/2026-09-20-jev-guard-adoption.md Task 1): yolo drops
-  # bash's built-in critical-pattern override, but an explicit `deny` here is
-  # absolute in every mode and in headless subagents. The rm forms are exact
-  # (no `*`), so they match only the literal catastrophe. Probed 2026-09-23 with
-  # echo stand-ins: quotes and repeated spaces normalize ("$HOME" hits $HOME),
-  # but a trailing `/`, a `sudo`/`env`/`/bin/` prefix, `-Rf`, a redirect suffix,
-  # and `/*` all miss -- hence the `/` forms below; the rest is caught (as a
-  # stream interrupt, not a deny) by agent/rules/destructive-commands.md.
-  # Force push: bare `--force` / `-f` only, alone or followed by arguments.
-  # `--force-with-lease` passes on purpose: a 21-day session scan found agents
-  # ran it 18 times rebasing kpk feature branches, and the lease refuses to
-  # overwrite commits not yet fetched. No `prompt` rules: a prompt in a headless
-  # subagent rejects the call. Malformed entries are dropped silently --
-  # `omp config get bash.patterns | jq length` must read 19.
   patterns:
-    - match: "rm -rf /"
+    - match: rm -rf /
       approval: deny
-    - match: "rm -fr /"
+    - match: rm -fr /
       approval: deny
-    - match: "rm -rf ~"
+    - match: rm -rf ~
       approval: deny
-    - match: "rm -fr ~"
+    - match: rm -fr ~
       approval: deny
-    - match: "rm -rf ~/"
+    - match: rm -rf ~/
       approval: deny
-    - match: "rm -fr ~/"
+    - match: rm -fr ~/
       approval: deny
-    - match: "rm -rf $HOME"
+    - match: rm -rf $HOME
       approval: deny
-    - match: "rm -fr $HOME"
+    - match: rm -fr $HOME
       approval: deny
-    - match: "rm -rf $HOME/"
+    - match: rm -rf $HOME/
       approval: deny
-    - match: "rm -fr $HOME/"
+    - match: rm -fr $HOME/
       approval: deny
     - match: "rm -rf ${HOME}"
       approval: deny
@@ -294,15 +252,15 @@ bash:
       approval: deny
     - match: "rm -fr ${HOME}/"
       approval: deny
-    - match: "git push --force"
+    - match: git push --force
       approval: deny
-    - match: "git push --force *"
+    - match: git push --force *
       approval: deny
-    - match: "git push -f"
+    - match: git push -f
       approval: deny
-    - match: "git push -f *"
+    - match: git push -f *
       approval: deny
-    - match: "git filter-branch*"
+    - match: git filter-branch*
       approval: deny
 features:
   unexpectedStopDetection: smart
