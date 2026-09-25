@@ -161,13 +161,15 @@ it lands. A silent job is still checkable: `hub logs {name, follow: true, cursor
 tails it from the last read cursor, and 0% CPU on a network-bound run is health, not
 a hang.
 
-**`omp bench` has its own path, and it fails where sessions do not.** zai returns 429
-`[1310] Weekly/Monthly Limit Exceeded` on every bench run even at `--par 1`; every
-openai-codex model returns "Payment Required" under bench. Both answer ordinary session
+**`omp bench` has its own path, and it fails where sessions do not.** Every
+openai-codex model returns "Payment Required" under bench, yet answers ordinary session
 calls on the same models — verified in both directions 2026-09-10 with
 `omp -p --model openai-codex/gpt-6-astra "Reply with exactly: OK"` returning OK while
 `omp bench openai-codex/gpt-6-astra` reported Payment Required. Never conclude a route
-is dead from bench alone; confirm through the session path.
+is dead from bench alone; confirm through the session path. The zai 429
+`[1310] Weekly/Monthly Limit Exceeded` once filed here was real quota, not the bench
+path: after the plan raise, 2026-09-24, `omp bench zai/glm-5.3-flash zai/glm-5.3` ran
+4/4 clean. A bench 1310 means read `omp usage` first.
 
 **An exhausted key fails selectively, which is worse than failing.** OpenRouter's key
 was $0.09 past its 190 credits on 2026-09-10 and still answered 200 at 8, 256 and 2000
