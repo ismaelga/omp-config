@@ -12,6 +12,7 @@ Facts:
 - Committing is not the same permission as pushing. "Never commit unless asked" governs whether work lands at all; once asked, land it in completed units instead of accumulating a dirty tree. Before dispatching each subagent, commit what the previous one finished. Measured cost of not doing this, 2026-09-11 in `lp-hedge`: three subagents ran a banned `git checkout`/`stash` in one session despite an explicit prohibition in every dispatch, one destroyed six files of uncommitted work, and git held nothing — never staged, no stash, 4148 unreachable blobs with zero matches, beams recompiled past it. Recovery was replaying edit calls out of the session JSONL, which expires. Instructions to subagents are advisory; a commit is not.
 - Document was asked for: cover the substance, skip the padding — no filler sections, redundant summaries, boilerplate.
 - Config changes (`config.yml`, `models.yml`, `mcp.json`, `lsp.json`) need omp restart — remind user.
+- Internal service URLs use their Twingate hostnames (`*.int.kpk.io`, `*.kpk`) — in code defaults, `.env.example`, scripts. A `*.svc.cluster.local` name resolves through macOS mDNS: 2026-09-24 in `onchain-permissions`, concurrent Node requests to one stalled ~5 s each on the name (by IP: ~50 ms), pushing a route past its 10 s timeout.
 
 <!-- Process guidance (cavecrew routing, mandatory review barriers, skill
      prescriptions) removed 2026-08-13 after A/B benchmark in ~/.omp/bench/:
