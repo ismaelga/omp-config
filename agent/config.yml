@@ -262,6 +262,11 @@ bash:
       approval: deny
     - match: git filter-branch*
       approval: deny
+    # worktree.base is shared with herdr: `--all` would delete every live herdr worktree.
+    - match: omp worktree clear*--all*
+      approval: deny
+    - match: omp wt clear*--all*
+      approval: deny
 features:
   unexpectedStopDetection: smart
 compaction:
@@ -280,3 +285,5 @@ composer:
   shape: pi
 codexResets:
   autoRedeem: "no"
+worktree:
+  base: "~/.herdr/worktrees"

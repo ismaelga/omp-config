@@ -97,6 +97,8 @@ Which option?
 #### Option 1: Merge Locally
 
 ```bash
+# Capture before leaving the worktree; Step 6 needs it
+WORKTREE_PATH=$(git rev-parse --show-toplevel)
 # Get main repo root for CWD safety
 MAIN_ROOT=$(git -C "$(git rev-parse --git-common-dir)/.." rev-parse --show-toplevel)
 cd "$MAIN_ROOT"
@@ -144,6 +146,7 @@ Wait for exact confirmation.
 
 If confirmed:
 ```bash
+WORKTREE_PATH=$(git rev-parse --show-toplevel)
 MAIN_ROOT=$(git -C "$(git rev-parse --git-common-dir)/.." rev-parse --show-toplevel)
 cd "$MAIN_ROOT"
 ```
@@ -155,26 +158,29 @@ git branch -D <feature-branch>
 
 ### Step 6: Cleanup Workspace
 
-**Only runs for Options 1 and 4.** Options 2 and 3 always preserve the worktree.
+**Only runs for Options 1 and 4.** Options 2 and 3 always preserve the worktree. Uses `WORKTREE_PATH` and `MAIN_ROOT` captured in Step 5, run from the main checkout.
+
+**If `WORKTREE_PATH == MAIN_ROOT`:** Normal repo, no worktree to clean up. Done.
+
+**If `WORKTREE_PATH` is `~/.herdr/worktrees/<repo>/<branch-slug>`:** a herdr worktree — we own cleanup. When herdr has it open as a workspace, remove it through herdr so the workspace closes with the checkout; otherwise remove it with git:
 
 ```bash
-GIT_DIR=$(cd "$(git rev-parse --git-dir)" 2>/dev/null && pwd -P)
-GIT_COMMON=$(cd "$(git rev-parse --git-common-dir)" 2>/dev/null && pwd -P)
-WORKTREE_PATH=$(git rev-parse --show-toplevel)
-```
-
-**If `GIT_DIR == GIT_COMMON`:** Normal repo, no worktree to clean up. Done.
-
-**If worktree path is under `.worktrees/` or `worktrees/`:** Superpowers created this worktree — we own cleanup.
-
-```bash
-MAIN_ROOT=$(git -C "$(git rev-parse --git-common-dir)/.." rev-parse --show-toplevel)
-cd "$MAIN_ROOT"
-git worktree remove "$WORKTREE_PATH"
+WS=
+if [ "${HERDR_ENV:-}" = 1 ]; then
+  WS=$(herdr worktree list --cwd "$MAIN_ROOT" | jq -r --arg p "$WORKTREE_PATH" \
+    '.result.worktrees[] | select(.path == $p and .is_linked_worktree) | .open_workspace_id // empty')
+fi
+if [ -n "$WS" ]; then
+  herdr worktree remove --workspace "$WS"
+else
+  git worktree remove "$WORKTREE_PATH"
+fi
 git worktree prune  # Self-healing: clean up any stale registrations
 ```
 
-**Otherwise:** The host environment (harness) owns this workspace. Do NOT remove it. If your platform provides a workspace-exit tool, use it. Otherwise, leave the workspace in place.
+Never add `--force` to either remove without the user's say-so.
+
+**Otherwise** — including one-level entries directly under `~/.herdr/worktrees/` (`<pr>-<hash>` PR checkouts, task-isolation copies), which omp manages: the host environment (harness) owns this workspace. Do NOT remove it. If your platform provides a workspace-exit tool, use it. Otherwise, leave the workspace in place.
 
 ## Quick Reference
 
@@ -209,7 +215,7 @@ git worktree prune  # Self-healing: clean up any stale registrations
 
 **Cleaning up harness-owned worktrees**
 - **Problem:** Removing a worktree the harness created causes phantom state
-- **Fix:** Only clean up worktrees under `.worktrees/` or `worktrees/`
+- **Fix:** Only clean up `~/.herdr/worktrees/<repo>/<branch-slug>`; one-level entries there belong to omp
 
 **No confirmation for discard**
 - **Problem:** Accidentally delete work

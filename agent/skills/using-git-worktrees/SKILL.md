@@ -7,9 +7,9 @@ description: "Use when feature work needs isolation from the current workspace, 
 
 ## Overview
 
-Ensure work happens in an isolated workspace. Prefer your platform's native worktree tools. Fall back to manual git worktrees only when no native tool is available.
+Ensure work happens in an isolated workspace. Prefer your platform's native isolation. For work the main thread does itself, create a herdr worktree under `~/.herdr/worktrees/`.
 
-**Core principle:** Detect existing isolation first. Then use native tools. Then fall back to git. Never fight the harness.
+**Core principle:** Detect existing isolation first. Then use native tools. Then a herdr worktree. Never fight the harness.
 
 **Announce at start:** "I'm using the using-git-worktrees skill to set up an isolated workspace."
 
@@ -50,11 +50,11 @@ Honor any existing declared preference without asking. If the user declines cons
 
 The user has asked for an isolated workspace (Step 0 consent). In omp the
 native mechanism is a `task` dispatch with `isolated: true` — the item runs
-in a dedicated git worktree (`task.isolation.enabled` in config.yml): the
-workspace is created for you, the subagent works in it, successful changes
-auto-apply to the parent checkout, and cleanup is automatic. Name the work
-in the item's `task` field and skip to Step 2's baseline expectations when
-reporting back.
+in an isolated copy of the repo under `worktree.base` (`~/.herdr/worktrees`,
+with `task.isolation.enabled` in config.yml): the workspace is created for
+you, the subagent works in it, successful changes auto-apply to the parent
+checkout, and cleanup is automatic. Name the work in the item's `task` field
+and skip to Step 2's baseline expectations when reporting back.
 
 Using `git worktree add` when `isolated: true` fits creates phantom state
 your harness can't see or manage.
@@ -62,48 +62,31 @@ your harness can't see or manage.
 Only proceed to Step 1b for work the main thread does itself — you cannot
 dispatch it to a subagent, so there is nothing for `isolated: true` to run.
 
-### 1b. Manual Git Worktree (fallback, not the default)
+### 1b. herdr worktree (main-thread work)
 
-**Only use this if Step 1a does not apply** — the work stays on the main thread. Create a worktree manually using git.
+**Only use this if Step 1a does not apply** — the work stays on the main thread.
 
-#### Directory Selection
+Every linked worktree lives at `~/.herdr/worktrees/<repo>/<branch-slug>`: herdr's `[worktrees] directory`, the same base omp's `worktree.base` uses. `<repo>` is the primary checkout's directory name; `<branch-slug>` is the branch with `/` replaced by `-`. Never create a worktree inside the repository (`.worktrees/`, `worktrees/`) or beside it.
 
-Follow this priority order. Explicit user preference always beats observed filesystem state.
-
-1. **Check your instructions for a declared worktree directory preference.** If the user has already specified one, use it without asking.
-
-2. **Check for an existing project-local worktree directory:**
-   ```bash
-   ls -d .worktrees 2>/dev/null     # Preferred (hidden)
-   ls -d worktrees 2>/dev/null      # Alternative
-   ```
-   If found, use it. If both exist, `.worktrees` wins.
-
-3. **If there is no other guidance available**, default to `.worktrees/` at the project root.
-
-#### Safety Verification (project-local directories only)
-
-**MUST verify directory is ignored before creating worktree:**
+#### Inside herdr (`test "${HERDR_ENV:-}" = 1`)
 
 ```bash
-git check-ignore -q .worktrees 2>/dev/null || git check-ignore -q worktrees 2>/dev/null
+herdr worktree create --cwd "$(git rev-parse --show-toplevel)" --branch "$BRANCH_NAME" --no-focus
+# --base <ref> branches from something other than HEAD
 ```
 
-**If NOT ignored:** Add to .gitignore, commit the change, then proceed.
+herdr picks the path, registers the git worktree, and opens it as a workspace without taking the user's focus. Read the checkout path from `.result.workspace.worktree.checkout_path` and run every later command there (`cwd` on tool calls).
 
-**Why critical:** Prevents accidentally committing worktree contents to repository.
+#### Outside herdr
 
-#### Create the Worktree
+Same layout by hand — keep the full path inside the `git worktree add` command:
 
 ```bash
-# Determine path based on chosen location
-path="$LOCATION/$BRANCH_NAME"
-
-git worktree add "$path" -b "$BRANCH_NAME"
-cd "$path"
+MAIN_ROOT=$(git -C "$(git rev-parse --git-common-dir)/.." rev-parse --show-toplevel)
+git worktree add "$HOME/.herdr/worktrees/$(basename "$MAIN_ROOT")/${BRANCH_NAME//\//-}" -b "$BRANCH_NAME"
 ```
 
-**Sandbox fallback:** If `git worktree add` fails with a permission error (sandbox denial), tell the user the sandbox blocked worktree creation and you're working in the current directory instead. Then run setup and baseline tests in place.
+**Sandbox fallback:** If worktree creation fails with a permission error (sandbox denial), tell the user the sandbox blocked worktree creation and you're working in the current directory instead. Then run setup and baseline tests in place.
 
 ## Step 2: Project Setup
 
@@ -152,12 +135,8 @@ Ready to implement <feature-name>
 | Already in linked worktree | Skip creation (Step 0) |
 | In a submodule | Treat as normal repo (Step 0 guard) |
 | Work dispatchable to a subagent | `task` with `isolated: true` (Step 1a) |
-| Work stays on the main thread | Manual git worktree fallback (Step 1b) |
-| `.worktrees/` exists | Use it (verify ignored) |
-| `worktrees/` exists | Use it (verify ignored) |
-| Both exist | Use `.worktrees/` |
-| Neither exists | Check instruction file, then default `.worktrees/` |
-| Directory not ignored | Add to .gitignore + commit |
+| Work stays on the main thread, inside herdr | `herdr worktree create --no-focus` (Step 1b) |
+| Work stays on the main thread, outside herdr | `git worktree add ~/.herdr/worktrees/<repo>/<branch-slug>` (Step 1b) |
 | Permission error on create | Sandbox fallback, work in place |
 | Tests fail during baseline | Report failures + ask |
 | No package.json/Cargo.toml | Skip dependency install |
@@ -174,15 +153,10 @@ Ready to implement <feature-name>
 - **Problem:** Creating a nested worktree inside an existing one
 - **Fix:** Always run Step 0 before creating anything
 
-### Skipping ignore verification
+### Worktree in the wrong place
 
-- **Problem:** Worktree contents get tracked, pollute git status
-- **Fix:** Always use `git check-ignore` before creating project-local worktree
-
-### Assuming directory location
-
-- **Problem:** Creates inconsistency, violates project conventions
-- **Fix:** Follow priority: explicit instructions > existing project-local directory > default
+- **Problem:** `.worktrees/` or a sibling directory needs ignore rules, and herdr never shows it as a workspace
+- **Fix:** `~/.herdr/worktrees/<repo>/<branch-slug>`, created by `herdr worktree create` when inside herdr
 
 ### Proceeding with failing tests
 
@@ -194,15 +168,14 @@ Ready to implement <feature-name>
 **Never:**
 - Create a worktree when Step 0 detects existing isolation
 - Use `git worktree add` when the work could run as a `task` item with `isolated: true`. This is the #1 mistake — if the work is dispatchable, use Step 1a.
-- Skip Step 1a by jumping straight to Step 1b's git commands
-- Create worktree without verifying it's ignored (project-local)
+- Skip Step 1a by jumping straight to Step 1b
+- Create a worktree outside `~/.herdr/worktrees/`
 - Skip baseline test verification
 - Proceed with failing tests without asking
 
 **Always:**
 - Run Step 0 detection first
 - Prefer `task` with `isolated: true` over manual git worktrees
-- Follow directory priority: explicit instructions > existing project-local directory > default
-- Verify directory is ignored for project-local
+- Create main-thread worktrees with `herdr worktree create` when inside herdr
 - Auto-detect and run project setup
 - Verify clean test baseline

@@ -80,9 +80,9 @@ task(context: "6 test failures after refactor. Fix root causes, not
      ])
 ```
 
-Items with no shared state can also run `isolated: true` — each works in a
-dedicated git worktree and successful changes auto-apply to the parent
-checkout.
+Items with no shared state can also run `isolated: true` — each works in an
+isolated copy under `~/.herdr/worktrees` (omp `worktree.base`) and successful
+changes auto-apply to the parent checkout.
 
 ### 4. Review and Integrate
 
