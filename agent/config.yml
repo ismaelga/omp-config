@@ -103,20 +103,22 @@ retry:
     zai/*:
       - ollama-cloud/*
       - opencode-go/*
+    # task head chain: cheap/flat-plan links only — subagent volume must not
+    # drain the anthropic plan the interactive session runs on (opus removed 2026-10-23).
     ollama-cloud/deepseek-v4.1-flash:1017:
       - opencode-go/deepseek-v4.1-flash:low
       - ollama-cloud/glm-5.3-flash:high
       - opencode-go/glm-5.3-flash:high
-      - anthropic/claude-opus-5-5:high
+      - zai/glm-5.3-flash:high
     ollama-cloud/glm-5.3-flash:
       - zai/glm-5.3-flash:high
       - opencode-go/glm-5.3-flash:high
       - openai-codex/gpt-5.6-luna:high
-      - anthropic/claude-opus-5-5:high
+    # astra tail cut 2026-10-23: cheap-role cascades (task/scout via opencode-go/*
+    # and zai/*) land here; astra's chain carries opus. Premium walks keep astra via sol/terra.
     ollama-cloud/glm-5.3:
       - opencode-go/glm-5.3:high
       - zai/glm-5.3:high
-      - openai-codex/gpt-6-astra:high
     opencode-go/glm-5.3:
       - ollama-cloud/glm-5.3:high
       - zai/glm-5.3:high
