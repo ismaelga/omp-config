@@ -5,14 +5,9 @@
 # guesses.
 #
 # Purpose of this file: correct catalog metadata the bundled rows get wrong.
-# One correction remains: astra's context window. The typesafe block adds a
-# pinned id rather than correcting one.
-#
-# Removed 2026-09-23: the ollama-cloud deepseek-v4.1-flash output cap (65536).
-# DeepSeek is off every fallback chain -- it costs more than glm-5.3 -- so no
-# route reached the row it clamped. If it returns: discovery on omp 18.2.9
-# reports maxTokens 384000 (vendor number), sibling ollama-cloud DeepSeek rows
-# carry 65536, and nothing was measured past 11469 output tokens on that route.
+# Two corrections: astra's context window and the ollama-cloud DeepSeek
+# V4.1-Flash 1017 output cap. The typesafe block adds a pinned id rather than
+# correcting one.
 #
 # Removed 2026-09-11: the luna and terra price corrections this file was
 # originally created for. The bundled catalog now carries $0.20/$1.20 and
@@ -37,6 +32,16 @@
 # in fact 1M (a higher long-context billing tier starts above 512K, which is
 # probably where 524K came from), so both were 1M -> 1M no-ops.
 providers:
+  ollama-cloud:
+    modelOverrides:
+      # deepseek-v4.1-flash:1017 (task's head since 2026-10-19): discovery lands
+      # it at maxTokens 8192, the same guess the untagged row carried in 09-11.
+      # "Count from 1 to 4000, one per line" at think=low returned all 4000
+      # lines, eval_count 11489, done_reason stop (raw /api/chat, 2026-10-19).
+      # 65536 matches the provider's sibling DeepSeek rows; the vendor says
+      # 384K, but nothing past 11489 was measured on this route.
+      "deepseek-v4.1-flash:1017":
+        maxTokens: 65536
   openai-codex:
     modelOverrides:
       # gpt-6-astra: catalog pins contextWindow 272000, so omp compacts at a
@@ -73,17 +78,17 @@ providers:
     # 2026-09-23: adds the versioned id so config.yml can pin modelRoles.judge.
     # The bundled typesafe rows are only jev-latest and jev-preview, and a role
     # naming an id outside the catalog is ignored: the journal kept reporting
-    # jev-latest. The API itself accepts jev-1.13.0 (probed; it rejects the short
-    # form jev-1.13). A `models` list makes this a full custom provider, which
+    # jev-latest. The API itself accepts versioned ids (probed jev-1.14.0; it
+    # rejects the short form jev-1.14). A `models` list makes this a full custom provider, which
     # requires baseUrl/apiKey/api; baseUrl is the documented root under which
     # the api calls {baseUrl}/v1/systemone, identical to the built-in, so the
     # bundled rows are untouched (a new id appends).
     baseUrl: https://api.typesafe.ai
-    apiKey: TYPESAFE_API_KEY
+    apiKey: oauth
     api: typesafe
     models:
-      - id: jev-1.13.0
-        name: Jev 1.13.0 (pinned)
+      - id: jev-1.14.0
+        name: Jev 1.14.0 (pinned)
         input: [text]
         # Same list price as the bundled jev-latest row (usage stats read this).
         cost: { input: 0.042, output: 0, cacheRead: 0, cacheWrite: 0 }
