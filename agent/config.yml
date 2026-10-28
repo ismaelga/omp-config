@@ -128,9 +128,9 @@ retry:
       - anthropic/claude-opus-5-5:high
       - ollama-cloud/glm-5.3:high
     ollama-cloud/gpt-oss:120b:
-      - ollama-cloud/glm-5.3-flash:high
-      - opencode-go/glm-5.3-flash:high
-      - openai-codex/gpt-5.6-luna:high
+      - ollama-cloud/glm-5.3-flash:low
+      - opencode-go/glm-5.3-flash:low
+      - openai-codex/gpt-5.6-luna:low
     anthropic/claude-opus-5-5:
       - openai-codex/gpt-6-astra:high
       - openai-codex/gpt-5.6-sol:high
