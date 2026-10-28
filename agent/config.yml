@@ -112,38 +112,38 @@ retry:
   usageReservePct: 10
   fallbackChains:
     zai/*:
+      - openrouter/z-ai/*
       - ollama-cloud/*
       - opencode-go/*
-      - openrouter/z-ai/*
     ollama-cloud/deepseek-v4.1-flash:1017:
+      - zai/glm-5.3-flash:high
+      - openrouter/deepseek/deepseek-v4.1-flash-1017:low
       - opencode-go/deepseek-v4.1-flash:low
       - ollama-cloud/glm-5.3-flash:high
       - opencode-go/glm-5.3-flash:high
-      - zai/glm-5.3-flash:high
-      - openrouter/deepseek/deepseek-v4.1-flash-1017:low
     ollama-cloud/glm-5.3-flash:
       - zai/glm-5.3-flash:high
+      - openrouter/z-ai/glm-5.3-flash:high
       - opencode-go/glm-5.3-flash:high
       - openai-codex/gpt-6-luna:high
-      - openrouter/z-ai/glm-5.3-flash:high
     ollama-cloud/glm-5.3:
+      - zai/glm-5.3:high
+      - openrouter/z-ai/glm-5.3:high
       - opencode-go/glm-5.3:high
-      - zai/glm-5.3:high
-      - openrouter/z-ai/glm-5.3:high
     opencode-go/glm-5.3:
-      - ollama-cloud/glm-5.3:high
       - zai/glm-5.3:high
-      - openai-codex/gpt-5.6-terra:high
       - openrouter/z-ai/glm-5.3:high
+      - ollama-cloud/glm-5.3:high
+      - openai-codex/gpt-5.6-terra:high
     openai-codex/gpt-6-astra:
       - openai-codex/gpt-5.6-terra:high
       - anthropic/claude-opus-5-5:high
       - ollama-cloud/glm-5.3:high
     ollama-cloud/gpt-oss:120b:
+      - openrouter/openai/gpt-oss-120b:low
       - ollama-cloud/glm-5.3-flash:low
       - opencode-go/glm-5.3-flash:low
       - openai-codex/gpt-6-luna:low
-      - openrouter/openai/gpt-oss-120b:low
     anthropic/claude-opus-5-5:
       - openai-codex/gpt-6-astra:high
       - openai-codex/gpt-5.6-sol:high
@@ -154,19 +154,19 @@ retry:
       - ollama-cloud/glm-5.3:high
       - opencode-go/glm-5.3:high
     ollama-cloud/*:
+      - zai/glm-5.3:high
+      - openrouter/z-ai/glm-5.3:high
       - opencode-go/*
       - openai-codex/gpt-6-luna:high
-      - zai/glm-5.3:high
-      - openrouter/z-ai/glm-5.3:high
     opencode-go/*:
+      - openrouter/z-ai/glm-5.3:high
       - ollama-cloud/glm-5.3:high
       - openai-codex/gpt-6-luna:high
-      - openrouter/z-ai/glm-5.3:high
     openai-codex/gpt-6-luna:
-      - ollama-cloud/glm-5.3-flash:high
-      - opencode-go/glm-5.3-flash:high
       - zai/glm-5.3:high
       - openrouter/openai/gpt-6-luna:high
+      - ollama-cloud/glm-5.3-flash:high
+      - opencode-go/glm-5.3-flash:high
     openai-codex/gpt-5.6-terra:
       - openai-codex/gpt-6-luna:high
       - ollama-cloud/glm-5.3:high
