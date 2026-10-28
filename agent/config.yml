@@ -200,10 +200,6 @@ retry:
       - web/ecosia
       - web/google
       - web/mojeek
-      - google-antigravity/gemini-2.5-flash
-      - openai-codex/gpt-5.6
-      - openai-codex/gpt-5.5
-      - xai-oauth/grok-4.5
       - web/ollama
 mnemopi:
   dbPath: ""
