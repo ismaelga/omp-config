@@ -20,7 +20,7 @@ task:
   showResolvedModelBadge: true
   enableLsp: true
   softRequestBudget: 100
-  maxRuntimeMs: 2700000
+  maxRuntimeMs: 5400000
   isolation:
     enabled: true
   agentModelOverrides:
