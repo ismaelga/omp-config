@@ -95,6 +95,17 @@ providers:
   autoThinkingMaxEffort: max
   ollama-cloud:
     maxConcurrency: 8
+auth:
+  accountPolicies:
+    # Weekly plan window is soft while usage credits are enabled (extra_usage.is_enabled,
+    # EUR 250 cap at 59.5% on 2026-10-28) but omp's reserve gate only reads seven_day
+    # utilization (96%). reservePct 0 stops it rerouting the only healthy provider onto
+    # dead ones. Drop this entry if extra usage is ever disabled again.
+    - provider: anthropic
+      account:
+        email: ismael@karpatkey.com
+      reservePct: 0
+
 retry:
   usageAwareFallback: true
   usageReservePolicy: auto
