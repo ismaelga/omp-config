@@ -38,7 +38,7 @@ modelRoles:
   advisor: zai/glm-5.3-flash:high
   default: anthropic/claude-opus-5-5:xhigh
   scout: zai/glm-5.3-flash:high
-  critic: openai-codex/gpt-6-astra:high
+  critic: zai/glm-5.3:high
   sentinel: zai/glm-5.3:high
   judge: typesafe/jev-1.14.0
   web: web/public
@@ -141,23 +141,14 @@ retry:
       - zai/glm-5.3:high
       - openrouter/z-ai/glm-5.3:high
       - ollama-cloud/glm-5.3:high
-      - openai-codex/gpt-5.6-terra:high
-    openai-codex/gpt-6-astra:
-      - openai-codex/gpt-5.6-terra:high
-      - anthropic/claude-opus-5-5:high
-      - ollama-cloud/glm-5.3:high
     ollama-cloud/gpt-oss:120b:
       - openrouter/openai/gpt-oss-120b:low
       - ollama-cloud/glm-5.3-flash:low
       - opencode-go/glm-5.3-flash:low
       - openai-codex/gpt-6-luna:low
     anthropic/claude-opus-5-5:
-      - openai-codex/gpt-6-astra:high
-      - openai-codex/gpt-5.6-sol:high
       - ollama-cloud/glm-5.3:high
     anthropic/*:
-      - openai-codex/gpt-5.6-sol:high
-      - openai-codex/gpt-5.6-terra:high
       - ollama-cloud/glm-5.3:high
       - opencode-go/glm-5.3:high
     ollama-cloud/*:
@@ -174,21 +165,12 @@ retry:
       - openrouter/openai/gpt-6-luna:high
       - ollama-cloud/glm-5.3-flash:high
       - opencode-go/glm-5.3-flash:high
-    openai-codex/gpt-5.6-terra:
-      - openai-codex/gpt-6-luna:high
-      - ollama-cloud/glm-5.3:high
-      - opencode-go/glm-5.3:high
-    openai-codex/gpt-5.6-sol:
-      - openai-codex/gpt-6-astra:high
-      - anthropic/claude-opus-5-5:high
-      - ollama-cloud/glm-5.3:high
     openrouter/*:
       - ollama-cloud/glm-5.3:high
       - opencode-go/glm-5.3:high
       - openai-codex/gpt-6-luna:high
     default:
       - ollama-cloud/glm-5.3:high
-      - openai-codex/gpt-5.6-sol:high
       - anthropic/claude-opus-5-5:high
     web:
       - web/perplexity
