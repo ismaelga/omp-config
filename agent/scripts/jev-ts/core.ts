@@ -135,9 +135,14 @@ export function loadMcpCatalog(): Record<string, string> {
 // --- System One client -------------------------------------------------
 
 const API_URL = "https://api.typesafe.ai/v1/systemone";
-// Pinned, not jev-latest: guard (0.5) and route (0.7) thresholds were set
-// against this version. The API rejects the short form jev-1.13.
-const MODEL = "jev-1.13.0";
+// Pinned, not jev-latest: the alias moves (1.13.0 → 1.14.0 on 2026-10-21).
+// Moved off 1.13.0 on 2026-10-23 after replaying the log's 239 route items and
+// 1205 guard inputs (content is not logged, so sent empty) through both: route
+// `recommended` agreed 97% (1.13.0 vs itself: 99%); guard flags rose 1.9% →
+// 4.6%, almost all `destructive` crossing 0.5 on remote-branch deletes,
+// force-push of main and state wipes that 1.13.0 cleared at 0.39–0.48.
+// Thresholds (guard 0.5, route 0.7) kept. The API rejects the short form jev-1.14.
+const MODEL = "jev-1.14.0";
 
 // System One answer envelope: every question type returns a `type` tag plus
 // type-specific numeric fields (noul / score / probabilities…).
