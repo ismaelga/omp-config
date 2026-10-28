@@ -111,8 +111,15 @@ retry:
   usageReservePolicy: auto
   usageReservePct: 10
   fallbackChains:
+    zai/glm-5.3-flash:
+      - openrouter/z-ai/glm-5.3-flash
+      - ollama-cloud/*
+      - opencode-go/*
+    zai/glm-5.3:
+      - openrouter/z-ai/glm-5.3
+      - ollama-cloud/*
+      - opencode-go/*
     zai/*:
-      - openrouter/z-ai/*
       - ollama-cloud/*
       - opencode-go/*
     ollama-cloud/deepseek-v4.1-flash:1017:
