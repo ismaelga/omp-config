@@ -124,7 +124,7 @@ retry:
     ollama-cloud/glm-5.3-flash:
       - zai/glm-5.3-flash:high
       - opencode-go/glm-5.3-flash:high
-      - openai-codex/gpt-5.6-luna:high
+      - openai-codex/gpt-6-luna:high
       - openrouter/z-ai/glm-5.3-flash:high
     ollama-cloud/glm-5.3:
       - opencode-go/glm-5.3:high
@@ -142,7 +142,7 @@ retry:
     ollama-cloud/gpt-oss:120b:
       - ollama-cloud/glm-5.3-flash:low
       - opencode-go/glm-5.3-flash:low
-      - openai-codex/gpt-5.6-luna:low
+      - openai-codex/gpt-6-luna:low
       - openrouter/openai/gpt-oss-120b:low
     anthropic/claude-opus-5-5:
       - openai-codex/gpt-6-astra:high
@@ -155,20 +155,20 @@ retry:
       - opencode-go/glm-5.3:high
     ollama-cloud/*:
       - opencode-go/*
-      - openai-codex/gpt-5.6-luna:high
+      - openai-codex/gpt-6-luna:high
       - zai/glm-5.3:high
       - openrouter/z-ai/glm-5.3:high
     opencode-go/*:
       - ollama-cloud/glm-5.3:high
-      - openai-codex/gpt-5.6-luna:high
+      - openai-codex/gpt-6-luna:high
       - openrouter/z-ai/glm-5.3:high
-    openai-codex/gpt-5.6-luna:
+    openai-codex/gpt-6-luna:
       - ollama-cloud/glm-5.3-flash:high
       - opencode-go/glm-5.3-flash:high
       - zai/glm-5.3:high
-      - openrouter/openai/gpt-5.6-luna:high
+      - openrouter/openai/gpt-6-luna:high
     openai-codex/gpt-5.6-terra:
-      - openai-codex/gpt-5.6-luna:high
+      - openai-codex/gpt-6-luna:high
       - ollama-cloud/glm-5.3:high
       - opencode-go/glm-5.3:high
     openai-codex/gpt-5.6-sol:
@@ -178,7 +178,7 @@ retry:
     openrouter/*:
       - ollama-cloud/glm-5.3:high
       - opencode-go/glm-5.3:high
-      - openai-codex/gpt-5.6-luna:high
+      - openai-codex/gpt-6-luna:high
     default:
       - ollama-cloud/glm-5.3:high
       - openai-codex/gpt-5.6-sol:high
@@ -186,8 +186,8 @@ retry:
     web:
       - web/perplexity
       - google-gemini-cli/gemini-2.5-flash
-      - anthropic/claude-haiku-4-5
-      - openai-codex/gpt-5.6-luna
+      - anthropic/claude-haiku-5-5
+      - openai-codex/gpt-6-luna
       - web/zai
       - web/exa
       - web/tinyfish
