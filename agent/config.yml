@@ -32,9 +32,9 @@ modelRoles:
   plan: anthropic/claude-opus-5-5:high
   slow: anthropic/claude-opus-5-5:high
   smol: zai/glm-5.3-flash:high
-  tiny: ollama-cloud/gpt-oss:120b
+  tiny: zai/glm-5.3-flash:low
   vision: zai/glm-5.3-flash:high
-  commit: ollama-cloud/gpt-oss:120b
+  commit: zai/glm-5.3-flash:low
   advisor: zai/glm-5.3-flash:high
   default: anthropic/claude-opus-5-5:xhigh
   scout: zai/glm-5.3-flash:high
@@ -42,7 +42,7 @@ modelRoles:
   sentinel: zai/glm-5.3:high
   judge: typesafe/jev-1.14.0
   web: web/public
-  task: ollama-cloud/deepseek-v4.1-flash:1017:low
+  task: zai/glm-5.3-flash:high
 modelProviderOrder:
   - zai
   - anthropic
