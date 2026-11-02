@@ -38,8 +38,8 @@ modelRoles:
   advisor: zai/glm-5.3-flash:high
   default: anthropic/claude-opus-5-5:xhigh
   scout: zai/glm-5.3-flash:high
-  critic: zai/glm-5.3:high
-  sentinel: zai/glm-5.3:high
+  critic: openai-codex/gpt-6.1-sol:high
+  sentinel: anthropic/claude-sonnet-5-5:high
   judge: typesafe/jev-1.14.0
   web: web/public
   task: zai/glm-5.3-flash:high
@@ -97,15 +97,17 @@ providers:
     maxConcurrency: 8
 auth:
   accountPolicies:
-    # Weekly plan window is soft while usage credits are enabled (extra_usage.is_enabled,
-    # EUR 250 cap at 59.5% on 2026-10-28) but omp's reserve gate only reads seven_day
-    # utilization (96%). reservePct 0 stops it rerouting the only healthy provider onto
-    # dead ones. Drop this entry if extra usage is ever disabled again.
     - provider: anthropic
       account:
         email: ismael@karpatkey.com
+        orgId: dbfa7ecc-cfc5-4df3-b4ac-f9efd2c96173
+      priority: 10
       reservePct: 0
-
+      reclaimAbovePct: 20
+    - provider: anthropic
+      account:
+        email: ismael.claude@karpatkey.com
+      priority: 0
 retry:
   usageAwareFallback: true
   usageReservePolicy: auto
@@ -148,9 +150,17 @@ retry:
       - openai-codex/gpt-6-luna:low
     anthropic/claude-opus-5-5:
       - ollama-cloud/glm-5.3:high
+      - openai-codex/gpt-6.1-sol
     anthropic/*:
       - ollama-cloud/glm-5.3:high
+      - openai-codex/gpt-6.1-sol
       - opencode-go/glm-5.3:high
+    anthropic/claude-sonnet-5-5:
+      - openai-codex/gpt-6.1-sol:high
+      - ollama-cloud/kimi-k3:high
+    critic:
+      - ollama-cloud/kimi-k3:high
+      - anthropic/claude-sonnet-5-5:high
     ollama-cloud/*:
       - zai/glm-5.3:high
       - openrouter/z-ai/glm-5.3:high
@@ -171,10 +181,9 @@ retry:
       - openai-codex/gpt-6-luna:high
     default:
       - ollama-cloud/glm-5.3:high
-      - anthropic/claude-opus-5-5:high
+      - openai-codex/gpt-6.1-sol
     web:
       - web/perplexity
-      - google-gemini-cli/gemini-2.5-flash
       - anthropic/claude-haiku-5-5
       - openai-codex/gpt-6-luna
       - web/zai
