@@ -84,7 +84,9 @@ providers:
     # the api calls {baseUrl}/v1/systemone, identical to the built-in, so the
     # bundled rows are untouched (a new id appends).
     baseUrl: https://api.typesafe.ai
-    apiKey: oauth
+    # Env var name; an unset name is sent literally as the key (the earlier
+    # `apiKey: oauth` sent the word "oauth" and got 401s).
+    apiKey: TYPESAFE_API_KEY
     api: typesafe
     models:
       - id: jev-1.14.0
