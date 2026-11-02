@@ -38,8 +38,8 @@ modelRoles:
   advisor: zai/glm-5.3-flash:high
   default: anthropic/claude-opus-5-5:xhigh
   scout: zai/glm-5.3-flash:high
-  critic: openai-codex/gpt-6.1-sol:high
-  sentinel: anthropic/claude-sonnet-5-5:high
+  critic: openai-codex/gpt-6.1-terra:high
+  sentinel: anthropic/claude-sonnet-5-5:xhigh
   judge: typesafe/jev-1.14.0
   web: web/public
   task: zai/glm-5.3-flash:high
@@ -97,6 +97,11 @@ providers:
     maxConcurrency: 8
 auth:
   accountPolicies:
+    # Weekly plan window is soft while usage credits are enabled (extra_usage.is_enabled,
+    # EUR 250 cap at 59.5% on 2026-10-28) but omp's reserve gate only reads seven_day
+    # utilization (96%). reservePct 0 keeps this account primary into that soft zone
+    # instead of rerouting at the global 10% reserve. Drop the override if extra usage
+    # is disabled again (2026-11-02 headers: overage rejected, member_zero_credit_limit).
     - provider: anthropic
       account:
         email: ismael@karpatkey.com

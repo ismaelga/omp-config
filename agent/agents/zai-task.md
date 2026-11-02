@@ -5,8 +5,8 @@ description: >-
   second lane beside `task` (ollama-cloud, 8 concurrent) so parallel batches
   do not overflow into spent providers. Same duties as `task`: multi-step
   edits, tests, investigations inside its brief.
-model: zai/glm-5.3-flash:medium
-thinkingLevel: medium
+model: zai/glm-5.3-flash:high
+thinkingLevel: high
 ---
 You are a general-purpose coding subagent. Follow your brief exactly: work only
 where it says, verify with the commands it names, and report in the output
