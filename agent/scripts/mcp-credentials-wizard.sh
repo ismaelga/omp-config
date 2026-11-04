@@ -197,14 +197,14 @@ finish() {
 # token with a 200. A rejected token leaves mcp.json untouched and that server
 # still on working OAuth.
 #
-# Which endpoints actually accept a static bearer is unproven for sentry and
-# notion: a fabricated token returns 401 from an OAuth-only endpoint and from a
-# bearer endpoint alike, so the probes below are the first real evidence either
+# Which endpoints actually accept a static bearer is unproven for notion: a
+# fabricated token returns 401 from an OAuth-only endpoint and from a bearer
+# endpoint alike, so the probes below are the first real evidence either
 # way. Notion documents static tokens for api.notion.com, not mcp.notion.com;
 # Slack documents the user token as a type but not its acceptance here.
 # ──────────────────────────────────────────────────────────────────────────
 
-TOTAL_STAGES=4
+TOTAL_STAGES=3
 ENV_FILE="/dev/null"
 
 MCP_JSON="$HOME/.omp/agent/mcp.json"
@@ -329,24 +329,6 @@ note "Skip this and the tools connect but return nothing."
 pause "Shared at least one page?"
 
 # ── Stage 2 ───────────────────────────────────────────────────────────────
-stage "Sentry: user auth token"
-say "sentry currently works on OAuth, so this stage only changes anything if"
-say "mcp.sentry.dev accepts a user auth token as a bearer. The probe decides."
-open_url "https://kpk-ee.sentry.io/settings/account/api/auth-tokens/"
-step "Click 'Create New Token'."
-step "Grant the scopes mcp.sentry.dev advertises: org:read, project:write, team:write, event:write."
-step "Create it, then copy the token — shown once, starts sntryu_."
-ask_token SENTRY_TOKEN "omp/sentry-mcp-token" "Paste the Sentry user auth token:"
-if store_keychain "omp/sentry-mcp-token" "$SENTRY_TOKEN"; then
-	if probe_mcp "https://mcp.sentry.dev/mcp" "omp/sentry-mcp-token"; then
-		wire_header sentry "omp/sentry-mcp-token"
-	else
-		keep_oauth sentry
-		note "to drop the unused token: security delete-generic-password -s omp/sentry-mcp-token -a omp"
-	fi
-fi
-
-# ── Stage 3 ───────────────────────────────────────────────────────────────
 stage "Slack: internal app + user token"
 say "Slack supports neither dynamic client registration nor anonymous MCP use,"
 say "so it needs an internal app in your workspace and that app's user token."
@@ -373,14 +355,14 @@ if store_keychain "omp/slack-mcp-user-token" "$SLACK_TOKEN"; then
 	fi
 fi
 
-# ── Stage 4 ───────────────────────────────────────────────────────────────
+# ── Stage 3 ───────────────────────────────────────────────────────────────
 stage "Alchemy, and what is left"
 say "Alchemy's MCP is OAuth-only: no API key, no static token, nothing to store."
 step "After restarting omp, run: /mcp reauth alchemy"
 note "Its credential lands in this profile's auth storage, not in mcp.json."
 printf '\n'
 say "Keychain items now present:"
-for svc in omp/notion-mcp-token omp/sentry-mcp-token omp/slack-mcp-user-token; do
+for svc in omp/notion-mcp-token omp/slack-mcp-user-token; do
 	if security find-generic-password -s "$svc" -a omp >/dev/null 2>&1; then
 		printf '  %s✓%s %s\n' "$GREEN" "$RESET" "$svc"
 	else
