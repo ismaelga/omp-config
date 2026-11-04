@@ -1,6 +1,6 @@
 ---
 name: frontend-design
-description: Visual direction for new or reshaped UI — aesthetic identity, palette, typography, layout choices that don't read as templated defaults. Use when deciding what an interface looks like; `anti-ui-slop` covers grounding, state coverage, and the pre-ship execution gate.
+description: Visual direction for new or reshaped UI — aesthetic identity, palette, typography, layout choices that don't read as templated defaults. Use when deciding what an interface looks like; `anti-ui-slop` builds and polishes it once the direction is set, and `design-critique` scores the result.
 license: Complete terms in LICENSE.txt
 ---
 

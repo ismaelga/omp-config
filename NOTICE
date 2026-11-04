@@ -221,6 +221,25 @@ upstream -- the license file carries the unfilled template notice, so none is
 asserted here.
 
 --------------------------------------------------------------------------------
+nexu-io/open-design -- https://github.com/nexu-io/open-design
+--------------------------------------------------------------------------------
+
+Applies to this skill directory in agent/skills/:
+
+  design-critique                   (incl. LICENSE)
+
+Adapted 2026-11-04 from design-templates/critique/SKILL.md, which credits the
+huashu-design expert-critique flow (https://github.com/alchaincyf/huashu-design).
+Modified: evidence comes from screenshots at 1280 and 390 px, both colour
+schemes and clicked states instead of reading the page's CSS; the report is
+returned in chat with an inline SVG radar instead of an open-design HTML
+artifact; the slide-deck evidence prompts were dropped; self-critique runs in
+a fresh subagent.
+
+Apache License 2.0, vendored as LICENSE (upstream byte-identical). Upstream
+ships no NOTICE file.
+
+--------------------------------------------------------------------------------
 emilkowalski/skills -- https://github.com/emilkowalski/skills
 --------------------------------------------------------------------------------
 
@@ -261,14 +280,19 @@ Applies to this skill directory in agent/skills/, vendored 2026-08-27:
 
   anti-ui-slop                      (incl. LICENSE, reference/ playbooks
                                      new-work, operate, polish, distill, audit,
-                                     ios, and references/uizze-reference-policy)
+                                     ios)
 
 Modified: the remote banner image on SKILL.md line 18 was removed. It fetched
 uizze.com/landing/anti-ui-slop-skill-banner.png on every read and carried no
 instruction for the agent.
 
-The skill needs no account, token or MCP; the paid UIZZE MCP layer it can
-optionally call is not configured here.
+Modified 2026-11-04: the branch for the paid UIZZE MCP (the Authentication and
+"Optional Uizze evidence" sections, and references/uizze-reference-policy.md)
+was removed, since that MCP is not configured here. The description was
+rewritten to name the triggers only; upstream's claimed "design contract" and
+"hard finish gate" have no counterpart in the playbooks. The Finish step now
+covers 1280 and 390 px in both colour schemes and runs contrast.js, which was
+written for this repository and is not part of UIZZE's skill.
 
 MIT License
 

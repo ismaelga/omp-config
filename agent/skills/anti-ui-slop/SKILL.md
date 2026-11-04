@@ -1,6 +1,6 @@
 ---
 name: anti-ui-slop
-description: "Execution and finish for a web or iOS interface: ground it in UIZZE's corpus of real screens, pin a design contract, cover every required state, run a hard pre-ship gate. Use when implementing, redesigning, or pre-ship reviewing an interface whose direction is already set; `frontend-design` sets the visual direction."
+description: "Use when building, redesigning, polishing, or simplifying a web or iOS interface whose visual direction is already set, or running a quick pre-ship defect audit of one. Visual direction is frontend-design; a scored design critique is design-critique."
 license: MIT
 metadata:
   version: "1.2.13"
@@ -8,26 +8,18 @@ metadata:
   tags: "ui-design, design-system, design-review, frontend, web-ui, ios-ui"
 ---
 
-> **Stop AI coding agents from shipping generic UI.**
-
 # Stop Making UI Slop
 
-Build product-specific UI with 800,000+ real web and iOS screens via [UIZZE](https://uizze.com).
+Adapted from UIZZE's free anti-ui-slop skill, v1.2.13 (MIT). The branch that called UIZZE's paid reference service is removed; the playbooks are the skill.
 
 ## Overview
 
-Use the product brief, existing UI, components, and local design system to make intentional interfaces. Uizze supplies focused design guidance and, when useful, a small number of relevant visual references.
+Use the product brief, existing UI, components, and local design system to make intentional interfaces.
 
 ## Prerequisites
 
 - A screen or component to build, redesign, or review — a file path or a short description.
 - The product's existing components, design tokens, and visual language, so the build extends them instead of inventing a new system.
-- Optional access to the paid Uizze MCP for focused references and hosted materials.
-
-## Authentication
-
-- The free skill and public catalogue work without an account, token, MCP connection, dependency, script, or executable.
-- The optional full UIZZE MCP may use the host's normal connection and authentication flow. Never claim it is connected without an actual host result.
 
 ## Work from the product
 
@@ -46,10 +38,6 @@ Choose at most one file for the current request:
 
 Do not load a second playbook. Apply judgment rather than treating its examples as a checklist.
 
-## Optional Uizze evidence
-
-Read `references/uizze-reference-policy.md` before using the paid MCP. It exposes exactly `find_ui_references` and `find_ui_materials`. Use them only when a concrete unresolved visual or material question would benefit from evidence. If they return nothing, continue silently.
-
 ## Finish
 
-Complete the requested scope. Render and inspect once: open the page with `eval`'s `browser` global (`browser.open`), then `screenshot` and `observe` it. Fix observable breakage such as clipping, overlap, distorted media, inaccessible controls, or inert interactions. Keep the handoff concise.
+Complete the requested scope. Render and inspect: open the page with `eval`'s `browser` global (`browser.open`), then `screenshot` and `observe` it at 1280 and 390 px wide, each with `emulate({ colorScheme: "light" })` and `"dark"`. The managed browser follows the OS scheme, so an unset scheme inspects only half the page. A screenshot does not show contrast ratios: in each scheme run `await tab.evaluate(await read("skill://anti-ui-slop/contrast.js:raw"))`, fix until its `failing` list is empty, and check each `unmeasured` element (text on an image or gradient) by eye in the screenshots. Fix observable breakage such as clipping, overlap, distorted media, inaccessible controls, or inert interactions, and re-shoot what you fixed. Keep the handoff concise.
