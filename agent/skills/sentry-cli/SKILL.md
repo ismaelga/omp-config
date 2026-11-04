@@ -27,7 +27,7 @@ description: Use when checking Sentry issues, events, logs, traces, spans, proje
 
 Selectors: uppercase short ID (`PROJ-ABC`), numeric ID, org/ID (`kpk-ee/API-2F`), org/project#ID (`kpk-ee/api#API-2F`), `@latest`, `@most_frequent`. No `--org`. Auto-detection uses DSN or `.env`; explicit targets require org/project **slugs**, never numeric IDs. Org-wide listing needs `kpk-ee/`.
 
-Search terms imply AND; `OR` is unsupported. Use `key:[a,b]` for alternatives. `--period` accepts `24h`, `14d`, and date ranges. `--json` emits JSON; `--fields` narrows output.
+Search terms imply AND; `OR` is unsupported. Use `key:[a,b]` for alternatives. `--period` accepts `24h`, `14d`, and date ranges. `--json` emits JSON (`issue list` wraps rows as `{data, hasMore, nextCursor}`; page with `-c next`); `--fields` narrows output.
 
 Stack traces: `issue view` includes latest event; `issue events --full` includes full bodies; `event view` shows one event. No `--full-stacktrace` flag. Seer `issue explain`/`issue plan` may take minutes and consume quota; run only when asked or traces are insufficient. Plans require GitHub integration and code mappings.
 
