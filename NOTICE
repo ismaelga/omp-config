@@ -31,11 +31,6 @@ including their scripts and reference documents:
                                      CREATION-LOG.md, test-pressure-*.md)
   test-driven-development           (SKILL.md only -- see "Original", below)
   using-git-worktrees
-  using-superpowers                 (incl. references/omp-tools.md; upstream's
-                                     codex, pi and antigravity tool maps were
-                                     deleted 2026-09-15 as dead weight, and
-                                     the Platform Adaptation section that
-                                     listed them now names omp only)
   writing-plans                     (incl. plan-document-reviewer-prompt.md)
   writing-skills                    (incl. anthropic-best-practices.md,
                                      persuasion-principles.md,
@@ -233,7 +228,6 @@ Applies to these skill directories in agent/skills/, vendored unmodified on
 2026-08-27:
 
   animate                           (incl. RECIPES.md)
-  emil-design-eng                   (incl. LICENSE)
   review-animations                 (incl. STANDARDS.md; ships
                                      `disable-model-invocation: true` upstream)
 
@@ -533,9 +527,9 @@ skills/better-ui at 267330e1adfc:
                                       changed line, theme-and-layers.md
                                       assembled here)
 
-Halved on purpose. Upstream's motion rules restate what `animate`,
-`review-animations` and `emil-design-eng` already own, and restate them with
-different constants -- upstream says stagger by ~100ms where all three installed
+Halved on purpose. Upstream's motion rules restate what `animate` and
+`review-animations` already own, and restate them with different constants --
+upstream says stagger by ~100ms where the installed
 skills say 30-80ms, and fixes press feedback at exactly 0.96 where `animate`
 gives 0.9-0.97 per component. A second motion standard with different numbers is
 worse than none, so animations.md, enter-exit.md and performance.md are not
