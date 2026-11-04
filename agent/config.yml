@@ -113,6 +113,19 @@ auth:
       account:
         email: ismael.claude@karpatkey.com
       priority: 0
+      # 2026-11-02: this seat used to inherit the global reservePct 10 and sat
+      # policy.state "inside-reserve" at 9% remaining (7d window), so when the
+      # primary's 7d window hit 1.0 used (usage_history, resets 11-05) the
+      # preflight found no healthy anthropic credential and walked anthropic/*'s
+      # model chain to ollama-cloud/glm-5.3 (session 01a19d35, role:"fallback",
+      # no anthropic request ever sent). With reservePct 0 the failover works:
+      # a print-mode opus turn at 17:09 stayed on anthropic and pinned
+      # credential 27 (this account, session credential_pin hash a5297844...).
+      # Note: omp usage's display currently mislabels the buckets (its
+      # "ismael@" row carries this account's reset times 20:40/11-06); the
+      # router's usage_history rows are the accurate source. Quota is per-seat:
+      # primary 7d exhausted while this seat's 7d read 0.16 the same minute.
+      reservePct: 0
 retry:
   usageAwareFallback: true
   usageReservePolicy: auto
