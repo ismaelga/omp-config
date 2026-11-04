@@ -22,13 +22,7 @@ const BUILTIN_AGENTS: Record<string, string> = {
 // mcp.json entries carry only type+url, no description: this map supplies
 // human-readable purposes for routing. Servers absent here fall back to
 // "MCP server <name>" — add a line when a new server mounts.
-const MCP_SERVERS: Record<string, string> = {
-  linear: "Linear issue tracker: projects, issues, cycles, comments, releases, diffs, documents.",
-  sentry: "Sentry error tracking: production issues, events, stack traces, release health.",
-  voyager: "MCP server voyager.",
-  cloudflare: "Cloudflare MCP server.",
-  slack: "Slack MCP server.",
-};
+const MCP_SERVERS: Record<string, string> = {};
 
 function disabledAgents(): Set<string> {
   const cfg = join(AGENT_DIR, "config.yml");
