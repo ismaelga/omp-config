@@ -135,6 +135,8 @@ retry:
       - openrouter/z-ai/glm-5.3-flash
       - ollama-cloud/*
       - opencode-go/*
+      - openai-codex/gpt-6-luna
+      - anthropic/claude-haiku-5-5
     zai/glm-5.3:
       - openrouter/z-ai/glm-5.3
       - ollama-cloud/*
