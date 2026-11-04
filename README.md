@@ -68,7 +68,7 @@ git fetch origin
 git checkout -f main
 ```
 
-Safe against an existing `~/.omp`: state files are ignored, so checkout only lays down config. Restart omp afterwards — `config.yml`, `models.yml`, `mcp.json`, `lsp.json`, `AGENTS.md` and skills are read at session start.
+Safe against an existing `~/.omp`: state files are ignored, so checkout only lays down config. Restart omp afterwards — `config.yml`, `models.yml`, `mcp.json`, `lsp.json`, `AGENTS.md` and skills are read at session start. Install and log in to the service CLIs in the table under [What is turned off, and why](#what-is-turned-off-and-why).
 
 ### 3. Providers
 
@@ -164,30 +164,27 @@ Two features are configured, present on disk, and deliberately inert. A third wa
 
 `advisor.enabled` is **`true`** since 2026-08-28. The 2026-08-13 A/B did not condemn it: `spawns=0` counts task-tool calls and the advisor is not a spawn, and the notes it produced were real bugs — a `lots.pop()` that needed `shift()`, two dangling refs that would have thrown, a `saleCostUsd` used where `applySale` was required. It never moved a score because the minimal config already scored 1.00 everywhere the advisor spoke; a safety net cannot be measured on tasks nobody falls off. `advisor.syncBacklog: "off"` is the tax control — with a numeric value the advisor blocks the primary turn up to 30 s whenever it falls behind.
 
-MCP runs six servers over Streamable HTTP. Three are live: `sentry`, `linear`, and `voyager` (`http://127.0.0.1:4040/mcp`, a local endpoint, so it simply fails to mount when nothing is listening). Three carry `enabled: false` until their credential exists: `notion`, `alchemy`, `slack`. `disabledServers` keeps `cavemem`, `computer-use` and `pencil` out of discovery.
+### Service CLIs
 
-Credentials are designed to come from the **macOS login keychain** — not this repo, not environment variables. A server's `Authorization` header is a `!command` calling `agent/scripts/mcp-keychain-token.sh <service>`, which prints `Bearer <token>` from the keychain and exits non-zero when the item is absent. Today only `slack` carries that header, because of a constraint measured on 2026-09-01 rather than read anywhere: **configuring an `Authorization` header suppresses omp's managed OAuth credential for that URL, and a failing header command does not hand it back.** Sentry with a keychain header and no stored item did not mount at all; the identical entry with the header removed returned its org. Header and OAuth are therefore mutually exclusive per server, and the header may only exist once the token does — which is why `agent/scripts/mcp-credentials-wizard.sh` writes the header in the same step that stores the token, instead of the config carrying headers up front.
+The MCP catalog is empty: `agent/mcp.json` has `"mcpServers": {}`. `disabledServers` still excludes `cavemem`, `computer-use` and `pencil`. Service CLIs replaced the mounted services; Wrangler projects still use `wrangler` and its existing skill.
 
-The resolver still earns its place: the obvious inline form, `printf 'Bearer %s' "$(security find-generic-password …)"`, exits 0 with an empty token and puts a literal `Bearer ` on the wire. Against a local echo server that recorded what arrived, the inline form sent `'Bearer '`, the script form sent no header, and a stored item sent the real token.
+| Service | CLI | Install | Login | Skill |
+|---|---|---|---|---|
+| Linear | `linear` 3.1.0 | `GIT_CONFIG_GLOBAL=/dev/null brew install schpet/tap/linear` | `linear auth login` (API key from linear.app/settings/account/security) | `linear-cli` |
+| Sentry | `sentry` 0.47.0 (`getsentry/cli`, not legacy `sentry-cli`) | `npm i -g sentry` | `sentry auth login` | `sentry-cli` |
+| Cloudflare account/API resources | `cf` 1.0.0-beta.27 | `npm i -g cf@latest` | `cf auth login` (separate from Wrangler login) | `cf-cli` |
+| Notion | `ntn` 0.23.26 | `npm i -g ntn` | `ntn login` | `ntn-cli` |
+| Alchemy | `alchemy` 0.30.0 (`@alchemy/cli`) | `npm i -g @alchemy/cli@latest` | `alchemy auth` | `alchemy-cli` |
 
-What omp resolves where, from `mcp-config.md` and confirmed on that echo server:
+Login state when checked 2026-11-04: only `ntn` was logged in, to the KPK workspace. `linear`, `sentry`, `cf` and `alchemy` were not logged in. Linear's Homebrew install needed `GIT_CONFIG_GLOBAL=/dev/null` because a local `insteadOf` rewrite sends github.com to SSH. Use `cf@latest`: unqualified `cf` resolved to 0.15.0, which has no `cf cli search`. The Sentry Homebrew and curl installers run `sentry cli setup`, which installs a 32.6 KB vendor skill into `~/.agents` and `~/.claude`; npm avoids that.
 
-| field | `${VAR}` expansion | `!command` execution |
-| --- | --- | --- |
-| stdio `env` | yes | yes |
-| http `headers` | yes | **yes** |
-| `oauth.clientId` / `clientSecret` | yes | **no** |
-| `auth.*` | yes | **no** |
+Every mounted MCP tool name reaches the system prompt of every session in every project. On 2026-11-04, before the cut, a session's prompt carried about 125 Linear and Sentry tool entries, each listed three times (xd device list, MCP route list, eval tool-name list), plus both servers' instruction blocks; Alchemy's server advertised 168 tools whenever it was enabled. A skill costs only its description line until loaded; the five CLI skills are 450–500 words each.
 
-So `oauth.*` can only ever read process env, and a keystore can never feed it. That is why Slack authenticates with a bearer header here instead of an `oauth` block — the client-credentials route cannot honour the keychain requirement, whatever the docs' Slack example implies.
+The local skills were tested against no-skill recall: two agents per CLI invented flags or commands across all five CLIs — for example `sentry issue view --full-stacktrace` and `--org`, `linear graphql` and `--no-interactive`, `cf ... --yes`, `alchemy token balances`, and `ntn page get`. With the skill, two reps per CLI converged on valid commands, checked against installed `--help`. The Alchemy skill marks signing and spending groups — sends, contract calls, approvals, swaps/bridge execution, Solana send/delegate, x402 payments, and wallet/webhook/app administration writes — as requiring explicit user instruction.
 
-Items are stored as `security add-generic-password -s omp/<name> -a omp -w …`, deliberately **without `-A`**: the ACL then trusts `/usr/bin/security`, which is also the reader, so reads succeed unprompted without widening the item to every process. Verified both ways — a no-`-A` item read fine from a non-interactive subprocess, which is why the `!command` path never trips a GUI prompt into the 10 s timeout. Run `agent/scripts/mcp-credentials-wizard.sh` to populate it. Its order is **store → probe → wire, and only in that order**: it stores the token, `initialize`s against the real endpoint with it, and writes the header only on HTTP 200. A rejected token leaves `mcp.json` untouched, so that server keeps the OAuth credential that already works — verified with a deliberately bogus token, which produced `HTTP 401` and an unchanged config. Secrets never touch `.env`; `ENV_FILE` points at `/dev/null` and `ask_token` pre-seeds from the keychain so "Enter keeps current" means the stored token rather than an empty read.
+`voyager` (unused local `http://127.0.0.1:4040/mcp`) and `slack` (never connected; Slack CLI not installed) were removed without replacement. The keychain/bearer-header design and its 2026-09-01 measured OAuth constraint remain in git history before `a4b5c83`.
 
-What no probe here has settled yet: **whether these endpoints accept a static bearer at all.** A fabricated token returns 401 from an OAuth-only endpoint and from a token-accepting one alike, so the earlier `invalid_token` replies prove only that each validates bearers, not that a PAT is a supported credential. Notion documents static tokens for `api.notion.com`, not `mcp.notion.com`; Slack documents the `xoxp-` user token as a type without promising the MCP endpoint takes it; Sentry documents neither. The wizard's probe is therefore the first real evidence, and the reason nothing is wired ahead of it.
-
-Alchemy is the exception twice over. It is OAuth-only with no static-token path, so nothing goes in the keychain for it — `/mcp reauth alchemy` after a restart, credential lands in profile auth storage. And it advertises **168 tools** across 100+ chains, every name of which reaches the system prompt of every session in every project. Move it to a project-level `.omp/mcp.json` if that stops paying for itself. For OAuth-held credentials the keychain is not the lever at all; `omp auth-broker` is the one that gets them off this disk.
-
-Slack demands the most setup and allows the least: no SSE, no dynamic client registration, and MCP restricted to Marketplace-published or workspace-internal apps. It needs an internal app, possibly workspace-admin approval, and that app's **user** token (`xoxp-`, from OAuth & Permissions after installing). Scopes are per-tool on the user token — `search:read.*`, `channels:history`, `chat:write`, `canvases:*`, `lists:*`; `mcp.slack.com` publishes all 30 in its protected-resource metadata.
+The cutover deleted both MCP helper scripts; jev-ts's `MCP_SERVERS` description map is empty and `jev route` skips the empty MCP catalog.
 
 Re-enabling the fleet means flipping `task.disabledAgents` — the frontmatter models no longer need a second pass. They drifted onto retired ids while the fleet was inert (`deepseek-v4-flash`, `kimi-k3`, `minimax-m3`), and were repointed on 2026-09-11 to `@task` / `@scout` / `@critic` / `@sentinel`, so `modelRoles` now owns them the same way `agentModelOverrides` owns the bundled agents.
 
@@ -195,11 +192,21 @@ Re-enabling the fleet means flipping `task.disabledAgents` — the frontmatter m
 
 ## Skills
 
-66 skill directories in `agent/skills/`, all with a `SKILL.md`. 46 are model-invoked — omp loads them automatically when the description matches, or explicitly with `/skill:<name>`. 20 are command-only (`disable-model-invocation: true`): `/skill:<name>` works but the model never auto-loads them — `ask-matt`, `grill-me`, `grill-with-docs`, `handoff`, `implement`, `improve-codebase-architecture`, `review-animations`, `setup-matt-pocock-skills`, `teach`, `to-questionnaire`, `to-spec`, `to-tickets`, `triage`, `wait-what`, plus `cavecrew` and the five relocated from `~/.codex/skills` (`elixir-architect`, `figma`, `figma-implement-design`, `linear`, `security-best-practices`).
+85 skill directories in `agent/skills/`: 70 written here and 15 symlinks into `.sources/` submodules. 53 are model-invoked — omp loads them automatically when the description matches, or explicitly with `/skill:<name>`. 32 are command-only (`disable-model-invocation: true`): `/skill:<name>` works but the model never auto-loads them — `ask-matt`, `better-ui`, `blast-radius`, `cavecrew`, `create-verification-skill`, `deslop`, `elixir-architect`, `figma`, `figma-implement-design`, `grill-me`, `grill-with-docs`, `handoff`, `implement`, `improve-codebase-architecture`, `interrogate`, `linear`, `maintain-verification-skill`, `phoenix-liveview`, `principle-boundary-discipline`, `principle-type-system-discipline`, `review-animations`, `security-best-practices`, `setup-matt-pocock-skills`, `teach`, `to-questionnaire`, `to-spec`, `to-tickets`, `triage`, `typescript-best-practices`, `unslop`, `wait-what`, `webapp-testing`.
 
-Only the 46 model-invoked descriptions are always-loaded context. Each command-only skill costs nothing per turn, which is why retiring a skill here means flipping that flag rather than deleting the directory. `cavecrew` was flipped 2026-08-26: it routes to 14 subagents that `task.disabledAgents` turns off, so its 191-token description was instructing the model to spawn agents that cannot spawn.
+Only the 53 model-invoked descriptions are always-loaded context. Each command-only skill costs nothing per turn, which is why retiring a skill here means flipping that flag rather than deleting the directory. `cavecrew` was flipped 2026-08-26: it routes to 14 subagents that `task.disabledAgents` turns off, so its 191-token description was instructing the model to spawn agents that cannot spawn.
 
-The cloudflare pack arrived un-gated: all 14 skills are model-invoked, and their descriptions are **2274 chars of the 7279 in the always-loaded block — 31% of it, ~570 tokens a turn** for 14 of 46 skills. Kept anyway, 2026-09-14. Demand is new rather than absent: across 2753 prompts in `history.db` back to April, the only genuine Cloudflare asks are from the day the pack was installed, and they are a live platform decision, not a finished one. Cost lands as cached prefill (95.5% cache rate overall), so the price is context occupancy rather than dollars. Revisit trigger: if a month passes with no Cloudflare work, drop them — and note the gating options differ from every other skill here. Flipping `disable-model-invocation` means editing inside the submodule, which fights the pin; `skills.ignoredSkills` drops them without touching upstream but removes `/skill:<name>` too, where the usual flag keeps it.
+**Service CLIs**
+
+| Skill | For |
+|---|---|
+| `linear-cli` | Linear issues, projects and comments through `linear` |
+| `sentry-cli` | Sentry issues and telemetry through `sentry` |
+| `cf-cli` | Cloudflare account/API resources through `cf`; Wrangler projects use `wrangler` |
+| `ntn-cli` | Notion through `ntn` |
+| `alchemy-cli` | Alchemy through `alchemy` |
+
+The cloudflare pack arrived un-gated: all 14 skills are model-invoked, and their descriptions are **2274 chars of the 7279 in the always-loaded block — 31% of it, ~570 tokens a turn** for 14 of the 46 model-invoked skills at the time. Kept anyway, 2026-09-14. Demand is new rather than absent: across 2753 prompts in `history.db` back to April, the only genuine Cloudflare asks are from the day the pack was installed, and they are a live platform decision, not a finished one. Cost lands as cached prefill (95.5% cache rate overall), so the price is context occupancy rather than dollars. Revisit trigger: if a month passes with no Cloudflare work, drop them — and note the gating options differ from every other skill here. Flipping `disable-model-invocation` means editing inside the submodule, which fights the pin; `skills.ignoredSkills` drops them without touching upstream but removes `/skill:<name>` too, where the usual flag keeps it.
 
 `skills.enabled: true`, `enableSkillCommands: true`, no ignore list.
 
@@ -330,16 +337,16 @@ Working agreements encoded in `agent/AGENTS.md`: plans in `.omo/plans/`, specs i
 | `agent/RULES.md` | always-apply rules. Three lines; the fourth duplicated the harness contract verbatim and was cut |
 | `agent/config.yml` | model roles, provider order, fallback chains, TUI, memory, tool settings |
 | `agent/models.yml` | override-only, and only two entries: `gpt-6-astra`'s context window raised to the plan ceiling the catalog understates, and `deepseek-v4.1-flash`'s output cap corrected from a discovery guess |
-| `agent/mcp.json` | seven HTTP servers — `sentry`, `linear`, `voyager`, `cloudflare` live; `notion`, `alchemy`, `slack` at `enabled: false` — plus a `disabledServers` list. No secrets: OAuth credentials live in profile auth storage, static tokens in the login keychain |
+| `agent/mcp.json` | empty `mcpServers` list plus `disabledServers` for `cavemem`, `computer-use` and `pencil` |
 | `agent/lsp.json` | one override: `idleTimeoutMs: 300000` |
 | `agent/WATCHDOG.md` | advisor review brief — live since `advisor.enabled: true` (2026-08-28) |
 | `agent/WATCHDOG.yml` | advisor roster: one entry, widening the advisor's tool grant to include `lsp`. Also live |
 | `agent/agents/*.md` | 14 cavecrew subagents + `momus`, all in `disabledAgents`. Kept for re-measurement; models reference `@role`, not pinned ids |
 | `agent/commands/*.md` | 5 caveman slash commands + `/diverge` |
 | `agent/tools/caveman-compress/` | the compress tool (scripts + docs), graduated from a skill |
-| `agent/skills/*/SKILL.md` | 66 skill directories: 52 written here, plus 14 symlinks into the pinned `cloudflare/skills` submodule |
-| `agent/skills/.sources/cloudflare` | submodule gitlink, pinned at `b052c32`. The 14 `agent/skills/<name>` symlinks resolve through it |
-| `agent/scripts/*.sh` | `mcp-keychain-token.sh` (reads an MCP bearer token from the login keychain) and `mcp-credentials-wizard.sh` (mints and stores them). Tracked because the tracked `mcp.json` references the first by path |
+| `agent/skills/*/SKILL.md` | 85 skill directories: 70 written here, plus 15 symlinks into `.sources/` submodules |
+| `agent/skills/.sources/*` | submodules backing the 15 symlinks: `cloudflare/skills` at `b052c32` (14 skills) and `cloudflare-security-audit` at `c1c8a8c` (`security-audit`) |
+| `agent/scripts/*.sh` | `prune-merged-branches.sh` only; deletes local branches/worktrees and origin branches whose GitHub PR merged, dry-run unless `--apply` |
 
 Everything else under `~/.omp` — `agent.db`, `history.db`, `models.db`, `sessions/`, `blobs/`, `banks/`, `cache/`, `logs/`, `run/` — is state or secrets and stays local.
 
@@ -387,7 +394,7 @@ Apache-2.0 or unknown terms (full notices in [`NOTICE`](NOTICE)):
 | [`emilkowalski/skills`](https://github.com/emilkowalski/skills) (MIT), [`uizze/uizze`](https://github.com/uizze/uizze), [`vercel-labs/web-interface-guidelines`](https://github.com/vercel-labs/web-interface-guidelines) | the UI set vendored 2026-08-27: `animate`, `emil-design-eng`, `review-animations` from the first; `anti-ui-slop` from the second (its remote banner image removed); `web-interface-guidelines` from the third. Full terms in NOTICE |
 | [`cloudflare/skills`](https://github.com/cloudflare/skills) (Apache-2.0) | 14 skills tracked as a submodule rather than copied, pinned at `b052c32`: `agents-sdk`, `cloudflare`, `cloudflare-email-service`, `cloudflare-one`, `cloudflare-one-migrations`, `durable-objects`, `nextjs-on-cloudflare`, `sandbox-migrate-to-next`, `sandbox-next`, `sandbox-stable`, `turnstile-spin`, `web-perf`, `workers-best-practices`, `wrangler`. Upstream-current by construction, so unlike the copied sets these must not be edited in place |
 
-The remaining 8 skills (`baseline-first`, `context-curation`, `decision-log`, `diverge-converge`, `pre-mortem`, `prototyping`, `reviewing-model-pins`, `wayfinding`), the other 11 cavecrew subagents, `momus`, `agent/WATCHDOG.md`, `agent/WATCHDOG.yml`, `agent/scripts/*.sh`, and all config in `agent/*.yml` / `agent/*.json` are original to this repo.
+The remaining 8 skills (`baseline-first`, `context-curation`, `decision-log`, `diverge-converge`, `pre-mortem`, `prototyping`, `reviewing-model-pins`, `wayfinding`), the five CLI skills (`linear-cli`, `sentry-cli`, `cf-cli`, `ntn-cli`, `alchemy-cli`), the other 11 cavecrew subagents, `momus`, `agent/WATCHDOG.md`, `agent/WATCHDOG.yml`, `agent/scripts/*.sh`, and all config in `agent/*.yml` / `agent/*.json` are original to this repo.
 
 Provenance is file-level, not guessed: every pre-existing tracked file was compared against the upstream git trees; the mattpocock import (2026-08-20) is unmodified upstream. Vendored files are edited freely here — do not treat them as upstream-current. One file is original despite living in a vendored directory: `test-driven-development/testing-anti-patterns.md` (superpowers' reference-doc idiom, ~10% word overlap with its `writing-good-tests.md`, which it does not replace).
 
