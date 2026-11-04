@@ -11,14 +11,15 @@ description: Use when reading or changing Linear issues or tickets, teams, proje
 
 | Need | Command |
 |---|---|
-| Search all issues | `linear issue query --team ENG --search "login bug" --state started --label bug --assignee sam --json` |
+| Search all issues | `linear issue query --team ENG --search "login bug" --label bug --assignee sam --json` |
+| Open issues (no `open` state exists) | `linear issue query --team ENG --state triage --state backlog --state unstarted --state started --limit all --json`; add `--unassigned` for unassigned only |
 | List mine | `linear issue list --state started --json` |
 | View issue | `linear issue view ENG-123 --json` |
 | Create issue | `linear issue create --team ENG --title "Fix login" --description-file ./description.md --no-input` |
 | Update issue | `linear issue update ENG-123 --state started --assignee sam` |
 | Change labels | `linear issue update ENG-123 --add-label bug --remove-label stale` |
 | Replace labels | `linear issue update ENG-123 --label bug --label frontend` |
-| Create child issue | `linear issue create --team ENG --title "Child task" --parent ENG-100 --no-input` |
+| Create child issue with labels | `linear issue create --team ENG --title "Child task" --parent ENG-100 --label ready-for-agent --description-file ./d.md --no-input` |
 | Blocked by | `linear issue relation add ENG-123 blocked-by ENG-456` |
 | Comments | `linear issue comment add ENG-123 --body-file ./comment.md`; `linear issue comment list ENG-123 --json` |
 | Link / attach | `linear issue link ENG-123 https://example.com`; `linear issue attach ENG-123 ./spec.pdf` |
