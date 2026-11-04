@@ -117,7 +117,7 @@ Ranking every role by one intelligence index is the mistake this table prevents.
 | Role | Bottleneck | Ranked by |
 |---|---|---|
 | `default`, `plan`, `slow` | correctness on long-horizon work | quality first, latency second |
-| `task`, `scout` | wall-clock across 8–32 concurrent subagents | execution-scored quality at $0 marginal, then output tok/s |
+| `task`, `scout` | wall-clock across 8–32 concurrent subagents | execution-scored quality at lowest marginal cost, then output tok/s |
 | `tiny`, `smol`, `commit` | TTFT — a human waits on these | TTFT, then tok/s, then format adherence |
 | `vision` | the modality must actually exist | verified input modalities |
 | `critic`, `sentinel` | precision; false alarms get the reviewer ignored | defect detection at low false-positive rate |
@@ -128,11 +128,21 @@ Ranking every role by one intelligence index is the mistake this table prevents.
 - **Reachability outranks quality.** Check what answers before comparing what is
   smart. A 402, a spent weekly quota, or an entitlement block turns the best pin in
   the file into a chain walk.
-- **Flat plans win high-volume roles.** `anthropic`, `openai-codex`, `zai` and
-  `opencode-go` are plan-based here (`opencode-go` bills against 5-hour/weekly/monthly
-  caps, not per token) and `ollama-cloud` is $0 marginal; `openrouter` is the one
-  genuinely metered key. Metered spend must buy something the plans cannot — a
-  modality, a context window, a capability.
+- **Flat plans win high-volume roles.** `anthropic`, `openai-codex` and `zai` are
+  plan-based here, and `opencode-go` bills against 5-hour/weekly/monthly caps, not per
+  token. `ollama-cloud` is not $0 marginal on this account: its 2026-11-04 429 read
+  "reached your monthly usage limit, add usage credits", the per-token plan Ollama
+  introduced on 2026-08-31 (a monthly dollar pool spent at ollama.com/pricing rates,
+  then pay-as-you-go). Legacy Pro/Max subscriptions that never switched keep the old
+  session/weekly limits, so re-check which plan the account is on before costing it.
+  `openrouter` is metered per token. Metered spend must buy something the plans
+  cannot — a modality, a context window, a capability.
+- **Price at the role's real context length.** Long-context tiers multiply the list
+  price: OpenRouter's `pricing.overrides` charge Claude Haiku 5.5 5× above 100K prompt
+  tokens and Qwen3.7-Flash more above 32K. Scout's prompt exceeded 100K on 31% of
+  turns (7 days to 2026-11-04), which turned a $5/week Haiku estimate into $16 against
+  $10 for the incumbent. Cost a candidate per turn from session `usage` with the tier
+  applied, never from the base row.
 - **Probe the modality, never trust the field — and never with a toy image.** Before a
   role that sends images lands on a route, post a real image to that exact provider and
   model and read the answer. Use at least 64x64 of a solid, unambiguous colour, and
