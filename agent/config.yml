@@ -131,11 +131,19 @@ retry:
   usageReservePolicy: auto
   usageReservePct: 10
   fallbackChains:
+    # TEMPORARY 2026-11-04: healthy hop first in the chains role pins actually
+    # hit. usage_history: zai weekly exhausted (resets 2026-11-07), ollama-cloud
+    # and opencode-go monthly exhausted (reset 2026-11-16); openrouter answers
+    # 402 Insufficient credits. Every GLM-role call was burning three failed
+    # requests before landing on gpt-6-luna. Revert these five chains
+    # (zai/glm-5.3-flash, anthropic/claude-opus-5-5, anthropic/*, critic,
+    # default) to same-weights-first once ollama-cloud/opencode-go reset or
+    # openrouter is funded.
     zai/glm-5.3-flash:
+      - openai-codex/gpt-6-luna
       - openrouter/z-ai/glm-5.3-flash
       - ollama-cloud/*
       - opencode-go/*
-      - openai-codex/gpt-6-luna
       - anthropic/claude-haiku-5-5
     zai/glm-5.3:
       - openrouter/z-ai/glm-5.3
@@ -169,18 +177,18 @@ retry:
       - opencode-go/glm-5.3-flash:low
       - openai-codex/gpt-6-luna:low
     anthropic/claude-opus-5-5:
-      - ollama-cloud/glm-5.3:high
       - openai-codex/gpt-6.1-sol
+      - ollama-cloud/glm-5.3:high
     anthropic/*:
-      - ollama-cloud/glm-5.3:high
       - openai-codex/gpt-6.1-sol
+      - ollama-cloud/glm-5.3:high
       - opencode-go/glm-5.3:high
     anthropic/claude-sonnet-5-5:
       - openai-codex/gpt-6.1-sol:high
       - ollama-cloud/kimi-k3:high
     critic:
-      - ollama-cloud/kimi-k3:high
       - anthropic/claude-sonnet-5-5:high
+      - ollama-cloud/kimi-k3:high
     ollama-cloud/*:
       - zai/glm-5.3:high
       - openrouter/z-ai/glm-5.3:high
@@ -200,8 +208,8 @@ retry:
       - opencode-go/glm-5.3:high
       - openai-codex/gpt-6-luna:high
     default:
-      - ollama-cloud/glm-5.3:high
       - openai-codex/gpt-6.1-sol
+      - ollama-cloud/glm-5.3:high
     web:
       - web/perplexity
       - anthropic/claude-haiku-5-5
