@@ -44,7 +44,7 @@ Default posture: these skills were designed for GitHub. If a `git remote` points
 - **GitHub**: issues live in the repo's GitHub Issues (uses the `gh` CLI)
 - **GitLab**: issues live in the repo's GitLab Issues (uses the [`glab`](https://gitlab.com/gitlab-org/cli) CLI)
 - **Local markdown**: issues live as files under `.scratch/<feature>/` in this repo (good for solo projects or repos without a remote)
-- **Linear**: if the Linear MCP server is mounted, issues are driven through its full issue API (`list_issues`, `save_issue`, `save_comment`, `list_issue_labels`) rather than recorded as prose — a first-class tracker, not a described workflow
+- **Linear**: use the `linear` CLI as a first-class issue tracker, not recorded prose; follow [skill://linear-cli](skill://linear-cli).
 
 Record the choice in `docs/agents/issue-tracker.md`. The GitHub and GitLab templates carry a "PRs as a request surface" flag, defaulted **off**. Leave it off and don't raise it: a user who wants external PRs in the triage queue can flip the flag in the file later.
 
@@ -109,7 +109,7 @@ Then write the docs files using the seed templates in this skill folder as a sta
 - [triage-labels.md](./triage-labels.md): label mapping (only if `triage` is installed)
 - [domain.md](./domain.md): domain doc consumer rules + layout
 
-If the choice was **Linear**, write `docs/agents/issue-tracker.md` from scratch recording the MCP tool names the tracker skills should call (`list_issues`, `save_issue`, `save_comment`, `list_issue_labels`). For any other tracker, write it from scratch using the user's description.
+If the choice was **Linear**, write `docs/agents/issue-tracker.md` from scratch and point tracker skills to `skill://linear-cli`; record the CLI operations they need (for example, `linear issue query`, `linear issue create`, `linear issue update`, `linear issue comment add`, and `linear label list`). For any other tracker, write it from scratch using the user's description.
 
 ### 5. Done
 

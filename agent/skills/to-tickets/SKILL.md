@@ -8,13 +8,13 @@ disable-model-invocation: true
 
 Break a plan, spec, or conversation into a set of **tickets**: tracer-bullet vertical slices, each declaring the tickets that **block** it.
 
-The tracker is the mounted Linear MCP (`save_issue` with `blockedBy`, `addLabels`, `parentId`); GitHub trackers use the `github` tool ops (`pr_create`, `search_issues`). The `ready-for-agent` label already exists — confirm with `list_issue_labels` if unsure.
+When using Linear, load [skill://linear-cli](skill://linear-cli); check the `ready-for-agent` label with `linear label list --team TEAM`. GitHub trackers use the `github` tool ops (`pr_create`, `search_issues`).
 
 ## Process
 
 ### 1. Gather context
 
-Work from whatever is already in the conversation context. If the user passes a reference as an argument, fetch it and read its full body and comments: `issue://N` / `pr://N` for GitHub (with `pr://N/diff` where useful), or `get_issue` + `list_comments` for Linear.
+Work from the conversation context. For references, fetch full issue bodies and comments with `linear issue view ENG-123` and `linear issue comment list ENG-123`, or use `issue://N` / `pr://N` for GitHub (`pr://N/diff` where useful).
 
 ### 2. Explore the codebase (optional)
 
@@ -60,7 +60,7 @@ Iterate the same way until the user approves the breakdown.
 Publish the approved tickets. **How** depends on the tracker; the tickets are the same either way, only the shape of the blocking edges changes:
 
 - **Local files** → write one file per ticket under `.scratch/<feature-slug>/issues/<NN>-<slug>.md`, numbered from `01` in dependency order (blockers first). Each file's "Blocked by" lists the numbers/titles it depends on. Use the per-ticket file template below: one ticket per file, never a single combined file.
-- **A real issue tracker** → publish one issue per ticket with `save_issue` in dependency order (blockers first, so each ticket's `blockedBy: [ids]` references real identifiers), passing `addLabels: ["ready-for-agent"]` and `parentId` where a parent exists. GitHub trackers use the `github` tool ops instead; the tickets are agent-grabbable by construction.
+- **A real issue tracker** → publish one issue per ticket with `linear issue create --team TEAM --title "..." --description-file ./ticket.md --label ready-for-agent --parent PARENT --no-input` where applicable; add dependencies with `linear issue relation add TICKET blocked-by BLOCKER`. GitHub trackers use the `github` tool ops instead; the tickets are agent-grabbable by construction.
 
 Work the **frontier**: any ticket whose blockers are all done. For a purely linear chain that means top to bottom.
 

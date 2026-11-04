@@ -23,14 +23,7 @@ Use this skill when you want to turn `docs/TODO.md` into Linear issues and keep 
 ## Workflow
 
 1. Open `docs/TODO.md` and pick the next `P0`/`P1` task.
-2. Find its matching Linear issue with `list_issues`, filtered on the `[T-###]` title prefix; create it with `save_issue` if absent, update it otherwise.
+2. Find its matching issue with `linear issue query --team TEAM --search "[T-###]" --json` and note its Linear key (e.g. `ENG-42`); `T-###` is only the title prefix, never an issue ID. Create it if absent, update it otherwise, with the commands in [skill://linear-cli](skill://linear-cli).
 3. Copy the task text into the issue description and preserve `deps:`.
-4. Map dependencies in Linear as relations: in the same `save_issue` call that creates or updates `[T-002]`, pass `blockedBy: ["T-006"]` — the tool takes identifiers directly.
-5. When code lands:
-   - post the commit hash/PR link as a `save_comment` on the issue
-   - `save_issue` with `state` moved to Done and `links` set to the commit/PR URL
-   - mark the checkbox in `docs/TODO.md`.
-
-## Notes
-
-- Write relations through `save_issue` from the start — each is one call with `blockedBy`, so there is nothing to hand-map first.
+4. For each `deps:` entry, look up that task's Linear key the same way, then `linear issue relation add <KEY> blocked-by <DEP-KEY>`.
+5. When code lands: `linear issue comment add <KEY> --body "<commit/PR URL>"`, `linear issue link <KEY> <URL>`, `linear issue update <KEY> --state completed`, then mark the checkbox in `docs/TODO.md`.

@@ -6,7 +6,7 @@ disable-model-invocation: true
 
 This skill takes the current conversation context and codebase understanding and produces a spec. Do NOT interview the user; just synthesize what you already know.
 
-The tracker is the mounted Linear MCP (`save_issue` with `addLabels`, `blockedBy`). The `ready-for-agent` label exists only in repos where `/skill:setup-matt-pocock-skills` has run -- check with `list_issue_labels`, and create it (or tell the user to run setup) rather than assuming.
+When using Linear, load [skill://linear-cli](skill://linear-cli). Check whether `ready-for-agent` exists with `linear label list --team TEAM`; if absent, create it or tell the user to run `/skill:setup-matt-pocock-skills`.
 
 ## Process
 
@@ -15,7 +15,7 @@ The tracker is the mounted Linear MCP (`save_issue` with `addLabels`, `blockedBy
 2. Sketch out the seams at which you're going to test the feature. Existing seams should be preferred to new ones. Use the highest seam possible. If new seams are needed, propose them at the highest point you can. The fewer seams across the codebase, the better - the ideal number is one.
 
 Check the seams with one batched `ask` call: one `questions[]` entry per seam, each with 2–5 seam options and `recommended` on the seam you prefer.
-3. Write the spec using the template below, then publish it with `save_issue` (`addLabels: ["ready-for-agent"]`, no additional triage needed) — or `save_document` when the spec belongs in Linear as a document rather than a ticket.
+3. Write the spec using the template below, then publish it with `linear issue create --team TEAM --title "..." --description-file ./spec.md --label ready-for-agent --no-input` — or use `linear document create --title "..." --content-file ./spec.md --team TEAM --no-input` when the spec belongs in Linear as a document.
 
 <spec-template>
 
