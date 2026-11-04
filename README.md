@@ -166,7 +166,7 @@ Two features are configured, present on disk, and deliberately inert. A third wa
 
 ### Service CLIs
 
-The MCP catalog is empty: `agent/mcp.json` has `"mcpServers": {}`. `disabledServers` still excludes `cavemem`, `computer-use` and `pencil`. Service CLIs replaced the mounted services; Wrangler projects still use `wrangler` and its existing skill.
+The MCP catalog is empty: `agent/mcp.json` has `"mcpServers": {}`. omp also discovers servers from other tools' configs (`~/.claude.json`, `~/.codex/config.toml`, `~/.gemini/settings.json`, `~/.config/opencode/opencode.json`, …) and the first same-named definition wins, so removing the native `sentry` entry would let opencode's `sentry` (same `mcp.sentry.dev` endpoint) mount. `disabledServers` therefore names every replaced server plus the third-party ones found on this machine — `cavemem`, `computer-use`, `node_repl`, `pencil`, `playwright`, `worldcoin-developer-portal` — and hides them from any source. Service CLIs replaced the mounted services; Wrangler projects still use `wrangler` and its existing skill.
 
 | Service | CLI | Install | Login | Skill |
 |---|---|---|---|---|
@@ -337,7 +337,7 @@ Working agreements encoded in `agent/AGENTS.md`: plans in `.omo/plans/`, specs i
 | `agent/RULES.md` | always-apply rules. Three lines; the fourth duplicated the harness contract verbatim and was cut |
 | `agent/config.yml` | model roles, provider order, fallback chains, TUI, memory, tool settings |
 | `agent/models.yml` | override-only, and only two entries: `gpt-6-astra`'s context window raised to the plan ceiling the catalog understates, and `deepseek-v4.1-flash`'s output cap corrected from a discovery guess |
-| `agent/mcp.json` | empty `mcpServers` list plus `disabledServers` for `cavemem`, `computer-use` and `pencil` |
+| `agent/mcp.json` | empty `mcpServers` plus a `disabledServers` denylist covering the replaced servers and every third-party-config server on this machine |
 | `agent/lsp.json` | one override: `idleTimeoutMs: 300000` |
 | `agent/WATCHDOG.md` | advisor review brief — live since `advisor.enabled: true` (2026-08-28) |
 | `agent/WATCHDOG.yml` | advisor roster: one entry, widening the advisor's tool grant to include `lsp`. Also live |
