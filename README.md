@@ -131,7 +131,7 @@ The unused `voyager` and unconnected `slack` servers were removed without replac
 
 ## Skills
 
-`agent/skills/` holds 85 skills: 70 written or copied here, 15 symlinks into `.sources/` submodules. 53 are model-invoked: their descriptions sit in every system prompt and omp loads a skill when one matches. 32 are command-only (`disable-model-invocation: true`): they cost nothing per turn and load only via `/skill:<name>`, which is why retiring a skill here means setting that flag rather than deleting it. List them:
+`agent/skills/` holds 88 skills: 73 written or copied here, 15 symlinks into `.sources/` submodules. 56 are model-invoked: their descriptions sit in every system prompt and omp loads a skill when one matches. 32 are command-only (`disable-model-invocation: true`): they cost nothing per turn and load only via `/skill:<name>`, which is why retiring a skill here means setting that flag rather than deleting it. List them:
 
 ```sh
 grep -l '^disable-model-invocation: true' agent/skills/*/SKILL.md
@@ -140,10 +140,10 @@ grep -l '^disable-model-invocation: true' agent/skills/*/SKILL.md
 omp also discovers skills from `~/.config/opencode/skills` (the sibling `opencode-config` checkout), so deleting a skill here does not stop a same-named copy loading from there.
 
 - **Service CLIs** (replace MCP, see [Service CLIs](#service-clis)): `linear-cli`, `sentry-cli`, `cf-cli`, `ntn-cli`, `alchemy-cli`; `linear` is the command-only TODO.md → Linear sync.
-- **Design**: `wayfinding`, `brainstorming`, `grilling`, `grill-me`, `grill-with-docs`, `prototyping`, `baseline-first`, `codebase-design`, `domain-modeling`, `to-questionnaire`, `to-spec`, `research`, `writing-plans`, `pre-mortem`, `decision-log`.
+- **Design**: `wayfinding`, `brainstorming`, `grilling`, `grill-me`, `grill-with-docs`, `prototyping`, `baseline-first`, `codebase-design`, `domain-modeling`, `to-questionnaire`, `to-spec`, `spec-quality-audit`, `research`, `writing-plans`, `pre-mortem`, `decision-log`.
 - **Execution**: `subagent-driven-development`, `dispatching-parallel-agents`, `diverge-converge`, `implement`, `to-tickets`, `triage`, `using-git-worktrees`, `resolving-merge-conflicts`, `finishing-a-development-branch`, `wizard`, `handoff`.
 - **Quality**: `test-driven-development`, `systematic-debugging`, `code-review`, `interrogate`, `blast-radius`, `deslop`, `unslop`, `create-verification-skill`, `maintain-verification-skill`, `principle-boundary-discipline`, `principle-type-system-discipline`, `typescript-best-practices`, `writing-idiomatic-rust`, `security-audit`, `security-best-practices`, `wait-what`.
-- **UI**: `frontend-design`, `anti-ui-slop`, `design-critique`, `better-ui`, `web-interface-guidelines`, `animate`, `review-animations`, `figma`, `figma-implement-design`, `webapp-testing`, `web-perf`.
+- **UI**: `frontend-design`, `anti-ui-slop`, `design-critique`, `dark-patterns-audit`, `better-ui`, `web-interface-guidelines`, `animate`, `review-animations`, `figma`, `figma-implement-design`, `webapp-testing`, `web-perf`.
 - **Cloudflare** (submodule, all model-invoked): `cloudflare`, `agents-sdk`, `durable-objects`, `workers-best-practices`, `wrangler`, `nextjs-on-cloudflare`, `sandbox-stable`, `sandbox-next`, `sandbox-migrate-to-next`, `cloudflare-one`, `cloudflare-one-migrations`, `cloudflare-email-service`, `turnstile-spin`.
 - **Meta**: `context-curation`, `writing-skills`, `writing-for-agents`, `ask-matt`, `teach`, `improve-codebase-architecture`, `setup-matt-pocock-skills`, `cavecrew` (reference only while the fleet is disabled), `caveman-commit`, `reviewing-model-pins`.
 - **Domain**: `kpk-docs`, `typesafe-ai`, `elixir-architect`, `phoenix-liveview`.
@@ -207,6 +207,7 @@ This repository is MIT licensed; see [`LICENSE`](LICENSE). Vendored components r
 | [`anthropics/skills`](https://github.com/anthropics/skills) (Apache-2.0) | `frontend-design`, `webapp-testing` (ported) |
 | [`jakubkrehel/skills`](https://github.com/jakubkrehel/skills) (MIT) | `better-ui` (ported) |
 | [`bobmatnyc/claude-mpm-skills`](https://github.com/bobmatnyc/claude-mpm-skills) (MIT) | `phoenix-liveview` (rewritten) |
+| [`Uxcel-Lab/product-skills`](https://github.com/Uxcel-Lab/product-skills) (MIT) | `dark-patterns-audit`, `spec-quality-audit` (2 of 59, picked by baseline test; orchestration references removed) |
 | Relocated from `~/.codex/skills` | `figma`, `figma-implement-design`, `security-best-practices` have Apache-2.0 files without named holders; `elixir-architect` and `linear` have no license/provenance and are not claimed. |
 
 Other skills, CLI skills, agents and config are original here; exceptions are in [`NOTICE`](NOTICE).

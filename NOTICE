@@ -666,6 +666,65 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 
 --------------------------------------------------------------------------------
+Uxcel-Lab/product-skills -- https://github.com/Uxcel-Lab/product-skills
+--------------------------------------------------------------------------------
+
+Applies to these skill directories in agent/skills/, vendored 2026-11-05 from
+5007cd0241cc:
+
+  dark-patterns-audit               (from ux/audits/dark-patterns)
+  spec-quality-audit                (from pm/audits/spec-quality)
+
+Only two of upstream's 59 skills are vendored, chosen by a baseline test on a
+seeded deposit page and a seeded engineering spec (5 runs without the skill,
+5 with). With dark-patterns, runs that labelled honest usability or
+accessibility defects as dark patterns fell from 3/5 to 0/5 and every run
+classified findings Dark/Grey/Mistake (0/5 before); recall of the seven seeded
+patterns was already 34/35 and stayed 35/35. With spec-quality, the missing
+out-of-scope section was caught in 4/5 runs (0/5 before) and concrete rewritten
+requirements appeared in 5/5 (2/5 before). The accessibility and heuristics
+audits were tested the same way and not vendored: baseline already found every
+seeded defect, the heuristics skill only added heuristic tags, and the
+accessibility skill's WCAG 2.1 target dropped 2.5.8 target-size findings from
+5/5 to 2/5 while its "#333 on #F8F8F8" taste rule produced false findings in
+2/5 runs.
+
+Modified in both: names lose the `ux-`/`pm-` prefix; descriptions name the
+triggers only; the "Scope discipline" paragraph and every other reference to
+upstream's `docs/orchestration-policy.md` (absent upstream) are removed, as is
+the "Source lessons" list of uxcel.com links. dark-patterns-audit routes honest
+mistakes to a usability review, clutter to `design-critique` and accessibility
+to `web-interface-guidelines` instead of upstream's sibling audits, and drops
+the paragraph naming upstream's generative skills that call it.
+spec-quality-audit names `to-spec` instead of `pm-product-spec` and states its
+boundary without upstream's three `pm-*` audits, none of which are vendored.
+
+Upstream ships its license at the repository root rather than inside each
+skill directory, so it is reproduced here instead of vendored alongside.
+
+MIT License
+
+Copyright (c) 2026 Uxcel Lab
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.
+
+--------------------------------------------------------------------------------
 Original to this repository
 --------------------------------------------------------------------------------
 
