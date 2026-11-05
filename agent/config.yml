@@ -139,13 +139,18 @@ retry:
     # (zai/glm-5.3-flash, anthropic/claude-opus-5-5, anthropic/*, critic,
     # default) to same-weights-first once ollama-cloud/opencode-go reset or
     # openrouter is funded.
+    # zai-paygo (models.yml) is the z.ai account balance on the general API: same
+    # weights and key, billed per token, outside the Coding Plan quota. First hop
+    # so an exhausted plan spills onto paid credits before another model family.
     zai/glm-5.3-flash:
+      - zai-paygo/glm-5.3-flash
       - openai-codex/gpt-6-luna
       - openrouter/z-ai/glm-5.3-flash
       - ollama-cloud/*
       - opencode-go/*
       - anthropic/claude-haiku-5-5
     zai/glm-5.3:
+      - zai-paygo/glm-5.3
       - openrouter/z-ai/glm-5.3
       - ollama-cloud/*
       - opencode-go/*

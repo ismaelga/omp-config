@@ -94,3 +94,24 @@ providers:
         input: [text]
         # Same list price as the bundled jev-latest row (usage stats read this).
         cost: { input: 0.042, output: 0, cacheRead: 0, cacheWrite: 0 }
+  zai-paygo:
+    # 2026-11-04: z.ai account-balance credits ("extra usage"). The built-in
+    # zai provider (/login zai) only calls the Coding Plan endpoint
+    # api.z.ai/api/coding/paas/v4, which keeps answering 429 [1310] once the
+    # plan's weekly quota is spent, credits or not. The same key works on the
+    # general endpoint below and bills the balance per token (probed both
+    # 2026-11-04: coding -> 1310, paas/v4 -> 200 for glm-5.3-flash and glm-5.3).
+    # Reached as the first fallback hop after zai/* in config.yml, so the plan
+    # is spent first. Ids only: limits, thinking levels and price fill from the
+    # bundled zai reference rows (see the header on hand-written metadata).
+    baseUrl: https://api.z.ai/api/paas/v4
+    # Reuses the stored /login zai key instead of copying it into this tracked file.
+    apiKey: "!omp token zai"
+    api: openai-completions
+    models:
+      # contextWindow copied from the built-in zai rows: the reference fill
+      # otherwise picks a 1048576 row from another host for the same id.
+      - id: glm-5.3-flash
+        contextWindow: 1000000
+      - id: glm-5.3
+        contextWindow: 1000000
