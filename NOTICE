@@ -678,8 +678,9 @@ Applies to these skill directories in agent/skills/, vendored 2026-11-05 from
 Only two of upstream's 59 skills are vendored, chosen by a baseline test on a
 seeded deposit page and a seeded engineering spec (5 runs without the skill,
 5 with). With dark-patterns, runs that labelled honest usability or
-accessibility defects as dark patterns fell from 3/5 to 0/5 and every run
-classified findings Dark/Grey/Mistake (0/5 before); recall of the seven seeded
+accessibility defects as dark patterns fell from 5/5 to 0/5 (hand-scored by
+ten scorers; an automated first pass counted 3/5) and every run classified
+findings Dark/Grey/Mistake (0/5 before); recall of the seven seeded
 patterns was already 34/35 and stayed 35/35. With spec-quality, the missing
 out-of-scope section was caught in 4/5 runs (0/5 before) and concrete rewritten
 requirements appeared in 5/5 (2/5 before). The accessibility and heuristics
