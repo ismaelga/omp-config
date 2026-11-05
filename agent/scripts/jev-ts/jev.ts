@@ -104,9 +104,8 @@ function spawnDaemon(): void {
   child.unref();
 }
 
-// Flags are dash-prefixed words (--item, --op, --human-gate, ...): strip the
-// leading dashes, map hyphenated names to their field (human-gate →
-// human_gate), take the next argv slot as the value.
+// Flags are dash-prefixed words (--op, --source, ...): strip the leading
+// dashes and take the next argv slot as the value; a flag with no value is true.
 function parseArgs(): { cmd: string; input: Record<string, unknown> } {
   const argv = Bun.argv.slice(2);
   const cmd = argv[0];
@@ -114,15 +113,12 @@ function parseArgs(): { cmd: string; input: Record<string, unknown> } {
   for (let i = 1; i < argv.length; i++) {
     const a = argv[i];
     if (!a.startsWith("--")) continue;
-    const key = a.slice(2);
-    // --human-gate maps to human_gate: both the value and the bare-flag
-    // (boolean true) forms must land on the field cmdRoute reads.
-    const field = key === "human-gate" ? "human_gate" : key;
+    const field = a.slice(2);
     const next = argv[i + 1];
     if (next === undefined || next.startsWith("--")) {
       input[field] = true;
     } else {
-      input[field] = key === "catalog" ? next.split(",") : next;
+      input[field] = next;
       i++;
     }
   }
