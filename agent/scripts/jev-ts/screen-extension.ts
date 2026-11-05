@@ -8,8 +8,10 @@
 // planted injections and 0/20 hard negatives at threshold 0.5, 1/200 organic
 // fetches flagged (a base64 example certificate). Every external fetch
 // transits api.typesafe.ai: user decision 2026-11-05, widening the 2026-09-17
-// one that covered elective `screen` calls. Content fetched through bash
-// (curl, gh) or MCP is not seen here and stays on the prompt clause.
+// one that covered elective `screen` calls. Subagents rebind the parent's
+// extension factories, so their fetches are screened (and sent) too. Content
+// fetched through bash (curl, gh) or MCP is not seen here and stays on the
+// prompt clause.
 import type { ExtensionAPI } from "@oh-my-pi/pi-coding-agent";
 import { cmdScreen } from "./core.ts";
 
