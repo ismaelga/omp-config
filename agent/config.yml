@@ -321,6 +321,11 @@ tier:
 skills:
   enabled: true
   enableSkillCommands: true
+# Screens each external fetch (read of a URL, web_search) with jev; a flag
+# arrives as a system reminder after the result. Measurements and decision:
+# docs/plans/2026-11-05-jev-usage.md, Task 4.
+extensions:
+  - ~/.omp/agent/scripts/jev-ts/screen-extension.ts
 composer:
   shape: pi
 codexResets:
