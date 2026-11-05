@@ -38,6 +38,12 @@ modelRoles:
   advisor: zai/glm-5.3-flash:high
   default: anthropic/claude-opus-5-5:xhigh
   scout: zai/glm-5.3-flash:high
+  # critic KEEP 2026-11-05: seeded withdrawal diff (9 defects, 4 correct-but-
+  # suspicious decoys), 3 reps each at :high via omp -p. terra, sol, sonnet-5-5
+  # and opus-5-5 all found 9/9 every rep and flagged 0 decoys; terra wrote the
+  # tersest report (~1.1k chars, 9-10 findings, 74-91 s) vs opus ~3k chars and
+  # 13-21 findings. The bench saturates: it shows terra is not worse, not that
+  # it is best. A harder diff is what would separate them.
   critic: openai-codex/gpt-6.1-terra:high
   sentinel: anthropic/claude-sonnet-5-5:xhigh
   judge: typesafe/jev-1.14.0
